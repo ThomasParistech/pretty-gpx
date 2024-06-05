@@ -1,0 +1,42 @@
+
+select = [
+    "E", # Pycodestyle
+    "F", # Pyflakes
+    "I", # Isort
+    # "N", # Pep8-Naming
+    "PL", # Pylint,
+    "NPY", # Numpy
+    # "C90", # Check Code complexity
+    "D", # Pydoc, faster than darglint but more restrictive
+    "FIX",
+    "TD",
+    "T20"
+]
+
+ignore = [
+    "FIX002", # Already Catch (and maybe solve by TD),
+    "D408", # section-underline-after-name
+    "D105", # undocumented-magic-method __**__
+    "D107" # __init__
+]
+
+target-version = "py310"
+line-length=120
+ignore-init-module-imports = true
+cache-dir = "~/.cache/ruff"
+
+exclude = []
+
+[isort]
+force-single-line = true
+order-by-type = false
+
+[pylint]
+allow-magic-value-types = ["int", "str", "float"]
+max-args = 6
+
+[pydocstyle]
+convention = "google"
+
+[extend-per-file-ignores]
+"__init__.py" = ["D104"] # Check how ignore empty __init__.py files
