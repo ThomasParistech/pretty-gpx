@@ -16,7 +16,8 @@ RUN apt-get -y update   && \
     apt-get -y install     \
     libgl1                 \
     git                    \
-    libglib2.0-0
+    libglib2.0-0          \
+    tk
 
 
 ## Switch to non-root user
