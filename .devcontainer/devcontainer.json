@@ -7,7 +7,6 @@
             "extensions": [
                 "ms-python.python",
                 "ms-azuretools.vscode-docker",
-                "streetsidesoftware.code-spell-checker",
                 "eamodio.gitlens",
                 "charliermarsh.ruff",
                 "ms-python.autopep8",
