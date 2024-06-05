@@ -1,0 +1,42 @@
+{
+    "name": "core-3dml",
+    "context": "..",
+	"dockerFile": "Dockerfile",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-azuretools.vscode-docker",
+                "streetsidesoftware.code-spell-checker",
+                "eamodio.gitlens",
+                "charliermarsh.ruff",
+                "ms-python.autopep8",
+                "ms-python.mypy-type-checker"
+            ]
+        }
+    },
+    "capAdd": [
+        "SYS_PTRACE"
+    ],
+    "containerEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}"
+    },
+    "mounts": [
+        {
+            "source": "${localEnv:HOME}/.aws/credentials",
+            "target": "/home/dock/.aws/credentials",
+            "type": "bind"
+        },
+        {
+            "source": "/tmp/.X11-unix/",
+            "target": "/tmp/.X11-unix/",
+            "type": "bind"
+        },
+        {
+            "source": "/root/.cache/pip",
+            "target": "/root/.cache/pip",
+            "type": "bind"
+        }
+    ],
+    "remoteUser": "dock"
+}

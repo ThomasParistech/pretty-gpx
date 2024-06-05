@@ -1,19 +1,20 @@
 
-select = [
+lint.select = [
     "E", # Pycodestyle
     "F", # Pyflakes
     "I", # Isort
-    # "N", # Pep8-Naming
+    "N", # Pep8-Naming
     "PL", # Pylint,
     "NPY", # Numpy
     # "C90", # Check Code complexity
     "D", # Pydoc, faster than darglint but more restrictive
     "FIX",
     "TD",
-    "T20"
+    "T20",
+    "UP"
 ]
 
-ignore = [
+lint.ignore = [
     "FIX002", # Already Catch (and maybe solve by TD),
     "D408", # section-underline-after-name
     "D105", # undocumented-magic-method __**__
@@ -22,21 +23,28 @@ ignore = [
 
 target-version = "py310"
 line-length=120
-ignore-init-module-imports = true
 cache-dir = "~/.cache/ruff"
 
-exclude = []
+exclude = [
+	"gs_viewer",
+	"submodules",
+	"dependencies/gs_dataset_readers.py",
+	"dependencies/pixsfm_setup.py",
+	"dependencies/ACMP/colmap2mvsnet_acm.py",
+	"dependencies/ACMMP/colmap2mvsnet_acm.py",
+	"data"
+]
 
-[isort]
+[lint.isort]
 force-single-line = true
 order-by-type = false
 
-[pylint]
+[lint.pylint]
 allow-magic-value-types = ["int", "str", "float"]
 max-args = 6
 
-[pydocstyle]
+[lint.pydocstyle]
 convention = "google"
 
-[extend-per-file-ignores]
+[lint.extend-per-file-ignores]
 "__init__.py" = ["D104"] # Check how ignore empty __init__.py files
