@@ -3,7 +3,15 @@ FROM python:3.10-slim
 
 WORKDIR /workspaces/pretty-gpx
 
-COPY ./requirements.txt .
+
+COPY .devcontainer/packages.txt .
+
+RUN apt-get -y update   && \
+    apt-get -y upgrade  && \
+    apt-get -y dist-upgrade  && \
+    xargs -a packages.txt apt-get install -y
+
+COPY .devcontainer/requirements.txt .
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip3 install -r requirements.txt
@@ -11,14 +19,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY . .
 
 
-RUN apt-get -y update   && \
-    apt-get -y upgrade  && \
-    apt-get -y install     \
-    libgl1                 \
-    git                    \
-    libglib2.0-0          \
-    tk
-
+ENV PYTHONPATH $PYTHONPATH:"/workspaces/pretty_gpx"
 
 ## Switch to non-root user
 ENV USER=dock

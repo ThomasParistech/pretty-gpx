@@ -18,7 +18,8 @@ lint.ignore = [
     "FIX002", # Already Catch (and maybe solve by TD),
     "D408", # section-underline-after-name
     "D105", # undocumented-magic-method __**__
-    "D107" # __init__
+    "D107", # __init__
+    "PLR0913"
 ]
 
 target-version = "py310"
@@ -26,12 +27,6 @@ line-length=120
 cache-dir = "~/.cache/ruff"
 
 exclude = [
-	"gs_viewer",
-	"submodules",
-	"dependencies/gs_dataset_readers.py",
-	"dependencies/pixsfm_setup.py",
-	"dependencies/ACMP/colmap2mvsnet_acm.py",
-	"dependencies/ACMMP/colmap2mvsnet_acm.py",
 	"data"
 ]
 

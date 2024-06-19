@@ -2,8 +2,10 @@ dem-stitcher==2.5.5
 geopy==2.4.1
 gpxpy==1.6.2
 nicegui==1.4.26
+numpy==1.26.0
 opencv-contrib-python==4.9.0.80
 opencv-python==4.9.0.80
 opencv-python-headless==4.9.0.80
 overpy==0.7
-textalloc==1.0.4
+ruff==0.4.6
+textalloc==1.0.5
