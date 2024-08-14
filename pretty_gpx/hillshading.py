@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Hill Shading."""
+"""Cached Hill Shading."""
 import numpy as np
 
 AZIMUTHS: dict[str, int] = {
@@ -11,27 +11,26 @@ AZIMUTHS: dict[str, int] = {
 
 
 class CachedHillShading:
-    """"
-    equivalent of
-    # import earthpy.spatial as es
-    # hillshade = es.hillshade(elevation)
+    """"Add caching around the implementation of `hillshade` method from `earthpy.spatial` module.
 
+    A hillshade is a 3D representation of a surface. Hillshades are generally rendered in greyscale.
+    The darker and lighter colors represent the shadows and highlights that you would visually expect
+    to see in a terrain model.
+
+    The sun is forced at altitude zero to increase the contrast.
     """
 
     def __init__(self, elevation: np.ndarray) -> None:
-        """altitude=0"""
         x, y = np.gradient(elevation)
         slope = np.pi / 2.0 - np.arctan(np.sqrt(x*x + y*y))
         self.aspect = np.arctan2(-x, y)
         self.cos_slope = np.cos(slope)
 
-        # self.grey_cmap = get_cmap("Greys") # FIXME: explain that there are ugly steps
-
         self.last_azimuth: int = -1
         self.last_img: np.ndarray = self.render_grey(0)
 
     def render_grey(self, azimuth: int) -> np.ndarray:
-        """aaaaaa at, return flaot array """
+        """Render floating-point grayscale hillshade (inside [0., 1.])."""
         if self.last_azimuth == azimuth:
             return self.last_img
 
@@ -43,14 +42,7 @@ class CachedHillShading:
         # Grey
         normalized_hillshade = (hillshade - np.min(hillshade))/(np.max(hillshade) - np.min(hillshade))
 
-        grey_hillshade = (1.0 - np.power(normalized_hillshade, 1.3))[..., None]
-
-        # # Colormap
-        # colored_hillshade = grey_hillshade * (np.array(color_1) - np.array(color_0)) + np.array(color_0)
-
-        # # plt.matshow(colored_hillshade.astype(np.uint8))
-        # # # plt.matshow(get_cmap("Greys")(normalized_hillshade))
-        # # plt.show()
+        grey_hillshade = (1.0 - np.power(normalized_hillshade, 1.3))
 
         self.last_img = grey_hillshade
         self.last_azimuth = azimuth

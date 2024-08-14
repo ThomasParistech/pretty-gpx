@@ -8,4 +8,4 @@ opencv-python==4.9.0.80
 opencv-python-headless==4.9.0.80
 overpy==0.7
 ruff==0.4.6
-textalloc==1.0.5
+textalloc==1.0.6

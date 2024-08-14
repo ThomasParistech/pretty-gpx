@@ -1,5 +1,5 @@
 {
-    "name": "core-3dml",
+    "name": "pretty-gpx",
     "context": "..",
 	"dockerFile": "Dockerfile",
     "customizations": {
@@ -21,11 +21,6 @@
         "DISPLAY": "${localEnv:DISPLAY}"
     },
     "mounts": [
-        {
-            "source": "${localEnv:HOME}/.aws/credentials",
-            "target": "/home/dock/.aws/credentials",
-            "type": "bind"
-        },
         {
             "source": "/tmp/.X11-unix/",
             "target": "/tmp/.X11-unix/",

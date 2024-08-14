@@ -2,14 +2,13 @@
 """Gpx Track."""
 from dataclasses import dataclass
 from typing import BinaryIO
-from typing import List
 from typing import TextIO
-from typing import Tuple
-from typing import Union
 
 import gpxpy
 import gpxpy.gpx
 import numpy as np
+
+from pretty_gpx.gpx.gpx_bounds import GpxBounds
 
 
 def local_m_to_deg(m: float) -> float:
@@ -20,12 +19,12 @@ def local_m_to_deg(m: float) -> float:
 @dataclass
 class GpxTrack:
     """aaaaaaaa"""
-    list_lon: List[float]
-    list_lat: List[float]
-    list_ele: List[float]
+    list_lon: list[float]
+    list_lat: list[float]
+    list_ele: list[float]
 
     @staticmethod
-    def load(gpx_path: Union[str, BinaryIO, TextIO]) -> Tuple['GpxTrack', float, float]:
+    def load(gpx_path: str | BinaryIO | TextIO | bytes) -> tuple['GpxTrack', float, float]:
         """aaaaaa, with totl disance (in km) and d+ (in m)"""
         if isinstance(gpx_path, str):
             gpx_path = open(gpx_path)
@@ -47,3 +46,13 @@ class GpxTrack:
         dist_deg = float(np.linalg.norm((self.list_lon[0] - self.list_lon[-1],
                                          self.list_lat[0] - self.list_lat[-1])))
         return dist_deg < local_m_to_deg(dist_m)
+
+    def project_on_image(self,
+                         img: np.ndarray,
+                         bounds: GpxBounds) -> tuple[list[float], list[float]]:
+        """lon, lat to XY"""
+        x_pix = [(lon - bounds.lon_min) / (bounds.lon_max-bounds.lon_min) * img.shape[1]
+                 for lon in self.list_lon]
+        y_pix = [(bounds.lat_max - lat) / (bounds.lat_max-bounds.lat_min) * img.shape[0]
+                 for lat in self.list_lat]
+        return x_pix, y_pix

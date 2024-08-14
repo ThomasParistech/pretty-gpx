@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 """GPX Bounds."""
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 
@@ -15,7 +14,7 @@ class GpxBounds:
     lat_max: float
 
     @staticmethod
-    def from_list(*, list_lon: List[float], list_lat: List[float]) -> 'GpxBounds':
+    def from_list(*, list_lon: list[float], list_lat: list[float]) -> 'GpxBounds':
         """aaaaaaa"""
         return GpxBounds(lon_min=np.min(list_lon),
                          lon_max=np.max(list_lon),

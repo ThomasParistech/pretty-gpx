@@ -8,7 +8,7 @@ from matplotlib import colors
 
 @dataclass
 class ThemeColors:
-    """aaaaaa"""
+    """Theme Colors."""
     dark_mode: bool
     background_color: str
     track_color: str
@@ -35,9 +35,8 @@ COLOR_THEMES: dict[str, ThemeColors] = {
 }
 
 
-def hex_to_rgb(hex_color):
-    # Convert hexadecimal color to RGB tuple
+def hex_to_rgb(hex_color: str) -> tuple[int, ...]:
+    """Convert hexadecimal color string to RGB triplet."""
     rgb_tuple = colors.hex2color(hex_color)
-    # Scale RGB values from [0, 1] to [0, 255] and convert to integers
     rgb_int_tuple = tuple(int(x * 255) for x in rgb_tuple)
     return rgb_int_tuple
