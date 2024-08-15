@@ -1,11 +1,12 @@
 #!/usr/bin/python3
 """Vertical Layout."""
-import numpy as np
 from dataclasses import dataclass
+
+import numpy as np
 
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.gpx.gpx_track import GpxTrack
-from pretty_gpx.paper_size import PaperSize
+from pretty_gpx.layout.paper_size import PaperSize
 
 
 @dataclass

@@ -10,8 +10,6 @@ from dem_stitcher import stitch_dem
 
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
 
-import matplotlib.pyplot as plt
-
 
 def download_elevation_map(bounds: GpxBounds, cache_folder: str) -> np.ndarray:
     """aaaa"""

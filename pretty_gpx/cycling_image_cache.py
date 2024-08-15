@@ -23,9 +23,9 @@ from pretty_gpx.gpx.augmented_gpx_data import MountainPass
 from pretty_gpx.gpx.elevation_map import download_elevation_map
 from pretty_gpx.gpx.elevation_map import rescale_elevation
 from pretty_gpx.hillshading import CachedHillShading
-from pretty_gpx.paper_size import PAPER_SIZES
-from pretty_gpx.vertical_layout import get_bounds
-from pretty_gpx.vertical_layout import VerticalLayout
+from pretty_gpx.layout.paper_size import PAPER_SIZES
+from pretty_gpx.layout.vertical_layout import get_bounds
+from pretty_gpx.layout.vertical_layout import VerticalLayout
 
 W_DISPLAY_PIX = 800
 
@@ -39,7 +39,9 @@ def get_elevation_drawings(layout: VerticalLayout,
                            h_pix: int, w_pix: int,
                            list_ele: list[float],
                            passes_ids: list[int],
-                           drawing_params: DrawingParams) -> tuple[ScatterData, PolyFillData, TextData]:
+                           draw_start: bool,
+                           draw_end: bool,
+                           drawing_params: DrawingParams) -> tuple[ScatterData, ScatterData, PolyFillData, TextData]:
     """aaaaaaaaaa"""
     h_up_pix = h_pix * (layout.title_relative_h + layout.map_relative_h)
     h_bot_pix = h_pix * (layout.title_relative_h + layout.map_relative_h + layout.elevation_relative_h)
@@ -49,6 +51,16 @@ def get_elevation_drawings(layout: VerticalLayout,
     elevation_poly_y = h_bot_pix + (np.array(list_ele) -
                                     hmin) * (h_up_pix-h_bot_pix) / (hmax-hmin)
 
+    start_peaks_x, start_peaks_y = [], []
+    if draw_start:
+        start_peaks_x.append(elevation_poly_x[0])
+        start_peaks_y.append(elevation_poly_y[0])
+    if draw_end:
+        start_peaks_x.append(elevation_poly_x[-1])
+        start_peaks_y.append(elevation_poly_y[-1])
+    start_end_track_data = ScatterData(x=start_peaks_x, y=start_peaks_y,
+                                       marker="o", markersize=drawing_params.peak_markersize)
+
     elevation_peaks_x = [elevation_poly_x[closest_idx] for closest_idx in passes_ids]
     elevation_peaks_y = [elevation_poly_y[closest_idx] for closest_idx in passes_ids]
 
@@ -57,13 +69,14 @@ def get_elevation_drawings(layout: VerticalLayout,
 
     track_data = ScatterData(x=elevation_peaks_x, y=elevation_peaks_y,
                              marker="^", markersize=drawing_params.peak_markersize)
+
     peak_data = PolyFillData(x=elevation_poly_x, y=elevation_poly_y)
 
     stats = TextData(x=0.5 * w_pix, y=0.5 * (h_bot_pix+h_pix),
                      s="", fontsize=drawing_params.stats_fontsize,
                      fontproperties=drawing_params.pretty_font, ha="center")
 
-    return track_data, peak_data, stats
+    return track_data, start_end_track_data, peak_data, stats
 
 
 @dataclass
@@ -135,15 +148,20 @@ class CyclingImageCache:
                                      fontsize=drawing_params.text_fontsize,
                                      fontproperties=drawing_params.classic_font)
 
-        ele_scatter, ele_fill_poly, stats = get_elevation_drawings(layout=layout,
-                                                                   h_pix=h, w_pix=w,
-                                                                   list_ele=gpx_data.track.list_ele,
-                                                                   passes_ids=gpx_data.passes_ids,
-                                                                   drawing_params=drawing_params)
+        draw_start = gpx_data.start_name is not None
+        draw_end = draw_start if gpx_data.is_closed else gpx_data.end_name is not None
+        ele_scatter, start_end_scatter, ele_fill_poly, stats = get_elevation_drawings(layout=layout,
+                                                                                      h_pix=h, w_pix=w,
+                                                                                      list_ele=gpx_data.track.list_ele,
+                                                                                      passes_ids=gpx_data.passes_ids,
+                                                                                      draw_start=draw_start,
+                                                                                      draw_end=draw_end,
+                                                                                      drawing_params=drawing_params)
 
         track_data = [PlotData(x=x_pix, y=y_pix, linewidth=drawing_params.track_linewidth),
                       ele_fill_poly]
         peak_data = [ele_scatter,
+                     start_end_scatter,
                      ScatterData(x=list_x[:len(gpx_data.mountain_passes)], y=list_y[:len(gpx_data.mountain_passes)],
                                  marker="^", markersize=drawing_params.peak_markersize)]
         peak_data += texts[:len(gpx_data.mountain_passes)]

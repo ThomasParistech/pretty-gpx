@@ -33,6 +33,8 @@ class AugmentedGpxData:
     start_name: str | None
     end_name: str | None
 
+    is_closed: bool
+
     mountain_passes: list[MountainPass]
     passes_ids: list[int]
 
@@ -69,6 +71,7 @@ class AugmentedGpxData:
                                 uphill_m=uphill_m,
                                 start_name=start_name,
                                 end_name=end_name,
+                                is_closed=is_closed,
                                 mountain_passes=mountain_passes,
                                 passes_ids=passes_ids)
 
@@ -91,7 +94,7 @@ def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[in
         nwr["natural"="saddle"]{bounds_str};
         nwr["mountain_pass"="yes"]{bounds_str};
 
-        // Query for hiking cols with relevant tags
+        // Query for hiking cols
         nwr["hiking"="yes"]["tourism"="information"]{bounds_str};
         nwr["hiking"="yes"]["information"="guidepost"]{bounds_str};
     );
@@ -102,20 +105,30 @@ def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[in
     for node in result.nodes:
         lon, lat = float(node.lon), float(node.lat)
         tags = node.tags
+
         if "name" in tags and "ele" in tags:
             name, ele = str(node.tags["name"]), float(node.tags["ele"])
 
             if "hiking" in tags and tags["hiking"] == "yes":
-                if "col" not in name.lower():
+                if "col " not in name.lower():
                     continue
 
-            distances = np.linalg.norm(gpx_curve - np.array((lat, lon)), axis=-1)
+            # Check if close to the GPX track
+            lat_lon_np = np.array((lat, lon))
+            distances = np.linalg.norm(gpx_curve - lat_lon_np, axis=-1)
             closest_idx = int(np.argmin(distances))
             closest_distance = distances[closest_idx]
+            if closest_distance > max_dist_deg:
+                continue
 
-            if closest_distance < max_dist_deg:
-                ids.append(closest_idx)
-                passes.append(MountainPass(ele=ele, name=name, lon=lon, lat=lat))
+            # Check if the mountain pass is not already in the list
+            if len(passes) != 0:
+                distances = np.linalg.norm(np.array([[m.lat, m.lon] for m in passes]) - lat_lon_np, axis=-1)
+                if np.min(distances) < local_m_to_deg(200):
+                    continue
+
+            ids.append(closest_idx)
+            passes.append(MountainPass(ele=ele, name=name, lon=lon, lat=lat))
 
     return ids, passes
 

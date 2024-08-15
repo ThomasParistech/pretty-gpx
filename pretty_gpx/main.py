@@ -3,19 +3,17 @@
 
 
 from nicegui import events
+from nicegui import run
 from nicegui import ui
 
 from pretty_gpx.drawing.theme_colors import COLOR_THEMES
 from pretty_gpx.hillshading import AZIMUTHS
 from pretty_gpx.utils import safe
-from pretty_gpx.xxxxxxx import CyclingImageCache
-import asyncio
-from nicegui import ui, events
-from nicegui import run, ui
+from pretty_gpx.cycling_image_cache import CyclingImageCache
 
 
 async def on_file_upload(e: events.UploadEventArguments):
-    ui.notify(f'File Uploaded {e.name}')
+    ui.notify(f'Start processing {e.name}')
     global cache
     cache = await run.cpu_bound(process_file, e.content.read())
     ui.notify('Done')
@@ -27,7 +25,8 @@ def process_file(b: bytes) -> CyclingImageCache:
     return CyclingImageCache.from_gpx(b)
 
 
-ui.upload(multiple=False,
+ui.upload(label="Drag and drop your GPX file here",
+          multiple=False,
           auto_upload=True,
           on_upload=on_file_upload
           ).props('accept=.gpx').on('rejected', lambda: ui.notify('Please provide a GPX file')).classes('max-w-full')
@@ -67,11 +66,7 @@ with ui.row():
         theme_toggle = ui.toggle(list(COLOR_THEMES.keys()), value=list(COLOR_THEMES.keys())[0], on_change=update)
         ui.button('Download', on_click=download)
 
-
-# cache = CyclingImageCache.from_gpx("examples/marmotte.gpx")
-# cache = CyclingImageCache.from_gpx("examples/couillole.gpx")
 cache = CyclingImageCache.from_gpx("examples/vanoise.gpx")
-# cache = CyclingImageCache.from_gpx("examples/ventoux.gpx")
 update()
 
 ui.run(reload=False)
