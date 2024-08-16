@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Gpx Track."""
+import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
 import gpxpy
@@ -8,6 +9,9 @@ import numpy as np
 
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.utils import assert_isfile
+
+
+DEBUG_TRACK = False
 
 
 def local_m_to_deg(m: float) -> float:
@@ -35,9 +39,23 @@ class GpxTrack:
         for track in gpx.tracks:
             for segment in track.segments:
                 for point in segment.points:
+                    if point.elevation is None:
+                        if len(gpx_track.list_ele) == 0:
+                            continue  # Skip first point if no elevation
+                        point.elevation = gpx_track.list_ele[-1]
+
                     gpx_track.list_lon.append(point.longitude)
                     gpx_track.list_lat.append(point.latitude)
                     gpx_track.list_ele.append(point.elevation)
+
+        if DEBUG_TRACK:
+            plt.plot(gpx_track.list_lon, gpx_track.list_lat)
+            plt.xlabel('Longitude (in °)')
+            plt.ylabel('Latitude (in °)')
+            plt.figure()
+            plt.plot(gpx_track.list_ele)
+            plt.ylabel('Elevation (in m)')
+            plt.show()
 
         return gpx_track, gpx.length_3d()*1e-3, gpx.get_uphill_downhill().uphill
 

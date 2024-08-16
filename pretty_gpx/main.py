@@ -7,7 +7,7 @@ from nicegui import events
 from nicegui import run
 from nicegui import ui
 
-from pretty_gpx.cycling_image_cache import CyclingImageCache
+from pretty_gpx.poster_image_cache import PosterImageCache
 from pretty_gpx.drawing.theme_colors import COLOR_THEMES
 from pretty_gpx.hillshading import AZIMUTHS
 from pretty_gpx.utils import safe
@@ -30,8 +30,8 @@ async def on_multi_upload(e: events.MultiUploadEventArguments):
     update()
 
 
-def process_files(list_b: list[bytes]) -> CyclingImageCache:
-    return CyclingImageCache.from_gpx(list_b)
+def process_files(list_b: list[bytes]) -> PosterImageCache:
+    return PosterImageCache.from_gpx(list_b)
 
 
 with ui.row():
@@ -82,7 +82,9 @@ with ui.row():
         theme_toggle = ui.toggle(list(COLOR_THEMES.keys()), value=list(COLOR_THEMES.keys())[0], on_change=update)
         ui.button('Download', on_click=download)
 
-cache = CyclingImageCache.from_gpx(["examples/vanoise1.gpx", "examples/vanoise2.gpx", "examples/vanoise3.gpx"])
+cache = PosterImageCache.from_gpx(["examples/hiking/vanoise1.gpx",
+                                   "examples/hiking/vanoise2.gpx",
+                                   "examples/hiking/vanoise3.gpx"])
 update()
 
 ui.run(reload=False)

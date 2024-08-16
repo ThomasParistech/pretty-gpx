@@ -36,7 +36,21 @@ def allocate_text(fig: Figure,
     base_fig = BaseDrawingFigure(w_mm=w_mm, latlon_aspect_ratio=latlon_aspect_ratio)
     base_fig.imshow(fig, ax, imshow_img)
 
-    print("Optimize Text Allocation...")
+    print(f"Optimize {len(s)} Text Allocations...")
+
+    if DEBUG_TEXT_ALLOCATION:
+        debug_fig, debug_ax = plt.subplots()
+        base_fig.imshow(debug_fig, debug_ax, imshow_img)
+        base_fig.adjust_display_width(debug_fig, 600)
+        for list_x, list_y in zip(plots_x_to_avoid, plots_y_to_avoid):
+            debug_ax.plot(list_x, list_y, "-r")
+        for text_x, text_y, text_s in zip(x, y, s):
+            debug_ax.text(text_x, text_y, text_s, ha="center", va="center",
+                          fontsize=fontsize, fontproperties=fontproperties)
+        plt.title("Texts to Allocate")
+        plt.savefig("data/text_before.svg")
+        plt.show()
+
     result_text_xy, result_line = ta.allocate(ax,
                                               x=x,
                                               y=y,
@@ -57,9 +71,9 @@ def allocate_text(fig: Figure,
 
     list_text_data: list[TextData] = []
     list_plot_data: list[PlotData] = []
-
     for i, (text, line) in enumerate(zip(result_text_xy, result_line)):
-        assert text is not None, "Failed to allocate text, consider using larger margins in VerticalLayout"
+        assert text is not None, "Failed to allocate text, consider using larger margins in VerticalLayout " \
+            "or larger `max_distance` when calling `allocate_text`"
         text_x, text_y = text
         list_text_data.append(TextData(x=text_x, y=text_y, s=s[i],
                                        fontsize=fontsize, fontproperties=fontproperties, ha=ha))
@@ -79,7 +93,7 @@ def allocate_text(fig: Figure,
 
         for data in list_text_data + list_plot_data:
             data.plot(ax, "g", imshow_img.shape, imshow_img.shape)
-        plt.savefig("data/test.svg")
+        plt.savefig("data/text_after.svg")
         plt.show()
 
     return list_text_data, list_plot_data

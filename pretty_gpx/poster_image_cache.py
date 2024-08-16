@@ -96,7 +96,7 @@ def get_elevation_drawings(layout: VerticalLayout,
 
 
 @dataclass
-class CyclingImageCache:
+class PosterImageCache:
 
     elevation_map: np.ndarray
     elevation_shading: CachedHillShading
@@ -108,7 +108,7 @@ class CyclingImageCache:
 
     @staticmethod
     def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes],
-                 dpi: int = 400) -> 'CyclingImageCache':
+                 dpi: int = 400) -> 'PosterImageCache':
         """aaaaaaaa"""
         # Extract GPX data and retrieve close mountain passes/huts
         if not isinstance(list_gpx_path, list):
@@ -245,21 +245,21 @@ class CyclingImageCache:
                                 stats=stats)
 
         print("Ready to draw")
-        return CyclingImageCache(elevation_map=elevation,
-                                 elevation_shading=CachedHillShading(elevation),
-                                 stats_dist_km=gpx_data.dist_km,
-                                 stats_uphill_m=gpx_data.uphill_m,
-                                 plotter=plotter)
+        return PosterImageCache(elevation_map=elevation,
+                                elevation_shading=CachedHillShading(elevation),
+                                stats_dist_km=gpx_data.dist_km,
+                                stats_uphill_m=gpx_data.uphill_m,
+                                plotter=plotter)
 
-    def rescale(self, scale: float) -> 'CyclingImageCache':
+    def rescale(self, scale: float) -> 'PosterImageCache':
         """pass"""
         new_elevation_map = rescale_elevation(self.elevation_map, scale)
 
-        return CyclingImageCache(elevation_map=new_elevation_map,
-                                 elevation_shading=CachedHillShading(new_elevation_map),
-                                 stats_dist_km=self.stats_dist_km,
-                                 stats_uphill_m=self.stats_uphill_m,
-                                 plotter=self.plotter)
+        return PosterImageCache(elevation_map=new_elevation_map,
+                                elevation_shading=CachedHillShading(new_elevation_map),
+                                stats_dist_km=self.stats_dist_km,
+                                stats_uphill_m=self.stats_uphill_m,
+                                plotter=self.plotter)
 
     def draw(self,
              fig: Figure,

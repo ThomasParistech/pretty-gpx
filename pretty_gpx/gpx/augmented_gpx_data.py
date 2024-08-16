@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Map Data."""
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -101,7 +102,7 @@ def overpass_request(query_elements: list[str], gpx_track: GpxTrack) -> overpy.R
     api = overpy.Overpass()
     bounds = GpxBounds.from_list(list_lon=gpx_track.list_lon,
                                  list_lat=gpx_track.list_lat).add_relative_margin(0.1)
-    bounds_str = f"({bounds.lat_min:.2f}, {bounds.lon_min:.2f}, {bounds.lat_max:.2f}, {bounds.lon_max:.2f})"
+    bounds_str = f"({bounds.lat_min:.5f}, {bounds.lon_min:.5f}, {bounds.lat_max:.5f}, {bounds.lon_max:.5f})"
 
     query_body = "\n".join([f"{element}{bounds_str};" for element in query_elements])
     result = api.query(f"""(
@@ -117,6 +118,7 @@ def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[in
     gpx_curve = np.stack((gpx.list_lat, gpx.list_lon), axis=-1)
 
     result = overpass_request(["nwr['natural'='saddle']",
+                               "nwr['natural'='peak']",
                                "nwr['mountain_pass'='yes']",
                                "nwr['hiking'='yes']['tourism'='information']",
                                "nwr['hiking'='yes']['information'='guidepost']"],
@@ -124,20 +126,24 @@ def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[in
 
     # See https://www.openstreetmap.org/node/4977980007 (Col du Galibier)
     # See https://www.openstreetmap.org/node/12068789882 (Col de la Vanoise)
+    # See https://www.openstreetmap.org/node/34975894 (Pic du Cabaliros)
     ids: list[int] = []
     passes: list[MountainPass] = []
     for node in result.nodes:
-        lon, lat = float(node.lon), float(node.lat)
         tags = node.tags
 
         if "name" in tags and "ele" in tags:
-            name, ele = str(node.tags["name"]), float(node.tags["ele"])
+            if not node.tags["ele"].isnumeric():
+                continue
+            name = str(node.tags["name"])
+            ele = float(node.tags["ele"])
 
             if "hiking" in tags and tags["hiking"] == "yes":
                 if "col " not in name.lower():
                     continue
 
             # Check if close to the GPX track
+            lon, lat = float(node.lon), float(node.lat)
             lat_lon_np = np.array((lat, lon))
             distances = np.linalg.norm(gpx_curve - lat_lon_np, axis=-1)
             closest_idx = int(np.argmin(distances))
