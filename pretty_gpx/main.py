@@ -79,7 +79,6 @@ with ui.row():
         theme_toggle = ui.toggle(list(COLOR_THEMES.keys()), value=list(COLOR_THEMES.keys())[0], on_change=update)
         ui.button('Download', on_click=download)
 
-# cache = CyclingImageCache.from_gpx("examples/vanoise.gpx")
 cache = CyclingImageCache.from_gpx(["examples/vanoise1.gpx", "examples/vanoise2.gpx", "examples/vanoise3.gpx"])
 update()
 
