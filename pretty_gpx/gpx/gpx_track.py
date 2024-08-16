@@ -1,14 +1,13 @@
 #!/usr/bin/python3
 """Gpx Track."""
 from dataclasses import dataclass
-from typing import BinaryIO
-from typing import TextIO
 
 import gpxpy
 import gpxpy.gpx
 import numpy as np
 
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
+from pretty_gpx.utils import assert_isfile
 
 
 def local_m_to_deg(m: float) -> float:
@@ -24,9 +23,10 @@ class GpxTrack:
     list_ele: list[float]
 
     @staticmethod
-    def load(gpx_path: str | BinaryIO | TextIO | bytes) -> tuple['GpxTrack', float, float]:
+    def load(gpx_path: str | bytes) -> tuple['GpxTrack', float, float]:
         """aaaaaa, with totl disance (in km) and d+ (in m)"""
         if isinstance(gpx_path, str):
+            assert_isfile(gpx_path, ext='.gpx')
             gpx_path = open(gpx_path)
         gpx = gpxpy.parse(gpx_path)
 

@@ -2,35 +2,48 @@
 """aaaaaaaa."""
 
 
+from natsort import index_natsorted
 from nicegui import events
 from nicegui import run
 from nicegui import ui
 
+from pretty_gpx.cycling_image_cache import CyclingImageCache
 from pretty_gpx.drawing.theme_colors import COLOR_THEMES
 from pretty_gpx.hillshading import AZIMUTHS
 from pretty_gpx.utils import safe
-from pretty_gpx.cycling_image_cache import CyclingImageCache
 
 
-async def on_file_upload(e: events.UploadEventArguments):
-    ui.notify(f'Start processing {e.name}')
-    global cache
-    cache = await run.cpu_bound(process_file, e.content.read())
-    ui.notify('Done')
+async def on_multi_upload(e: events.MultiUploadEventArguments):
+    sorted_indices = index_natsorted(e.names)
+    names = [e.names[i] for i in sorted_indices]
+    contents = [e.contents[i].read() for i in sorted_indices]
     e.sender.reset()
+
+    if len(e.contents) == 1:
+        ui.notify(f'Start processing {names[0]}')
+    else:
+        ui.notify(f'Start processing a {len(contents)}-days track ({", ".join(names)})')
+
+    global cache
+    cache = await run.cpu_bound(process_file, contents)
+    ui.notify('Done')
     update()
 
 
-def process_file(b: bytes) -> CyclingImageCache:
-    return CyclingImageCache.from_gpx(b)
+def process_file(list_b: list[bytes]) -> CyclingImageCache:
+    return CyclingImageCache.from_gpx(list_b)
 
 
-ui.upload(label="Drag and drop your GPX file here",
-          multiple=False,
-          auto_upload=True,
-          on_upload=on_file_upload
-          ).props('accept=.gpx').on('rejected', lambda: ui.notify('Please provide a GPX file')).classes('max-w-full')
+with ui.row():
+    ui.upload(label="Drag & drop your GPX file(s) here and press upload",
+              multiple=True,
+              on_multi_upload=on_multi_upload
+              ).props('accept=.gpx').on('rejected', lambda: ui.notify('Please provide a GPX file')).classes('max-w-full')
 
+    ui.chat_message(['Welcome 😀\nThis web app lets you create a custom poster from your cycling or hiking GPX file! 🚵 🥾',
+                     'For a multi-day trip, simply upload all consecutive GPX tracks together.\n'
+                     'Just make sure the filenames are in the correct alphabetical order.']
+                    ).props('bg-color=blue-2')
 with ui.row():
     with ui.pyplot(close=False) as plot:
         ax = plot.fig.add_subplot()
@@ -66,7 +79,8 @@ with ui.row():
         theme_toggle = ui.toggle(list(COLOR_THEMES.keys()), value=list(COLOR_THEMES.keys())[0], on_change=update)
         ui.button('Download', on_click=download)
 
-cache = CyclingImageCache.from_gpx("examples/vanoise.gpx")
+# cache = CyclingImageCache.from_gpx("examples/vanoise.gpx")
+cache = CyclingImageCache.from_gpx(["examples/vanoise1.gpx", "examples/vanoise2.gpx", "examples/vanoise3.gpx"])
 update()
 
 ui.run(reload=False)
