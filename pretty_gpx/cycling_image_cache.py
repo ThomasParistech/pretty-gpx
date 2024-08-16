@@ -68,20 +68,20 @@ def get_elevation_drawings(layout: VerticalLayout,
     scatter_data = [
         ScatterData(x=[elevation_poly_x[closest_idx] for closest_idx in ids],
                     y=[elevation_poly_y[closest_idx] for closest_idx in ids],
-                    marker=marker, markersize=drawing_params.peak_markersize)
-        for ids, marker in [(passes_ids, "^"), (huts_ids, "s")]
+                    marker=marker, markersize=markersize)
+        for ids, marker, markersize in [(passes_ids, drawing_params.peak_marker, drawing_params.peak_markersize),
+                                        (huts_ids, drawing_params.hut_marker, drawing_params.hut_markersize)]
     ]
 
     # Start and End
-    start_peaks_x, start_peaks_y = [], []
     if draw_start:
-        start_peaks_x.append(elevation_poly_x[0])
-        start_peaks_y.append(elevation_poly_y[0])
+        scatter_data.append(ScatterData(x=[elevation_poly_x[0]], y=[elevation_poly_y[0]],
+                                        marker=drawing_params.start_marker,
+                                        markersize=drawing_params.start_markersize))
     if draw_end:
-        start_peaks_x.append(elevation_poly_x[-1])
-        start_peaks_y.append(elevation_poly_y[-1])
-    scatter_data.append(ScatterData(x=start_peaks_x, y=start_peaks_y,
-                                    marker="o", markersize=drawing_params.peak_markersize))
+        scatter_data.append(ScatterData(x=[elevation_poly_x[-1]], y=[elevation_poly_y[-1]],
+                                        marker=drawing_params.end_marker,
+                                        markersize=drawing_params.end_markersize))
 
     # Complete the polygon for the elevation profile
     elevation_poly_x = np.hstack((0, 0, elevation_poly_x, w_pix, w_pix)).tolist()
@@ -204,9 +204,11 @@ class CyclingImageCache:
         track_data = [PlotData(x=x_pix, y=y_pix, linewidth=drawing_params.track_linewidth),
                       ele_fill_poly]
         peak_data = ele_scatter + [ScatterData(x=list_x[passes_begin:passes_end], y=list_y[passes_begin:passes_end],
-                                               marker="^", markersize=drawing_params.peak_markersize),
+                                               marker=drawing_params.peak_marker,
+                                               markersize=drawing_params.peak_markersize),
                                    ScatterData(x=list_x[huts_begin:huts_end], y=list_y[huts_begin:huts_end],
-                                               marker="s", markersize=drawing_params.peak_markersize)]
+                                               marker=drawing_params.hut_marker,
+                                               markersize=drawing_params.hut_markersize)]
         peak_data += texts[passes_begin:passes_end]
         peak_data += lines[passes_begin:passes_end]
         peak_data += texts[huts_begin:huts_end]
@@ -217,7 +219,8 @@ class CyclingImageCache:
             peak_data += [texts[i],
                           lines[i],
                           ScatterData(x=[list_x[i]], y=[list_y[i]],
-                                      marker="o", markersize=drawing_params.peak_markersize)]
+                                      marker=drawing_params.start_marker,
+                                      markersize=drawing_params.start_markersize)]
 
         if gpx_data.end_name is not None:
             i = safe(end_idx)
@@ -225,7 +228,8 @@ class CyclingImageCache:
                           lines[i],
                           ScatterData(x=[list_x[i]],
                                       y=[list_y[i]],
-                                      marker="o", markersize=drawing_params.peak_markersize)]
+                                      marker=drawing_params.end_marker,
+                                      markersize=drawing_params.end_markersize)]
 
         title = TextData(x=0.5 * w, y=0.8 * h * layout.title_relative_h,
                          s="", fontsize=drawing_params.title_fontsize,

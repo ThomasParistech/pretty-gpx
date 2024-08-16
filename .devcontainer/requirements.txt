@@ -8,5 +8,7 @@ opencv-contrib-python==4.9.0.80
 opencv-python==4.9.0.80
 opencv-python-headless==4.9.0.80
 overpy==0.7
+svgpathtools==1.6.1
+svgpath2mpl==1.0.0
 ruff==0.4.6
 textalloc==1.0.6

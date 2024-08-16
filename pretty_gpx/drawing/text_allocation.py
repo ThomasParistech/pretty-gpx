@@ -36,6 +36,7 @@ def allocate_text(fig: Figure,
     base_fig = BaseDrawingFigure(w_mm=w_mm, latlon_aspect_ratio=latlon_aspect_ratio)
     base_fig.imshow(fig, ax, imshow_img)
 
+    print("Optimize Text Allocation...")
     result_text_xy, result_line = ta.allocate(ax,
                                               x=x,
                                               y=y,
@@ -67,7 +68,7 @@ def allocate_text(fig: Figure,
         line_x, line_y = line
         list_plot_data.append(PlotData(x=list(line_x), y=list(line_y), linewidth=output_linewidth))
 
-    print("Succesful Text allocation")
+    print("Succesful Text Allocation")
 
     if DEBUG_TEXT_ALLOCATION:
         base_fig.imshow(fig, ax, imshow_img)

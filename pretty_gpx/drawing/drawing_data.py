@@ -7,6 +7,7 @@ from typing import overload
 
 from matplotlib.axes import Axes
 from matplotlib.font_manager import FontProperties
+from matplotlib.path import Path
 
 
 @overload
@@ -100,7 +101,7 @@ class ScatterData(BaseDrawingData):
     x: list[float]
     y: list[float]
 
-    marker: str
+    marker: str | Path
     markersize: float
 
     @staticmethod
