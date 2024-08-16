@@ -25,12 +25,12 @@ async def on_multi_upload(e: events.MultiUploadEventArguments):
         ui.notify(f'Start processing a {len(contents)}-days track ({", ".join(names)})')
 
     global cache
-    cache = await run.cpu_bound(process_file, contents)
+    cache = await run.cpu_bound(process_files, contents)
     ui.notify('Done')
     update()
 
 
-def process_file(list_b: list[bytes]) -> CyclingImageCache:
+def process_files(list_b: list[bytes]) -> CyclingImageCache:
     return CyclingImageCache.from_gpx(list_b)
 
 
@@ -38,12 +38,15 @@ with ui.row():
     ui.upload(label="Drag & drop your GPX file(s) here and press upload",
               multiple=True,
               on_multi_upload=on_multi_upload
-              ).props('accept=.gpx').on('rejected', lambda: ui.notify('Please provide a GPX file')).classes('max-w-full')
+              ).props('accept=.gpx'
+                      ).on('rejected', lambda: ui.notify('Please provide a GPX file')
+                           ).classes('max-w-full')
 
-    ui.chat_message(['Welcome 😀\nThis web app lets you create a custom poster from your cycling or hiking GPX file! 🚵 🥾',
-                     'For a multi-day trip, simply upload all consecutive GPX tracks together.\n'
-                     'Just make sure the filenames are in the correct alphabetical order.']
-                    ).props('bg-color=blue-2')
+    ui.chat_message(
+        ['Welcome 😀\nThis web app lets you create a custom poster from your cycling or hiking GPX file! 🚵 🥾',
+         'For a multi-day trip, simply upload all consecutive GPX tracks together.\n'
+         'Just make sure the filenames are in the correct alphabetical order.']
+    ).props('bg-color=blue-2')
 with ui.row():
     with ui.pyplot(close=False) as plot:
         ax = plot.fig.add_subplot()
