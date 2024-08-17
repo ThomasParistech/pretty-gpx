@@ -1,10 +1,14 @@
 #!/usr/bin/python3
 """NiceGUI Webapp. Drag&Drop GPX files to create a custom poster."""
+import os
+import tempfile
+
 from natsort import index_natsorted
 from nicegui import events
 from nicegui import run
 from nicegui import ui
 
+from pretty_gpx import EXAMPLES_DIR
 from pretty_gpx.drawing.theme_colors import COLOR_THEMES
 from pretty_gpx.hillshading import AZIMUTHS
 from pretty_gpx.poster_image_cache import PosterImageCache
@@ -61,11 +65,12 @@ with ui.row():
             ui.update(plot)
 
         def download():
-            tmp_svg = "data/tmp.svg"
-            plot.fig.savefig(tmp_svg)
-            with open(tmp_svg, "rb") as svg_file:
-                svg_bytes = svg_file.read()
-            ui.download(svg_bytes, 'cycling_poster.svg')
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                tmp_svg = os.path.join(tmp_dir, "tmp.svg")
+                plot.fig.savefig(tmp_svg)
+                with open(tmp_svg, "rb") as svg_file:
+                    svg_bytes = svg_file.read()
+                ui.download(svg_bytes, 'cycling_poster.svg')
 
         with ui.input(label='Title', value="Title").on('keydown.enter', update) as title_button:
             ui.tooltip("Press Enter to update title")
@@ -80,9 +85,8 @@ with ui.row():
         theme_toggle = ui.toggle(list(COLOR_THEMES.keys()), value=list(COLOR_THEMES.keys())[0], on_change=update)
         ui.button('Download', on_click=download)
 
-cache = PosterImageCache.from_gpx(["examples/hiking/vanoise1.gpx",
-                                   "examples/hiking/vanoise2.gpx",
-                                   "examples/hiking/vanoise3.gpx"])
+cache = PosterImageCache.from_gpx([os.path.join(EXAMPLES_DIR, "hiking/vanoise1.gpx"),
+                                   os.path.join(EXAMPLES_DIR, "hiking/vanoise2.gpx"),
+                                   os.path.join(EXAMPLES_DIR, "hiking/vanoise3.gpx")])
 update()
-
 ui.run(reload=False)

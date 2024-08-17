@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 """Text Allocation."""
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import textalloc as ta
@@ -7,6 +9,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
 
+from pretty_gpx import DATA_DIR
 from pretty_gpx.drawing.drawing_data import PlotData
 from pretty_gpx.drawing.drawing_data import TextData
 from pretty_gpx.drawing.drawing_figure import BaseDrawingFigure
@@ -48,7 +51,7 @@ def allocate_text(fig: Figure,
             debug_ax.text(text_x, text_y, text_s, ha="center", va="center",
                           fontsize=fontsize, fontproperties=fontproperties)
         plt.title("Texts to Allocate")
-        plt.savefig("data/text_before.svg")
+        plt.savefig(os.path.join(DATA_DIR, "text_before.svg"))
         plt.show()
 
     result_text_xy, result_line = ta.allocate(ax,
@@ -93,7 +96,7 @@ def allocate_text(fig: Figure,
 
         for data in list_text_data + list_plot_data:
             data.plot(ax, "g", imshow_img.shape, imshow_img.shape)
-        plt.savefig("data/text_after.svg")
+        plt.savefig(os.path.join(DATA_DIR, "text_after.svg"))
         plt.show()
 
     return list_text_data, list_plot_data

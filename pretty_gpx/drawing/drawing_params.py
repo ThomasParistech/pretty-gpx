@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 """Drawing Parameters."""
+import os
 from dataclasses import dataclass
 
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 
+from pretty_gpx import FONTS_DIR
+from pretty_gpx import ICONS_DIR
 from pretty_gpx.drawing.plt_marker import marker_from_svg
 from pretty_gpx.utils import mm_to_point
 
@@ -28,9 +31,9 @@ class DrawingParams:
     peak_marker: str | Path = "^"
 
     hut_markersize: float = mm_to_point(7.0)
-    hut_marker: str | Path = marker_from_svg("icons/house.svg")
+    hut_marker: str | Path = marker_from_svg(os.path.join(ICONS_DIR, "house.svg"))
 
     track_linewidth: float = mm_to_point(1.0)
 
     classic_font: FontProperties = FontProperties()
-    pretty_font: FontProperties = FontProperties(fname="./Lobster 1.4.otf")
+    pretty_font: FontProperties = FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf"))
