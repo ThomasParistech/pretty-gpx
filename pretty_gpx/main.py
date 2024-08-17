@@ -1,15 +1,13 @@
 #!/usr/bin/python3
-"""aaaaaaaa."""
-
-
+"""NiceGUI Webapp. Drag&Drop GPX files to create a custom poster."""
 from natsort import index_natsorted
 from nicegui import events
 from nicegui import run
 from nicegui import ui
 
-from pretty_gpx.poster_image_cache import PosterImageCache
 from pretty_gpx.drawing.theme_colors import COLOR_THEMES
 from pretty_gpx.hillshading import AZIMUTHS
+from pretty_gpx.poster_image_cache import PosterImageCache
 from pretty_gpx.utils import safe
 
 

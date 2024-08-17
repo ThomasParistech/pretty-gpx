@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """Map Data."""
-import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -11,6 +10,8 @@ from geopy.location import Location
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.gpx.gpx_track import GpxTrack
 from pretty_gpx.gpx.gpx_track import local_m_to_deg
+
+DEBUG_OVERPASS_QUERY = False
 
 
 @dataclass
@@ -32,7 +33,7 @@ class MountainHut:
 
 @dataclass
 class AugmentedGpxData:
-    """aaaaa"""
+    """Class storing the GPX track augmented with names of start/end points and mountain passes/huts along the way."""
     track: GpxTrack
     dist_km: float
     uphill_m: float
@@ -53,7 +54,7 @@ class AugmentedGpxData:
     def from_path(list_gpx_path: list[str] | list[bytes],
                   strict_ths_m: float = 50,
                   loose_ths_m: float = 1000) -> 'AugmentedGpxData':
-        """aaaaa ordered gpx list"""
+        """Create an AugmentedGpxData instance from an ordered list of daily GPX files."""
         (gpx_track,
          dist_km,
          uphill_m,
@@ -94,8 +95,8 @@ class AugmentedGpxData:
                                 hut_ids=huts_ids)
 
 
-def overpass_request(query_elements: list[str], gpx_track: GpxTrack) -> overpy.Result:
-    """aaaaa"""
+def overpass_query(query_elements: list[str], gpx_track: GpxTrack) -> overpy.Result:
+    """Query the overpass API."""
     # See https://wiki.openstreetmap.org/wiki/Key:natural
     # See https://wiki.openstreetmap.org/wiki/Key:mountain_pass
     # See https://wiki.openstreetmap.org/wiki/Tag:tourism=alpine_hut
@@ -109,6 +110,16 @@ def overpass_request(query_elements: list[str], gpx_track: GpxTrack) -> overpy.R
        {query_body}
     );
     out body;""")
+
+    if DEBUG_OVERPASS_QUERY:
+        print("----")
+        print(f"GPX bounds: {bounds_str}")
+        named_nodes = [node for node in result.nodes if "name" in node.tags]
+        named_nodes.sort(key=lambda node: node.tags['name'])
+        for node in named_nodes:
+            print(f"{node.tags['name']} at ({node.lat:.3f}, {node.lon:.3f}) {node.tags}")
+        print("----")
+
     return result
 
 
@@ -117,12 +128,13 @@ def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[in
     max_dist_deg = local_m_to_deg(max_dist_m)
     gpx_curve = np.stack((gpx.list_lat, gpx.list_lon), axis=-1)
 
-    result = overpass_request(["nwr['natural'='saddle']",
-                               "nwr['natural'='peak']",
-                               "nwr['mountain_pass'='yes']",
-                               "nwr['hiking'='yes']['tourism'='information']",
-                               "nwr['hiking'='yes']['information'='guidepost']"],
-                              gpx)
+    result = overpass_query(["nwr['natural'='saddle']",
+                             "nwr['natural'='peak']",
+                             "nwr['natural'='volcano']",
+                             "nwr['mountain_pass'='yes']",
+                             "nwr['hiking'='yes']['tourism'='information']",
+                             "nwr['hiking'='yes']['information'='guidepost']"],
+                            gpx)
 
     # See https://www.openstreetmap.org/node/4977980007 (Col du Galibier)
     # See https://www.openstreetmap.org/node/12068789882 (Col de la Vanoise)
@@ -166,7 +178,7 @@ def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[in
 def is_close_to_a_mountain_pass(lon: float, lat: float,
                                 mountain_passes: list[MountainPass],
                                 max_dist_m: float) -> bool:
-    """aaaaaaaa"""
+    """Check if a point is close to a mountain pass."""
     if len(mountain_passes) == 0:
         return False
     distances = np.linalg.norm(np.array([lat, lon]) - np.array([[m.lat, m.lon]
@@ -175,7 +187,7 @@ def is_close_to_a_mountain_pass(lon: float, lat: float,
 
 
 def get_place_name(lon: float, lat: float) -> str:
-    """aaaaa"""
+    """Get the name of a place from its coordinates."""
     place_types = ["city", "town", "village", "locality", "hamlet"]
 
     geolocator = Nominatim(user_agent="Place-Guesser")
@@ -188,7 +200,7 @@ def get_place_name(lon: float, lat: float) -> str:
         if place_name:
             return place_name
 
-    raise RuntimeError("Place Not found")
+    raise RuntimeError(f"Place Not found at {lat:.3f}, {lon:.3f}. Got {address}")
 
 
 def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
@@ -236,10 +248,10 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
                                         for ele in gpx.list_ele])
 
     # Request the huts
-    result = overpass_request(["nwr['tourism'='alpine_hut']",
-                               "nwr['tourism'='wilderness_hut']",
-                               "nwr['tourism'='camp_site']"],
-                              full_gpx_track)
+    result = overpass_query(["nwr['tourism'='alpine_hut']",
+                             "nwr['tourism'='wilderness_hut']",
+                             "nwr['tourism'='camp_site']"],
+                            full_gpx_track)
 
     # See https://www.openstreetmap.org/way/112147855 (Refuge Plan-Sec)
     # See https://www.openstreetmap.org/node/451703419 (Refuge des Barmettes)

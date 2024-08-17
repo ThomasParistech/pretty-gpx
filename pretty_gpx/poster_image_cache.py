@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""aaaaaaaa."""
+"""Poster Image Cache."""
 from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
@@ -18,7 +18,6 @@ from pretty_gpx.drawing.text_allocation import allocate_text
 from pretty_gpx.drawing.theme_colors import hex_to_rgb
 from pretty_gpx.drawing.theme_colors import ThemeColors
 from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
-from pretty_gpx.gpx.augmented_gpx_data import MountainPass
 from pretty_gpx.gpx.elevation_map import download_elevation_map
 from pretty_gpx.gpx.elevation_map import rescale_elevation
 from pretty_gpx.hillshading import CachedHillShading
@@ -30,73 +29,9 @@ from pretty_gpx.utils import safe
 W_DISPLAY_PIX = 800
 
 
-def mountain_pass_to_str(mountain_pass: MountainPass) -> str:
-    """aaaaaaaa"""
-    return f" {mountain_pass.name} \n({int(mountain_pass.ele)} m)"
-
-
-def get_elevation_drawings(layout: VerticalLayout,
-                           h_pix: int, w_pix: int,
-                           list_ele: list[float],
-                           passes_ids: list[int],
-                           huts_ids: list[int],
-                           daily_dist_km: list[float],
-                           draw_start: bool,
-                           draw_end: bool,
-                           drawing_params: DrawingParams) -> tuple[list[ScatterData], PolyFillData, TextData]:
-    """aaaaaaaaaa"""
-    # Elevation Profile
-    h_up_pix = h_pix * (layout.title_relative_h + layout.map_relative_h)
-    h_bot_pix = h_pix * (layout.title_relative_h + layout.map_relative_h + layout.elevation_relative_h)
-
-    if len(huts_ids) == 0:
-        elevation_poly_x = np.linspace(0., w_pix, num=len(list_ele))
-    else:
-        # Account for the potentially different sampling rates of the N daily tracks
-        daily_x_splits = w_pix * np.cumsum(np.array(daily_dist_km[:-1]) / np.sum(daily_dist_km))
-        daily_x_splits = np.hstack(([0.], daily_x_splits, [w_pix]))  # Shape (N+1,)
-        daily_lengths = np.hstack((huts_ids, [len(list_ele)])) - np.hstack(([0], huts_ids))  # Shape (N,)
-        elevation_poly_x = np.hstack([np.linspace(daily_x_splits[i], daily_x_splits[i+1], num=daily_lengths[i])
-                                      for i in range(len(daily_x_splits)-1)])
-        assert len(elevation_poly_x) == len(list_ele)
-
-    hmin, hmax = np.min(list_ele), np.max(list_ele)
-    elevation_poly_y = h_bot_pix + (np.array(list_ele) -
-                                    hmin) * (h_up_pix-h_bot_pix) / (hmax-hmin)
-
-    # Mountain Passes and Huts
-    scatter_data = [
-        ScatterData(x=[elevation_poly_x[closest_idx] for closest_idx in ids],
-                    y=[elevation_poly_y[closest_idx] for closest_idx in ids],
-                    marker=marker, markersize=markersize)
-        for ids, marker, markersize in [(passes_ids, drawing_params.peak_marker, drawing_params.peak_markersize),
-                                        (huts_ids, drawing_params.hut_marker, drawing_params.hut_markersize)]
-    ]
-
-    # Start and End
-    if draw_start:
-        scatter_data.append(ScatterData(x=[elevation_poly_x[0]], y=[elevation_poly_y[0]],
-                                        marker=drawing_params.start_marker,
-                                        markersize=drawing_params.start_markersize))
-    if draw_end:
-        scatter_data.append(ScatterData(x=[elevation_poly_x[-1]], y=[elevation_poly_y[-1]],
-                                        marker=drawing_params.end_marker,
-                                        markersize=drawing_params.end_markersize))
-
-    # Complete the polygon for the elevation profile
-    elevation_poly_x = np.hstack((0, 0, elevation_poly_x, w_pix, w_pix)).tolist()
-    elevation_poly_y = np.hstack((h_pix, h_bot_pix, elevation_poly_y, h_bot_pix, h_pix)).tolist()
-    elevation_data = PolyFillData(x=elevation_poly_x, y=elevation_poly_y)
-
-    stats = TextData(x=0.5 * w_pix, y=0.5 * (h_bot_pix+h_pix),
-                     s="", fontsize=drawing_params.stats_fontsize,
-                     fontproperties=drawing_params.pretty_font, ha="center")
-
-    return scatter_data, elevation_data, stats
-
-
 @dataclass
 class PosterImageCache:
+    """Class leveraging cache to avoid reprocessing GPX when chaning color them, title, sun azimuth..."""
 
     elevation_map: np.ndarray
     elevation_shading: CachedHillShading
@@ -109,7 +44,7 @@ class PosterImageCache:
     @staticmethod
     def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes],
                  dpi: int = 400) -> 'PosterImageCache':
-        """aaaaaaaa"""
+        """Create a PosterImageCache from a GPX file."""
         # Extract GPX data and retrieve close mountain passes/huts
         if not isinstance(list_gpx_path, list):
             list_gpx_path = [list_gpx_path]
@@ -142,7 +77,7 @@ class PosterImageCache:
         for idx, mountain_pass in zip(gpx_data.passes_ids, gpx_data.mountain_passes):
             list_x.append(x_pix[idx])
             list_y.append(y_pix[idx])
-            list_text.append(mountain_pass_to_str(mountain_pass))
+            list_text.append(f" {mountain_pass.name} \n({int(mountain_pass.ele)} m)")
         passes_end = len(list_x)
 
         huts_begin = len(list_x)
@@ -283,3 +218,63 @@ class PosterImageCache:
         stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
 
         self.plotter.draw(fig, ax, img, theme_colors, title_txt, stats_text)
+
+
+def get_elevation_drawings(layout: VerticalLayout,
+                           h_pix: int, w_pix: int,
+                           list_ele: list[float],
+                           passes_ids: list[int],
+                           huts_ids: list[int],
+                           daily_dist_km: list[float],
+                           draw_start: bool,
+                           draw_end: bool,
+                           drawing_params: DrawingParams) -> tuple[list[ScatterData], PolyFillData, TextData]:
+    """Create the plot elements for the elevation profile."""
+    # Elevation Profile
+    h_up_pix = h_pix * (layout.title_relative_h + layout.map_relative_h)
+    h_bot_pix = h_pix * (layout.title_relative_h + layout.map_relative_h + layout.elevation_relative_h)
+
+    if len(huts_ids) == 0:
+        elevation_poly_x = np.linspace(0., w_pix, num=len(list_ele))
+    else:
+        # Account for the potentially different sampling rates of the N daily tracks
+        daily_x_splits = w_pix * np.cumsum(np.array(daily_dist_km[:-1]) / np.sum(daily_dist_km))
+        daily_x_splits = np.hstack(([0.], daily_x_splits, [w_pix]))  # Shape (N+1,)
+        daily_lengths = np.hstack((huts_ids, [len(list_ele)])) - np.hstack(([0], huts_ids))  # Shape (N,)
+        elevation_poly_x = np.hstack([np.linspace(daily_x_splits[i], daily_x_splits[i+1], num=daily_lengths[i])
+                                      for i in range(len(daily_x_splits)-1)])
+        assert len(elevation_poly_x) == len(list_ele)
+
+    hmin, hmax = np.min(list_ele), np.max(list_ele)
+    elevation_poly_y = h_bot_pix + (np.array(list_ele) -
+                                    hmin) * (h_up_pix-h_bot_pix) / (hmax-hmin)
+
+    # Mountain Passes and Huts
+    scatter_data = [
+        ScatterData(x=[elevation_poly_x[closest_idx] for closest_idx in ids],
+                    y=[elevation_poly_y[closest_idx] for closest_idx in ids],
+                    marker=marker, markersize=markersize)
+        for ids, marker, markersize in [(passes_ids, drawing_params.peak_marker, drawing_params.peak_markersize),
+                                        (huts_ids, drawing_params.hut_marker, drawing_params.hut_markersize)]
+    ]
+
+    # Start and End
+    if draw_start:
+        scatter_data.append(ScatterData(x=[elevation_poly_x[0]], y=[elevation_poly_y[0]],
+                                        marker=drawing_params.start_marker,
+                                        markersize=drawing_params.start_markersize))
+    if draw_end:
+        scatter_data.append(ScatterData(x=[elevation_poly_x[-1]], y=[elevation_poly_y[-1]],
+                                        marker=drawing_params.end_marker,
+                                        markersize=drawing_params.end_markersize))
+
+    # Complete the polygon for the elevation profile
+    elevation_poly_x = np.hstack((0, 0, elevation_poly_x, w_pix, w_pix)).tolist()
+    elevation_poly_y = np.hstack((h_pix, h_bot_pix, elevation_poly_y, h_bot_pix, h_pix)).tolist()
+    elevation_data = PolyFillData(x=elevation_poly_x, y=elevation_poly_y)
+
+    stats = TextData(x=0.5 * w_pix, y=0.5 * (h_bot_pix+h_pix),
+                     s="", fontsize=drawing_params.stats_fontsize,
+                     fontproperties=drawing_params.pretty_font, ha="center")
+
+    return scatter_data, elevation_data, stats

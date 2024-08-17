@@ -1,34 +1,33 @@
 #!/usr/bin/python3
 """Gpx Track."""
-import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
 import gpxpy
 import gpxpy.gpx
+import matplotlib.pyplot as plt
 import numpy as np
 
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.utils import assert_isfile
 
-
 DEBUG_TRACK = False
 
 
 def local_m_to_deg(m: float) -> float:
-    """aaaa"""
+    """Convert meters to degrees that the earth is locally planar."""
     return m * 180. / (np.pi * 6371*1e3)
 
 
 @dataclass
 class GpxTrack:
-    """aaaaaaaa"""
+    """GPX Track."""
     list_lon: list[float]
     list_lat: list[float]
     list_ele: list[float]
 
     @staticmethod
     def load(gpx_path: str | bytes) -> tuple['GpxTrack', float, float]:
-        """aaaaaa, with totl disance (in km) and d+ (in m)"""
+        """Load GPX file and return GpxTrack along with total disance (in km) and d+ (in m)."""
         if isinstance(gpx_path, str):
             assert_isfile(gpx_path, ext='.gpx')
             gpx_path = open(gpx_path)
@@ -60,7 +59,7 @@ class GpxTrack:
         return gpx_track, gpx.length_3d()*1e-3, gpx.get_uphill_downhill().uphill
 
     def is_closed(self, dist_m: float) -> bool:
-        """aaaa"""
+        """Estimate if the track is closed."""
         dist_deg = float(np.linalg.norm((self.list_lon[0] - self.list_lon[-1],
                                          self.list_lat[0] - self.list_lat[-1])))
         return dist_deg < local_m_to_deg(dist_m)
@@ -68,7 +67,7 @@ class GpxTrack:
     def project_on_image(self,
                          img: np.ndarray,
                          bounds: GpxBounds) -> tuple[list[float], list[float]]:
-        """lon, lat to XY"""
+        """Convert lat/lon to pixel coordinates."""
         x_pix = [(lon - bounds.lon_min) / (bounds.lon_max-bounds.lon_min) * img.shape[1]
                  for lon in self.list_lon]
         y_pix = [(bounds.lat_max - lat) / (bounds.lat_max-bounds.lat_min) * img.shape[0]
