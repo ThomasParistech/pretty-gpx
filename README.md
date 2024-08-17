@@ -37,7 +37,7 @@ To give you a better idea of what this app can create, here are some example pos
 
 | ![Image 1](doc/marmotte.svg) | ![Image 2](doc/couillole.svg) | ![Image 3](doc/peyresourde.svg) |
 |--------------------------------|--------------------------------|--------------------------------|
-| ![Image 4](doc/diagonale-des-fous.svg) | ![Image 5](doc/cabaliros.svg) | ![Image 4](doc/vanoise_3days.svg)  |
+| ![Image 4](doc/diagonale-des-fous.svg) | ![Image 5](doc/hawaii.svg) | ![Image 4](doc/vanoise_3days.svg)  |
 
 
 # Contributing
