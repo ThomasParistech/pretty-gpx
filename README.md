@@ -35,9 +35,25 @@ Once you’ve fine-tuned your poster, simply hit the Download button to save you
 To give you a better idea of what this app can create, here are some example posters generated from real GPX tracks (See the `examples` folder).
 
 
-| ![Image 1](doc/marmotte.svg) | ![Image 2](doc/couillole.svg) | ![Image 3](doc/peyresourde.svg) |
-|--------------------------------|--------------------------------|--------------------------------|
-| ![Image 4](doc/diagonale-des-fous.svg) | ![Image 5](doc/hawaii.svg) | ![Image 4](doc/vanoise_3days.svg)  |
+
+
+<table>
+  <tr>
+    <td><img src="doc/marmotte.svg" alt="Image 1" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/diagonale-des-fous.svg" alt="Image 2" style="max-width: 100%; height: auto;"/></td>
+  </tr>
+  <tr>
+    <td><img src="doc/couillole.svg" alt="Image 4" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/hawaii.svg" alt="Image 5" style="max-width: 100%; height: auto;"/></td>
+  </tr>
+  <tr>
+    <td><img src="doc/peyresourde.svg" alt="Image 4" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/vanoise_3days.svg" alt="Image 4" style="max-width: 100%; height: auto;"/></td>
+  </tr>
+</table>
+
+
+
 
 
 # Contributing
