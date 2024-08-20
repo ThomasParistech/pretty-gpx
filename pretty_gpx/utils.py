@@ -4,6 +4,8 @@
 import os
 from typing import TypeVar
 
+import numpy as np
+
 T = TypeVar('T')
 
 
@@ -28,3 +30,8 @@ def assert_isfile(path: str, ext: str | None = None):
     assert os.path.isfile(path), f"File doesn't exist: {path}"
     if ext is not None:
         assert path.endswith(ext), f"File doesn't have the expected '{ext}' extension: {path}"
+
+
+def assert_close(val1: float | int, val2: float | int, *, eps: float, msg: str = ""):
+    """Assert difference between two floats is smaller than a threshold."""
+    assert np.abs(val1-val2) < eps, msg+f" Expect difference to be smaller than {eps}. Got {np.abs(val1-val2)}"

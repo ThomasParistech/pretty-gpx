@@ -7,6 +7,7 @@ import numpy as np
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.gpx.gpx_track import GpxTrack
 from pretty_gpx.layout.paper_size import PaperSize
+from pretty_gpx.utils import assert_close
 
 
 @dataclass
@@ -87,4 +88,6 @@ def get_bounds(gpx_track: GpxTrack, layout: VerticalLayout, paper: PaperSize) ->
                                lat_min=new_lat_min,
                                lat_max=new_lat_min + new_dlat)
 
+    assert_close((optimal_bounds.lat_max-optimal_bounds.lat_min)/(optimal_bounds.lon_max - optimal_bounds.lon_min),
+                 paper.h_mm / (paper.w_mm * latlon_aspect_ratio), eps=1e-9, msg="Wrong aspect ratio for optimal bounds")
     return optimal_bounds, latlon_aspect_ratio

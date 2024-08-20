@@ -30,10 +30,3 @@ class GpxBounds:
                          lon_max=self.lon_max + lon_margin,
                          lat_min=self.lat_min - lat_margin,
                          lat_max=self.lat_max + lat_margin)
-
-    def round(self, n_decimals: int) -> 'GpxBounds':
-        """Round the bounds to n decimals."""
-        return GpxBounds(lon_min=round(self.lon_min, ndigits=n_decimals),
-                         lon_max=round(self.lon_max, ndigits=n_decimals),
-                         lat_min=round(self.lat_min, ndigits=n_decimals),
-                         lat_max=round(self.lat_max, ndigits=n_decimals))

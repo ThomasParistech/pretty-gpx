@@ -24,9 +24,19 @@ from pretty_gpx.hillshading import CachedHillShading
 from pretty_gpx.layout.paper_size import PAPER_SIZES
 from pretty_gpx.layout.vertical_layout import get_bounds
 from pretty_gpx.layout.vertical_layout import VerticalLayout
+from pretty_gpx.utils import mm_to_inch
 from pretty_gpx.utils import safe
 
 W_DISPLAY_PIX = 800
+DPI = 400
+
+
+@dataclass
+class PosterDrawingData:
+    img: np.ndarray
+    theme_colors: ThemeColors
+    title_txt: str
+    stats_text: str
 
 
 @dataclass
@@ -42,8 +52,7 @@ class PosterImageCache:
     plotter: DrawingFigure
 
     @staticmethod
-    def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes],
-                 dpi: int = 400) -> 'PosterImageCache':
+    def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes]) -> 'PosterImageCache':
         """Create a PosterImageCache from a GPX file."""
         # Extract GPX data and retrieve close mountain passes/huts
         if not isinstance(list_gpx_path, list):
@@ -61,8 +70,8 @@ class PosterImageCache:
         bounds, latlon_aspect_ratio = get_bounds(gpx_data.track, layout, paper)
         elevation = download_elevation_map(bounds, cache_folder="data/dem_cache")
 
-        current_dpi = elevation.shape[0]/(paper.h_mm / 25.4)
-        elevation = rescale_elevation(elevation, dpi/current_dpi)
+        current_dpi = elevation.shape[0]/mm_to_inch(paper.h_mm)
+        elevation = rescale_elevation(elevation, DPI/current_dpi)
 
         # Project the track on the elevation map
         h, w = elevation.shape[:2]
@@ -111,7 +120,7 @@ class PosterImageCache:
         texts, lines = allocate_text(fig=plt.gcf(),
                                      ax=plt.gca(),
                                      imshow_img=np.full((h, w), fill_value=np.nan),
-                                     w_mm=paper.w_mm,
+                                     paper_size=paper,
                                      latlon_aspect_ratio=latlon_aspect_ratio,
                                      x=list_x,
                                      y=list_y,
@@ -173,7 +182,7 @@ class PosterImageCache:
                            fontproperties=drawing_params.pretty_font, ha="center")
 
         plotter = DrawingFigure(ref_img_shape=(h, w),
-                                w_mm=paper.w_mm,
+                                paper_size=paper,
                                 w_display_pix=W_DISPLAY_PIX,
                                 latlon_aspect_ratio=latlon_aspect_ratio,
                                 track_data=track_data,
@@ -181,7 +190,7 @@ class PosterImageCache:
                                 title=title,
                                 stats=stats)
 
-        print("Ready to draw")
+        print("Successful GPX Processing")
         return PosterImageCache(elevation_map=elevation,
                                 elevation_shading=CachedHillShading(elevation),
                                 stats_dist_km=gpx_data.dist_km,
@@ -198,15 +207,13 @@ class PosterImageCache:
                                 stats_uphill_m=self.stats_uphill_m,
                                 plotter=self.plotter)
 
-    def draw(self,
-             fig: Figure,
-             ax: Axes,
-             azimuth: int,
-             theme_colors: ThemeColors,
-             title_txt: str,
-             uphill_m: str,
-             dist_km: str):
-        """aa"""
+    def update_drawing_data(self,
+                            azimuth: int,
+                            theme_colors: ThemeColors,
+                            title_txt: str,
+                            uphill_m: str,
+                            dist_km: str) -> PosterDrawingData:
+        """Update the drawing data (can run in a separate thread)."""
         grey_hillshade = self.elevation_shading.render_grey(azimuth)[..., None]
         background_color_rgb = hex_to_rgb(theme_colors.background_color)
         color_0 = (0, 0, 0) if theme_colors.dark_mode else background_color_rgb
@@ -219,7 +226,16 @@ class PosterImageCache:
         uphill_m_int = int(uphill_m if uphill_m != '' else self.stats_uphill_m)
         stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
 
-        self.plotter.draw(fig, ax, img, theme_colors, title_txt, stats_text)
+        return PosterDrawingData(img, theme_colors, title_txt=title_txt, stats_text=stats_text)
+
+    def draw(self, fig: Figure, ax: Axes, poster_drawing_data: PosterDrawingData) -> None:
+        """Draw the updated drawing data (Must run in the main thread because of matplotlib backend)."""
+        self.plotter.draw(fig, ax,
+                          poster_drawing_data.img,
+                          poster_drawing_data.theme_colors,
+                          poster_drawing_data.title_txt,
+                          poster_drawing_data.stats_text)
+        print("Drawing updated")
 
 
 def get_elevation_drawings(layout: VerticalLayout,

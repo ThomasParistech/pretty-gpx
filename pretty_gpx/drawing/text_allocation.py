@@ -13,6 +13,7 @@ from pretty_gpx import DATA_DIR
 from pretty_gpx.drawing.drawing_data import PlotData
 from pretty_gpx.drawing.drawing_data import TextData
 from pretty_gpx.drawing.drawing_figure import BaseDrawingFigure
+from pretty_gpx.layout.paper_size import PaperSize
 
 DEBUG_TEXT_ALLOCATION = False
 
@@ -20,7 +21,7 @@ DEBUG_TEXT_ALLOCATION = False
 def allocate_text(fig: Figure,
                   ax: Axes,
                   imshow_img: np.ndarray,
-                  w_mm: float,
+                  paper_size: PaperSize,
                   latlon_aspect_ratio: float,
                   x: list[float],
                   y: list[float],
@@ -36,7 +37,7 @@ def allocate_text(fig: Figure,
                   nbr_candidates: int = 300,
                   ha: str = 'center') -> tuple[list[TextData], list[PlotData]]:
     """Allocate text-boxes in imshow plot while avoiding overlap with other annotations."""
-    base_fig = BaseDrawingFigure(w_mm=w_mm, latlon_aspect_ratio=latlon_aspect_ratio)
+    base_fig = BaseDrawingFigure(paper_size=paper_size, latlon_aspect_ratio=latlon_aspect_ratio)
     base_fig.imshow(fig, ax, imshow_img)
 
     print(f"Optimize {len(s)} Text Allocations...")

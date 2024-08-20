@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """Elevation Map."""
-
+import hashlib
 import os
 
 import cv2
@@ -9,12 +9,15 @@ import rasterio
 from dem_stitcher import stitch_dem
 
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
+from pretty_gpx.utils import assert_close
 
 
 def download_elevation_map(bounds: GpxBounds, cache_folder: str) -> np.ndarray:
     """Download elevation map from Copernicus DEM."""
-    bounds = bounds.round(n_decimals=2)  # Round to use as hash
-    cache_basename = f"dem_{bounds.lat_min:.2f}_{bounds.lon_min:.2f}_{bounds.lat_max:.2f}_{bounds.lon_max:.2f}.tif"
+    bounds_str = f"{bounds.lon_min:.4f},{bounds.lon_max:.4f},{bounds.lat_min:.4f},{bounds.lat_max:.4f}"
+    bounds_hash = hashlib.sha256(bounds_str.encode('utf-8')).hexdigest()
+
+    cache_basename = f"dem_{bounds_hash}.tif"
     cache_tif = os.path.join(cache_folder, cache_basename)
 
     if not os.path.isfile(cache_tif):
@@ -28,7 +31,8 @@ def download_elevation_map(bounds: GpxBounds, cache_folder: str) -> np.ndarray:
             f.update_tags(AREA_OR_POINT='Point')
 
     elevation = rasterio.open(cache_tif).read()[0]
-
+    assert_close((bounds.lat_max-bounds.lat_min)/(bounds.lon_max - bounds.lon_min),
+                 elevation.shape[0]/elevation.shape[1], eps=5e-3, msg="Wrong aspect ratio for elevation map")
     return elevation
 
 

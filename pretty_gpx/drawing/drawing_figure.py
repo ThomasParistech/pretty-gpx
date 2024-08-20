@@ -9,6 +9,8 @@ from matplotlib.figure import Figure
 from pretty_gpx.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.drawing.drawing_data import TextData
 from pretty_gpx.drawing.theme_colors import ThemeColors
+from pretty_gpx.layout.paper_size import PaperSize
+from pretty_gpx.utils import assert_close
 from pretty_gpx.utils import mm_to_inch
 
 
@@ -16,9 +18,9 @@ from pretty_gpx.utils import mm_to_inch
 class BaseDrawingFigure:
     """Base Drawing Figure displaying an image with plt.imshow.
 
-    w_mm: Expected intrinsic Figure width in mm (when saved as a vectorized image)
+    paper_size: Expected intrinsic Figure width/height in mm (when saved as a vectorized image)
     """
-    w_mm: float
+    paper_size: PaperSize
     latlon_aspect_ratio: float
 
     def imshow(self,
@@ -33,14 +35,20 @@ class BaseDrawingFigure:
         ax.imshow(img)
         ax.set_aspect(self.latlon_aspect_ratio)
 
-        w_inches = mm_to_inch(self.w_mm)
-        fig.set_size_inches(w_inches, self.latlon_aspect_ratio*h * w_inches/w)
+        w_inches = mm_to_inch(self.paper_size.w_mm)
+        h_inches = mm_to_inch(self.paper_size.h_mm)
+
+        assert_close(self.latlon_aspect_ratio*h * w_inches/w, h_inches,
+                     eps=mm_to_inch(2.0),
+                     msg="Wrong aspect ratio for image")
+
+        fig.set_size_inches(w_inches, h_inches)
 
         ax.autoscale(False)
 
     def adjust_display_width(self, fig: Figure, w_display_pix: int) -> None:
         """Adjust width in pixels on the screen of the displayed figure."""
-        fig.set_dpi(w_display_pix / mm_to_inch(self.w_mm))
+        fig.set_dpi(w_display_pix / fig.get_size_inches()[0])
 
 
 @dataclass
