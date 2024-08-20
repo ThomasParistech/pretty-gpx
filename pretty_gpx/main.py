@@ -8,19 +8,21 @@ from natsort import index_natsorted
 from nicegui import events
 from nicegui import run
 from nicegui import ui
+from pathvalidate import sanitize_filename
 
+from pretty_gpx import EXAMPLES_DIR
 from pretty_gpx.drawing.theme_colors import COLOR_THEMES
 from pretty_gpx.hillshading import AZIMUTHS
-from pretty_gpx.poster_image_cache import DPI
 from pretty_gpx.poster_image_cache import PosterDrawingData
 from pretty_gpx.poster_image_cache import PosterImageCache
+from pretty_gpx.poster_image_cache import PosterImageCaches
 from pretty_gpx.ui_helper import on_click_slow_action_in_other_thread
 from pretty_gpx.ui_helper import UiModal
 from pretty_gpx.utils import safe
 
 
-def process_files(list_b: list[bytes]) -> PosterImageCache:
-    return PosterImageCache.from_gpx(list_b)
+def process_files(list_b: list[bytes]) -> PosterImageCaches:
+    return PosterImageCaches.from_gpx(list_b)
 
 
 async def on_multi_upload(e: events.MultiUploadEventArguments):
@@ -37,9 +39,8 @@ async def on_multi_upload(e: events.MultiUploadEventArguments):
     with UiModal(msg):
         global cache
         cache = await run.cpu_bound(process_files, contents)
-        res = update()
-        update_done_callback(res)
-
+        res = update_low_res()
+        update_done_callback_low_res(res)
 
 with ui.row():
     ui.upload(label="Drag & drop your GPX file(s) here and press upload",
@@ -50,9 +51,9 @@ with ui.row():
                            ).classes('max-w-full')
 
     ui.chat_message(
-        ['Welcome 😀\nThis web app lets you create a custom poster from your cycling or hiking GPX file! 🚵 🥾',
-         'For a multi-day trip, simply upload all consecutive GPX tracks together.\n'
-         'Just make sure the filenames are in the correct alphabetical order.']
+        ['Welcome 😀\nCreate a custom poster from your cycling/hiking GPX file! 🚵 🥾',
+         'For multi-day trips, upload consecutive GPX tracks in alphabetical order.',
+         'Customize your poster below and download the High-Definition SVG file when ready.']
     ).props('bg-color=blue-2')
 
 with ui.row():
@@ -62,20 +63,32 @@ with ui.row():
     with ui.column():
         # Update options
 
-        def update() -> PosterDrawingData:
-            return cache.update_drawing_data(azimuth=AZIMUTHS[safe(azimuth_toggle.value)],
-                                             theme_colors=COLOR_THEMES[safe(theme_toggle.value)],
-                                             title_txt=title_button.value,
-                                             uphill_m=uphill_button.value,
-                                             dist_km=dist_km_button.value)
+        def _update(c: PosterImageCache) -> PosterDrawingData:
+            return c.update_drawing_data(azimuth=AZIMUTHS[safe(azimuth_toggle.value)],
+                                         theme_colors=COLOR_THEMES[safe(theme_toggle.value)],
+                                         title_txt=title_button.value,
+                                         uphill_m=uphill_button.value,
+                                         dist_km=dist_km_button.value)
 
-        def update_done_callback(poster_drawing_data: PosterDrawingData) -> None:
+        def _update_done_callback(c: PosterImageCache, poster_drawing_data: PosterDrawingData) -> None:
             with plot:
-                cache.draw(plot.fig, ax, poster_drawing_data)
+                c.draw(plot.fig, ax, poster_drawing_data)
             ui.update(plot)
 
+        def update_high_res() -> PosterDrawingData:
+            return _update(cache.high_res)
+
+        def update_low_res() -> PosterDrawingData:
+            return _update(cache.low_res)
+
+        def update_done_callback_high_res(poster_drawing_data: PosterDrawingData) -> None:
+            _update_done_callback(cache.high_res, poster_drawing_data)
+
+        def update_done_callback_low_res(poster_drawing_data: PosterDrawingData) -> None:
+            _update_done_callback(cache.low_res, poster_drawing_data)
+
         def on_click_update() -> Callable:
-            return on_click_slow_action_in_other_thread('Updating', update, update_done_callback)
+            return on_click_slow_action_in_other_thread('Updating', update_low_res, update_done_callback_low_res)
 
         with ui.input(label='Title', value="Title").on('keydown.enter', on_click_update()) as title_button:
             ui.tooltip("Press Enter to update title")
@@ -99,25 +112,25 @@ with ui.row():
         def download() -> bytes:
             with tempfile.TemporaryDirectory() as tmp_dir:
                 tmp_svg = os.path.join(tmp_dir, "tmp.svg")
-                plot.fig.savefig(tmp_svg, dpi=DPI)
+                plot.fig.savefig(tmp_svg, dpi=cache.high_res.dpi)
                 with open(tmp_svg, "rb") as svg_file:
                     return svg_file.read()
 
         def download_done_callback(svg_bytes: bytes):
-            ui.download(svg_bytes, 'poster.svg')
+            ui.download(svg_bytes, f'poster_{sanitize_filename(str(title_button.value).replace(" ", "_"))}.svg')
 
-        def on_click_download() -> Callable:
-            return on_click_slow_action_in_other_thread('Prepare HD Poster for Downloading',
-                                                        download, download_done_callback)
+        async def on_click_download() -> None:
+            await on_click_slow_action_in_other_thread(f'Rendering at High Resolution ({cache.high_res.dpi} dpi)',
+                                                       update_high_res, update_done_callback_high_res)()
+            await on_click_slow_action_in_other_thread('Exporting SVG',
+                                                       download, download_done_callback)()
 
-        download_button = ui.button('Download', on_click=on_click_download())
+        download_button = ui.button('Download', on_click=on_click_download)
 
-cache = PosterImageCache.from_gpx([os.path.join("data/clo", "clo_1.gpx"),
-                                   os.path.join("data/clo", "clo_2.gpx"),
-                                   os.path.join("data/clo", "clo_3.gpx"),
-                                   os.path.join("data/clo", "clo_4.gpx")])
+cache = PosterImageCaches.from_gpx([os.path.join(EXAMPLES_DIR, "hiking/vanoise1.gpx"),
+                                   os.path.join(EXAMPLES_DIR, "hiking/vanoise2.gpx"),
+                                   os.path.join(EXAMPLES_DIR, "hiking/vanoise3.gpx")])
 
-
-res = update()
-update_done_callback(res)
+res = update_low_res()
+update_done_callback_low_res(res)
 ui.run(reload=False)

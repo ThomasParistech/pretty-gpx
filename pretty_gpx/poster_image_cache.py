@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from natsort import natsorted
 
 from pretty_gpx.drawing.drawing_data import PlotData
 from pretty_gpx.drawing.drawing_data import PolyFillData
@@ -22,17 +21,36 @@ from pretty_gpx.gpx.elevation_map import download_elevation_map
 from pretty_gpx.gpx.elevation_map import rescale_elevation
 from pretty_gpx.hillshading import CachedHillShading
 from pretty_gpx.layout.paper_size import PAPER_SIZES
+from pretty_gpx.layout.paper_size import PaperSize
 from pretty_gpx.layout.vertical_layout import get_bounds
 from pretty_gpx.layout.vertical_layout import VerticalLayout
 from pretty_gpx.utils import mm_to_inch
 from pretty_gpx.utils import safe
 
 W_DISPLAY_PIX = 800
-DPI = 400
+WORKING_DPI = 50
+HIGH_RES_DPI = 400
+
+
+@dataclass
+class PosterImageCaches:
+    """Low and High resolution PosterImageCache."""
+    low_res: 'PosterImageCache'
+    high_res: 'PosterImageCache'
+
+    @staticmethod
+    def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes]) -> 'PosterImageCaches':
+        """Create a PosterImageCaches from a GPX file."""
+        high_res = PosterImageCache.from_gpx(list_gpx_path, dpi=HIGH_RES_DPI)
+        low_res = high_res.change_dpi(WORKING_DPI)
+
+        assert low_res.dpi < high_res.dpi
+        return PosterImageCaches(low_res=low_res, high_res=high_res)
 
 
 @dataclass
 class PosterDrawingData:
+    """Drawing data for the poster."""
     img: np.ndarray
     theme_colors: ThemeColors
     title_txt: str
@@ -51,27 +69,24 @@ class PosterImageCache:
 
     plotter: DrawingFigure
 
+    dpi: float
+
     @staticmethod
-    def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes]) -> 'PosterImageCache':
+    def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes],
+                 layout: VerticalLayout = VerticalLayout(),
+                 paper: PaperSize = PAPER_SIZES["A4"],
+                 drawing_params: DrawingParams = DrawingParams(),
+                 dpi: float = HIGH_RES_DPI) -> 'PosterImageCache':
         """Create a PosterImageCache from a GPX file."""
         # Extract GPX data and retrieve close mountain passes/huts
-        if not isinstance(list_gpx_path, list):
-            list_gpx_path = [list_gpx_path]
-        if isinstance(list_gpx_path[0], str):
-            list_gpx_path = natsorted(list_gpx_path)
-
         gpx_data = AugmentedGpxData.from_path(list_gpx_path)
 
         # Download the elevation map at the correct layout
-        layout = VerticalLayout()
-        paper = PAPER_SIZES["A4"]
-        drawing_params = DrawingParams()
-
         bounds, latlon_aspect_ratio = get_bounds(gpx_data.track, layout, paper)
-        elevation = download_elevation_map(bounds, cache_folder="data/dem_cache")
+        elevation = download_elevation_map(bounds)
 
-        current_dpi = elevation.shape[0]/mm_to_inch(paper.h_mm)
-        elevation = rescale_elevation(elevation, DPI/current_dpi)
+        # Rescale the elevation map to the target DPI
+        elevation = rescale_elevation_to_dpi(elevation, paper, dpi)
 
         # Project the track on the elevation map
         h, w = elevation.shape[:2]
@@ -195,17 +210,18 @@ class PosterImageCache:
                                 elevation_shading=CachedHillShading(elevation),
                                 stats_dist_km=gpx_data.dist_km,
                                 stats_uphill_m=gpx_data.uphill_m,
-                                plotter=plotter)
+                                plotter=plotter,
+                                dpi=dpi)
 
-    def rescale(self, scale: float) -> 'PosterImageCache':
-        """pass"""
-        new_elevation_map = rescale_elevation(self.elevation_map, scale)
-
+    def change_dpi(self, dpi: float) -> 'PosterImageCache':
+        """Scale the elevation map to a new DPI."""
+        new_elevation_map = rescale_elevation_to_dpi(self.elevation_map, self.plotter.paper_size, dpi)
         return PosterImageCache(elevation_map=new_elevation_map,
                                 elevation_shading=CachedHillShading(new_elevation_map),
                                 stats_dist_km=self.stats_dist_km,
                                 stats_uphill_m=self.stats_uphill_m,
-                                plotter=self.plotter)
+                                plotter=self.plotter,
+                                dpi=dpi)
 
     def update_drawing_data(self,
                             azimuth: int,
@@ -235,7 +251,7 @@ class PosterImageCache:
                           poster_drawing_data.theme_colors,
                           poster_drawing_data.title_txt,
                           poster_drawing_data.stats_text)
-        print("Drawing updated")
+        print(f"Drawing updated (Elevation Map {poster_drawing_data.img.shape[1]}x{poster_drawing_data.img.shape[0]})")
 
 
 def get_elevation_drawings(layout: VerticalLayout,
@@ -296,3 +312,9 @@ def get_elevation_drawings(layout: VerticalLayout,
                      fontproperties=drawing_params.pretty_font, ha="center")
 
     return scatter_data, elevation_data, stats
+
+
+def rescale_elevation_to_dpi(elevation_map: np.ndarray, paper: PaperSize, target_dpi: float) -> np.ndarray:
+    """Rescale the elevation map to a target DPI."""
+    current_dpi = elevation_map.shape[0]/mm_to_inch(paper.h_mm)
+    return rescale_elevation(elevation_map,  target_dpi/current_dpi)

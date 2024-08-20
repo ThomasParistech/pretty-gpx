@@ -6,6 +6,7 @@ import numpy as np
 import overpy
 from geopy.geocoders import Nominatim
 from geopy.location import Location
+from natsort import natsorted
 
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.gpx.gpx_track import GpxTrack
@@ -51,10 +52,15 @@ class AugmentedGpxData:
     daily_dist_km: list[float]  # Distance (in km) of each daily track
 
     @staticmethod
-    def from_path(list_gpx_path: list[str] | list[bytes],
+    def from_path(list_gpx_path: str | bytes | list[str] | list[bytes],
                   strict_ths_m: float = 50,
                   loose_ths_m: float = 1000) -> 'AugmentedGpxData':
         """Create an AugmentedGpxData instance from an ordered list of daily GPX files."""
+        if not isinstance(list_gpx_path, list):
+            list_gpx_path = [list_gpx_path]
+        if isinstance(list_gpx_path[0], str):
+            list_gpx_path = natsorted(list_gpx_path)
+
         (gpx_track,
          dist_km,
          uphill_m,

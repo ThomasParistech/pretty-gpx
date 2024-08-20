@@ -5,6 +5,7 @@ import os
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 DATA_DIR = os.path.join(MAIN_DIR, 'data')
+DEM_CACHE_DIR = os.path.join(DATA_DIR, 'dem_cache')
 
 EXAMPLES_DIR = os.path.join(MAIN_DIR, 'examples')
 
