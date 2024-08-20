@@ -4,6 +4,19 @@
 
 Transform your cycling or hiking adventures into stunning, ready-to-print posters with this app! Designed specifically for mountain routes, it takes your GPX file and effortlessly generates a custom poster that beautifully showcases your journey. Built on the powerful [NiceGUI](https://nicegui.io/) framework, the app offers an intuitive web interface that makes the entire process seamless.
 
+# Usage
+
+Install the dependencies.
+```
+pip3 install -r .devcontainer/requirements
+```
+
+And run the webapp.
+```
+python3 pretty_gpx/main.py
+```
+
+
 # Features
 
 This app is the perfect companion for cycling or hiking enthusiasts tackling routes with significant elevation gain.
