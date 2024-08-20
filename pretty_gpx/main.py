@@ -53,7 +53,8 @@ with ui.row():
     ui.chat_message(
         ['Welcome 😀\nCreate a custom poster from your cycling/hiking GPX file! 🚵 🥾',
          'For multi-day trips, upload consecutive GPX tracks in alphabetical order.',
-         'Customize your poster below and download the High-Definition SVG file when ready.']
+         'Customize your poster below and download the High-Resolution SVG file when ready.\n'
+         '(Note: the rendered map below is a Low-Resolution preview.)']
     ).props('bg-color=blue-2')
 
 with ui.row():
