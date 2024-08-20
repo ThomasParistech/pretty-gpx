@@ -138,10 +138,12 @@ class PosterImageCache:
         # Prepare the plot data
         track_data = [PlotData(x=x_pix, y=y_pix, linewidth=drawing_params.track_linewidth),
                       ele_fill_poly]
-        peak_data = ele_scatter + [ScatterData(x=list_x[passes_begin:passes_end], y=list_y[passes_begin:passes_end],
+        peak_data = ele_scatter + [ScatterData(x=[x_pix[idx] for idx in gpx_data.passes_ids],
+                                               y=[y_pix[idx] for idx in gpx_data.passes_ids],
                                                marker=drawing_params.peak_marker,
                                                markersize=drawing_params.peak_markersize),
-                                   ScatterData(x=list_x[huts_begin:huts_end], y=list_y[huts_begin:huts_end],
+                                   ScatterData(x=[x_pix[idx] for idx in gpx_data.hut_ids],
+                                               y=[y_pix[idx] for idx in gpx_data.hut_ids],
                                                marker=drawing_params.hut_marker,
                                                markersize=drawing_params.hut_markersize)]
         peak_data += texts[passes_begin:passes_end]

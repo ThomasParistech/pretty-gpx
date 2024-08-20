@@ -15,7 +15,7 @@ from pretty_gpx.utils import mm_to_point
 @dataclass
 class DrawingParams:
     """Drawing Parameters."""
-    text_fontsize: float = mm_to_point(5.0)
+    text_fontsize: float = mm_to_point(4.0)
     text_arrow_linewidth: float = mm_to_point(0.3)
 
     title_fontsize: float = mm_to_point(20.0)
@@ -27,7 +27,7 @@ class DrawingParams:
     end_markersize: float = mm_to_point(4.0)
     end_marker: str | Path = "s"
 
-    peak_markersize: float = mm_to_point(4.0)
+    peak_markersize: float = mm_to_point(3.5)
     peak_marker: str | Path = "^"
 
     hut_markersize: float = mm_to_point(7.0)
