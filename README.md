@@ -52,18 +52,19 @@ To give you a better idea of what this app can create, here are some example pos
 
 <table>
   <tr>
-    <td><img src="doc/marmotte.svg" alt="Image 1" style="max-width: 100%; height: auto;"/></td>
-    <td><img src="doc/diagonale-des-fous.svg" alt="Image 2" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/marmotte.svg" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/diagonale-des-fous.svg" style="max-width: 100%; height: auto;"/></td>
   </tr>
   <tr>
-    <td><img src="doc/couillole.svg" alt="Image 4" style="max-width: 100%; height: auto;"/></td>
-    <td><img src="doc/hawaii.svg" alt="Image 5" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/hawaii.svg" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/couillole.svg" style="max-width: 100%; height: auto;"/></td>
   </tr>
   <tr>
-    <td><img src="doc/peyresourde.svg" alt="Image 4" style="max-width: 100%; height: auto;"/></td>
-    <td><img src="doc/vanoise_3days.svg" alt="Image 4" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/peyresourde.svg" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/vanoise_3days.svg" style="max-width: 100%; height: auto;"/></td>
   </tr>
 </table>
+
 
 
 
