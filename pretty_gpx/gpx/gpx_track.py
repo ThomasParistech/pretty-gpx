@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.utils import assert_isfile
+from pretty_gpx.utils.utils import assert_isfile
 
 DEBUG_TRACK = False
 

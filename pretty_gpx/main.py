@@ -10,15 +10,16 @@ from nicegui import run
 from nicegui import ui
 from pathvalidate import sanitize_filename
 
-from pretty_gpx import EXAMPLES_DIR
-from pretty_gpx.drawing.theme_colors import COLOR_THEMES
-from pretty_gpx.hillshading import AZIMUTHS
-from pretty_gpx.poster_image_cache import PosterDrawingData
-from pretty_gpx.poster_image_cache import PosterImageCache
-from pretty_gpx.poster_image_cache import PosterImageCaches
-from pretty_gpx.ui_helper import on_click_slow_action_in_other_thread
-from pretty_gpx.ui_helper import UiModal
-from pretty_gpx.utils import safe
+from pretty_gpx.drawing.hillshading import AZIMUTHS
+from pretty_gpx.drawing.poster_image_cache import PosterDrawingData
+from pretty_gpx.drawing.poster_image_cache import PosterImageCache
+from pretty_gpx.drawing.poster_image_cache import PosterImageCaches
+from pretty_gpx.drawing.theme_colors import DARK_COLOR_THEMES
+from pretty_gpx.drawing.theme_colors import LIGHT_COLOR_THEMES
+from pretty_gpx.utils.paths import HIKING_DIR
+from pretty_gpx.utils.ui_helper import on_click_slow_action_in_other_thread
+from pretty_gpx.utils.ui_helper import UiModal
+from pretty_gpx.utils.utils import safe
 
 
 def process_files(list_b: list[bytes]) -> PosterImageCaches:
@@ -52,7 +53,8 @@ with ui.row():
 
     ui.chat_message(
         ['Welcome 😀\nCreate a custom poster from your cycling/hiking GPX file! 🚵 🥾',
-         'For multi-day trips, upload consecutive GPX tracks in alphabetical order.',
+         'For multi-day trips, upload all consecutive GPX tracks togethe.\n'
+         '(Make sure the filenames are in the correct alphabetical order.)',
          'Customize your poster below and download the High-Resolution SVG file when ready.\n'
          '(Note: the rendered map below is a Low-Resolution preview.)']
     ).props('bg-color=blue-2')
@@ -65,8 +67,10 @@ with ui.row():
         # Update options
 
         def _update(c: PosterImageCache) -> PosterDrawingData:
+            dark_mode = safe(dark_mode_switch.value)
+            color_themes = (DARK_COLOR_THEMES if dark_mode else LIGHT_COLOR_THEMES)
             return c.update_drawing_data(azimuth=AZIMUTHS[safe(azimuth_toggle.value)],
-                                         theme_colors=COLOR_THEMES[safe(theme_toggle.value)],
+                                         theme_colors=color_themes[safe(theme_toggle.value)],
                                          title_txt=title_button.value,
                                          uphill_m=uphill_button.value,
                                          dist_km=dist_km_button.value)
@@ -100,12 +104,23 @@ with ui.row():
         with ui.input(label='Distance (km)', value="").on('keydown.enter', on_click_update()) as dist_km_button:
             ui.tooltip("Press Enter to override distance from GPX")
 
-        with ui.row().classes("w-full justify-between no-wrap"):
-            ui.label("White Margin (cm): ").style("white-space: nowrap;")
-            ui.slider(min=0, max=5, value=2, step=0.1).props('label-always')
+        azimuth_toggle = ui.toggle(list(AZIMUTHS.keys()), value=list(AZIMUTHS.keys())[0],
+                                   on_change=on_click_update())
 
-        azimuth_toggle = ui.toggle(list(AZIMUTHS.keys()), value=list(AZIMUTHS.keys())[0], on_change=on_click_update())
-        theme_toggle = ui.toggle(list(COLOR_THEMES.keys()), value=list(COLOR_THEMES.keys())[0],
+        DARK_MODE_TEXT = "🌙"
+        LIGHT_MODE_TEXT = "☀️"
+
+        def on_dark_mode_switch_change(e: events.ValueChangeEventArguments):
+            dark_mode = e.value
+            dark_mode_switch.text = DARK_MODE_TEXT if dark_mode else LIGHT_MODE_TEXT
+            theme_toggle.options = list(DARK_COLOR_THEMES.keys()) if dark_mode else list(LIGHT_COLOR_THEMES.keys())
+            theme_toggle.value = theme_toggle.options[0]
+            theme_toggle.update()
+
+        dark_mode_switch = ui.switch(DARK_MODE_TEXT, value=True,
+                                     on_change=on_dark_mode_switch_change)
+
+        theme_toggle = ui.toggle(list(DARK_COLOR_THEMES.keys()), value=list(DARK_COLOR_THEMES.keys())[0],
                                  on_change=on_click_update())
 
         # Download button
@@ -123,15 +138,18 @@ with ui.row():
         async def on_click_download() -> None:
             await on_click_slow_action_in_other_thread(f'Rendering at High Resolution ({cache.high_res.dpi} dpi)',
                                                        update_high_res, update_done_callback_high_res)()
-            await on_click_slow_action_in_other_thread('Exporting SVG',
+            await on_click_slow_action_in_other_thread(f'Exporting SVG ({cache.high_res.dpi} dpi)',
                                                        download, download_done_callback)()
 
         download_button = ui.button('Download', on_click=on_click_download)
 
-cache = PosterImageCaches.from_gpx([os.path.join(EXAMPLES_DIR, "hiking/vanoise1.gpx"),
-                                   os.path.join(EXAMPLES_DIR, "hiking/vanoise2.gpx"),
-                                   os.path.join(EXAMPLES_DIR, "hiking/vanoise3.gpx")])
+cache = PosterImageCaches.from_gpx([os.path.join(HIKING_DIR, "vanoise1.gpx"),
+                                   os.path.join(HIKING_DIR, "vanoise2.gpx"),
+                                   os.path.join(HIKING_DIR, "vanoise3.gpx")])
 
 res = update_low_res()
 update_done_callback_low_res(res)
-ui.run(reload=False)
+
+ui.run(title='Pretty GPX',
+       favicon="✨",
+       reload=False)

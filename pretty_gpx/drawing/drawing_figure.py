@@ -10,8 +10,8 @@ from pretty_gpx.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.drawing.drawing_data import TextData
 from pretty_gpx.drawing.theme_colors import ThemeColors
 from pretty_gpx.layout.paper_size import PaperSize
-from pretty_gpx.utils import assert_close
-from pretty_gpx.utils import mm_to_inch
+from pretty_gpx.utils.utils import assert_close
+from pretty_gpx.utils.utils import mm_to_inch
 
 
 @dataclass

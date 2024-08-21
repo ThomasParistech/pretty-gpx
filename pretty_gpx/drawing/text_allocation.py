@@ -9,11 +9,11 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
 
-from pretty_gpx import DATA_DIR
 from pretty_gpx.drawing.drawing_data import PlotData
 from pretty_gpx.drawing.drawing_data import TextData
 from pretty_gpx.drawing.drawing_figure import BaseDrawingFigure
 from pretty_gpx.layout.paper_size import PaperSize
+from pretty_gpx.utils.paths import DATA_DIR
 
 DEBUG_TEXT_ALLOCATION = False
 

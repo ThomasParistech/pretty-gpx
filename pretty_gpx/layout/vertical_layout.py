@@ -7,7 +7,7 @@ import numpy as np
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.gpx.gpx_track import GpxTrack
 from pretty_gpx.layout.paper_size import PaperSize
-from pretty_gpx.utils import assert_close
+from pretty_gpx.utils.utils import assert_close
 
 
 @dataclass

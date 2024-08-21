@@ -43,6 +43,21 @@ Once you’ve fine-tuned your poster, simply hit the Download button to save you
 
 
 
+
+# Explore new color themes
+
+The project currently offers 4 dark and 4 light color themes, but you are encouraged to create and experiment with new ones!
+
+In dark mode, hillshading modulates the background between black and the theme's background color. To achieve visually appealing results, the darkest color in your triplet should be assigned as the background. Ideally, it should be dark enough to maintain the readability of overlaid elements, yet distinct enough from pure black to enhance the hillshading effect.
+
+In light mode, the approach is similar but uses white as the base, with the lightest color taking the role of the background.
+
+The script below takes a list of color triplets as input and generates posters for both light and dark modes, helping you identify aesthetic themes. The background color is automatically selected based on brightness, while the other two colors are permuted, resulting in 4 unique posters per color triplet.
+
+```
+python3 pretty_gpx/explore_color_themes.py
+```
+
 # Examples
 
 To give you a better idea of what this app can create, here are some example posters generated from real GPX tracks (See the `examples` folder).

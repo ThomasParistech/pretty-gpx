@@ -13,23 +13,23 @@ from pretty_gpx.drawing.drawing_data import ScatterData
 from pretty_gpx.drawing.drawing_data import TextData
 from pretty_gpx.drawing.drawing_figure import DrawingFigure
 from pretty_gpx.drawing.drawing_params import DrawingParams
+from pretty_gpx.drawing.hillshading import CachedHillShading
 from pretty_gpx.drawing.text_allocation import allocate_text
 from pretty_gpx.drawing.theme_colors import hex_to_rgb
 from pretty_gpx.drawing.theme_colors import ThemeColors
 from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
 from pretty_gpx.gpx.elevation_map import download_elevation_map
 from pretty_gpx.gpx.elevation_map import rescale_elevation
-from pretty_gpx.hillshading import CachedHillShading
 from pretty_gpx.layout.paper_size import PAPER_SIZES
 from pretty_gpx.layout.paper_size import PaperSize
 from pretty_gpx.layout.vertical_layout import get_bounds
 from pretty_gpx.layout.vertical_layout import VerticalLayout
-from pretty_gpx.utils import mm_to_inch
-from pretty_gpx.utils import safe
+from pretty_gpx.utils.utils import mm_to_inch
+from pretty_gpx.utils.utils import safe
 
-W_DISPLAY_PIX = 800
-WORKING_DPI = 50
-HIGH_RES_DPI = 400
+W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
+WORKING_DPI = 50  # DPI of the poster's preview
+HIGH_RES_DPI = 400  # DPI of the final poster
 
 
 @dataclass

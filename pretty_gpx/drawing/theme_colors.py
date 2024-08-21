@@ -15,23 +15,42 @@ class ThemeColors:
     peak_color: str
 
 
-COLOR_THEMES: dict[str, ThemeColors] = {
-    "DARK_A": ThemeColors(dark_mode=True,
-                          background_color="#393e41",
-                          track_color="#e94f37",
-                          peak_color="#f6f7eb"),
-    "DARK_B": ThemeColors(dark_mode=True,
-                          background_color="#264653",
-                          track_color="#2a9d8f",
-                          peak_color="#e9c46a"),
-    "LIGHT_C": ThemeColors(dark_mode=False,
-                           background_color="#e9c46a",
-                           track_color="#2a9d8f",
-                           peak_color="#264653"),
-    "LIGHT_D": ThemeColors(dark_mode=False,
-                           background_color="#e59500",
-                           track_color="#002642",
-                           peak_color="#840032")
+DARK_COLOR_THEMES: dict[str, ThemeColors] = {
+    "⬛🟩🟨": ThemeColors(dark_mode=True,
+                       background_color="#264653",
+                       track_color="#2a9d8f",
+                       peak_color="#e9c46a"),
+    "⬛🟥⬜": ThemeColors(dark_mode=True,
+                       background_color="#393e41",
+                       track_color="#e94f37",
+                       peak_color="#f6f7eb"),
+    "⬛🟦⬜": ThemeColors(dark_mode=True,
+                       background_color="#4a598c",
+                       track_color="#69a1f7",
+                       peak_color="#e1ebfb"),
+    "🟦🟪🟨": ThemeColors(dark_mode=True,
+                       background_color="#34447d",
+                       track_color="#8390fa",
+                       peak_color="#fac748")
+}
+
+LIGHT_COLOR_THEMES: dict[str, ThemeColors] = {
+    "🟨🟩⬛": ThemeColors(dark_mode=False,
+                       background_color="#e9c46a",
+                       track_color="#2a9d8f",
+                       peak_color="#264653"),
+    "⬜🟥⬛": ThemeColors(dark_mode=False,
+                       background_color="#bfdbf7",
+                       track_color="#f87060",
+                       peak_color="#102542"),
+    "⬜🟦⬛": ThemeColors(dark_mode=False,
+                       background_color="#cadcfc",
+                       track_color="#69a1f7",
+                       peak_color="#00246b"),
+    "🟨🟥⬛": ThemeColors(dark_mode=False,
+                       background_color="#eaaa33",
+                       track_color="#840032",
+                       peak_color="#002642")
 }
 
 

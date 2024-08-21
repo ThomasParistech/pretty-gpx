@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 
-from pretty_gpx import FONTS_DIR
-from pretty_gpx import ICONS_DIR
 from pretty_gpx.drawing.plt_marker import marker_from_svg
-from pretty_gpx.utils import mm_to_point
+from pretty_gpx.utils.paths import FONTS_DIR
+from pretty_gpx.utils.paths import ICONS_DIR
+from pretty_gpx.utils.utils import mm_to_point
 
 
 @dataclass

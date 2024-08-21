@@ -8,9 +8,9 @@ import numpy as np
 import rasterio
 from dem_stitcher import stitch_dem
 
-from pretty_gpx import DEM_CACHE_DIR
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.utils import assert_close
+from pretty_gpx.utils.paths import DEM_CACHE_DIR
+from pretty_gpx.utils.utils import assert_close
 
 
 def download_elevation_map(bounds: GpxBounds) -> np.ndarray:
