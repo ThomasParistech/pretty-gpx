@@ -108,7 +108,9 @@ class ScatterData(BaseDrawingData):
     def get_plot_func(ax: Axes) -> Callable:
         """Get corresponding matplotlib plot function, e.g. ax.plot, ax.text, ax.fill ..."""
         def plot_with_no_lines(*args, **kwargs):
-            return ax.plot(*args, linestyle='', **kwargs)
+            return ax.plot(*args, linestyle='',
+                           clip_on=False,  # Allow start/end markers to be drawn outside the plot area
+                           **kwargs)
         return plot_with_no_lines
 
 
