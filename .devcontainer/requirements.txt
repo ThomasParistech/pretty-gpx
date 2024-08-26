@@ -2,7 +2,7 @@ dem-stitcher==2.5.5
 geopy==2.4.1
 gpxpy==1.6.2
 natsort==8.4.0
-nicegui==1.4.26
+nicegui==1.4.36
 numpy==1.26.0
 opencv-contrib-python==4.9.0.80
 opencv-python==4.9.0.80

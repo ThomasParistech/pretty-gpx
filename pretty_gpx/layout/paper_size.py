@@ -8,9 +8,11 @@ class PaperSize:
     """Paper Size."""
     w_mm: int
     h_mm: int
+    margin_mm: int
 
 
 PAPER_SIZES: dict[str, PaperSize] = {
-    "A4": PaperSize(w_mm=210, h_mm=297),
-    "50x70": PaperSize(w_mm=500, h_mm=700)
+    "A4": PaperSize(w_mm=210, h_mm=297, margin_mm=10),
+    "50x70": PaperSize(w_mm=500, h_mm=700, margin_mm=25),
+    "30x40": PaperSize(w_mm=300, h_mm=400, margin_mm=15),
 }

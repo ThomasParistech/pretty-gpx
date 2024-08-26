@@ -38,24 +38,29 @@ class BaseDrawingFigure:
         w_inches = mm_to_inch(self.paper_size.w_mm)
         h_inches = mm_to_inch(self.paper_size.h_mm)
 
-        assert_close(self.latlon_aspect_ratio*h * w_inches/w, h_inches,
+        margin_inches = mm_to_inch(self.paper_size.margin_mm)
+        assert_close(self.latlon_aspect_ratio*h * (w_inches-2*margin_inches)/w,
+                     h_inches-2*margin_inches,
                      eps=mm_to_inch(2.0),
                      msg="Wrong aspect ratio for image")
 
         fig.set_size_inches(w_inches, h_inches)
 
+        fig.subplots_adjust(left=margin_inches/w_inches, right=1-margin_inches/w_inches,
+                            bottom=margin_inches/h_inches, top=1-margin_inches/h_inches)
+
         ax.autoscale(False)
 
-    def adjust_display_width(self, fig: Figure, w_display_pix: int) -> None:
-        """Adjust width in pixels on the screen of the displayed figure."""
-        fig.set_dpi(w_display_pix / fig.get_size_inches()[0])
+    def adjust_display_height(self, fig: Figure, h_display_pix: int) -> None:
+        """Adjust height in pixels on the screen of the displayed figure."""
+        fig.set_dpi(h_display_pix / fig.get_size_inches()[1])
 
 
 @dataclass
 class DrawingFigure(BaseDrawingFigure):
     """Drawing Figure displaying annotations on top of an image plotted with plt.imshow.
 
-    w_display_pix: Expected screen Figure width in pixels (when displayed on screen)
+    h_display_pix: Expected screen Figure height in pixels (when displayed on screen)
     ref_img_shape: Shape of the reference background image. It defines the scale at which the X-Y coordinates of the
         annotations have been saved.
 
@@ -65,7 +70,7 @@ class DrawingFigure(BaseDrawingFigure):
     title: Text Drawing Data for the title at the top of the image (Text String can be updated)
     stats: Text Drawing Data for the statistics at the bottom of the image (Text String can be updated)
     """
-    w_display_pix: int
+    h_display_pix: int
     ref_img_shape: tuple[int, ...]
 
     track_data: list[BaseDrawingData]
@@ -83,7 +88,7 @@ class DrawingFigure(BaseDrawingFigure):
              stats_txt: str) -> None:
         """Plot the background image and the annotations on top of it."""
         self.imshow(fig, ax, img)
-        self.adjust_display_width(fig, self.w_display_pix)
+        self.adjust_display_height(fig, self.h_display_pix)
 
         self.title.s = title_txt
         self.stats.s = stats_txt

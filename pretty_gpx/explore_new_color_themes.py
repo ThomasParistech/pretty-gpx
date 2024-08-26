@@ -53,7 +53,7 @@ def main(color_palettes: list[tuple[str, str, str]]) -> None:
 
 
     Color Palette Inspiration:
-    - https://huemint.com/brand-2/ 
+    - https://huemint.com/brand-2/
     - https://coolors.co/palettes/popular/3%20colors
     """
     cache = PosterImageCache.from_gpx(os.path.join(CYCLING_DIR, "marmotte.gpx"), dpi=60)

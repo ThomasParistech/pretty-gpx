@@ -35,5 +35,5 @@ class DrawingParams:
 
     track_linewidth: float = mm_to_point(1.0)
 
-    classic_font: FontProperties = FontProperties()
+    classic_font: FontProperties = FontProperties(weight="bold")
     pretty_font: FontProperties = FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf"))
