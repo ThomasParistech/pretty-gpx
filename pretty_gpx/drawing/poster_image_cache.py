@@ -27,7 +27,7 @@ from pretty_gpx.layout.vertical_layout import VerticalLayout
 from pretty_gpx.utils.utils import mm_to_inch
 from pretty_gpx.utils.utils import safe
 
-W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
+W_DISPLAY_PIX = 600  # Display width of the preview (in pix)
 WORKING_DPI = 50  # DPI of the poster's preview
 HIGH_RES_DPI = 400  # DPI of the final poster
 

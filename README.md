@@ -58,25 +58,32 @@ The script below takes a list of color triplets as input and generates posters f
 python3 pretty_gpx/explore_color_themes.py
 ```
 
+
+# Demo
+
+Here's a demo GIF to give you a glimpse of a user interacting with the webapp and exploring its features.
+
+![](./doc/demo.gif)
+
+
 # Examples
 
 To give you a better idea of what this app can create, here are some example posters generated from real GPX tracks (See the `examples` folder).
 
 
 
-
 <table>
   <tr>
-    <td><img src="doc/marmotte.svg" style="max-width: 100%; height: auto;"/></td>
-    <td><img src="doc/diagonale-des-fous.svg" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/posters/marmotte.svg" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/posters/diagonale-des-fous.svg" style="max-width: 100%; height: auto;"/></td>
   </tr>
   <tr>
-    <td><img src="doc/hawaii.svg" style="max-width: 100%; height: auto;"/></td>
-    <td><img src="doc/couillole.svg" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/posters/hawaii.svg" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/posters/couillole.svg" style="max-width: 100%; height: auto;"/></td>
   </tr>
   <tr>
-    <td><img src="doc/peyresourde.svg" style="max-width: 100%; height: auto;"/></td>
-    <td><img src="doc/vanoise_3days.svg" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/posters/peyresourde.svg" style="max-width: 100%; height: auto;"/></td>
+    <td><img src="doc/posters/vanoise_3days.svg" style="max-width: 100%; height: auto;"/></td>
   </tr>
 </table>
 
