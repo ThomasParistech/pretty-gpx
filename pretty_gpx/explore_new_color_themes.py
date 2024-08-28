@@ -10,6 +10,8 @@ from tqdm import tqdm
 from pretty_gpx.drawing.poster_image_cache import PosterImageCache
 from pretty_gpx.drawing.theme_colors import hex_to_rgb
 from pretty_gpx.drawing.theme_colors import ThemeColors
+from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
+from pretty_gpx.layout.paper_size import PAPER_SIZES
 from pretty_gpx.utils.paths import COLOR_EXPLORATION_DIR
 from pretty_gpx.utils.paths import CYCLING_DIR
 
@@ -55,8 +57,12 @@ def main(color_palettes: list[tuple[str, str, str]]) -> None:
     Color Palette Inspiration:
     - https://huemint.com/brand-2/
     - https://coolors.co/palettes/popular/3%20colors
+
+    Tune Color:
+    - https://mdigi.tools/darken-color/#f1effc
     """
-    cache = PosterImageCache.from_gpx(os.path.join(CYCLING_DIR, "marmotte.gpx"), dpi=60)
+    gpx_data = AugmentedGpxData.from_path(os.path.join(CYCLING_DIR, "marmotte.gpx"))
+    cache = PosterImageCache.from_gpx_data(gpx_data, paper=PAPER_SIZES["A4"],  dpi=60)
 
     shutil.rmtree(COLOR_EXPLORATION_DIR, ignore_errors=True)
     os.makedirs(COLOR_EXPLORATION_DIR, exist_ok=True)

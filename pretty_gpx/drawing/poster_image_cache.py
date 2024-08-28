@@ -20,7 +20,6 @@ from pretty_gpx.drawing.theme_colors import ThemeColors
 from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
 from pretty_gpx.gpx.elevation_map import download_elevation_map
 from pretty_gpx.gpx.elevation_map import rescale_elevation
-from pretty_gpx.layout.paper_size import PAPER_SIZES
 from pretty_gpx.layout.paper_size import PaperSize
 from pretty_gpx.layout.vertical_layout import get_bounds
 from pretty_gpx.layout.vertical_layout import VerticalLayout
@@ -38,14 +37,26 @@ class PosterImageCaches:
     low_res: 'PosterImageCache'
     high_res: 'PosterImageCache'
 
-    @staticmethod
-    def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes]) -> 'PosterImageCaches':
-        """Create a PosterImageCaches from a GPX file."""
-        high_res = PosterImageCache.from_gpx(list_gpx_path, dpi=HIGH_RES_DPI)
-        low_res = high_res.change_dpi(WORKING_DPI)
+    gpx_data: AugmentedGpxData
 
-        assert low_res.dpi < high_res.dpi
-        return PosterImageCaches(low_res=low_res, high_res=high_res)
+    def __post_init__(self) -> None:
+        assert self.low_res.dpi < self.high_res.dpi
+
+    @staticmethod
+    def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes],
+                 paper_size: PaperSize) -> 'PosterImageCaches':
+        """Create a PosterImageCaches from a GPX file."""
+        # Extract GPX data and retrieve close mountain passes/huts
+        gpx_data = AugmentedGpxData.from_path(list_gpx_path)
+        return PosterImageCaches.from_gpx_data(gpx_data, paper_size)
+
+    @staticmethod
+    def from_gpx_data(gpx_data: AugmentedGpxData,
+                      paper_size: PaperSize) -> 'PosterImageCaches':
+        """Create a PosterImageCaches from a GPX file."""
+        high_res = PosterImageCache.from_gpx_data(gpx_data, dpi=HIGH_RES_DPI, paper=paper_size)
+        low_res = high_res.change_dpi(WORKING_DPI)
+        return PosterImageCaches(low_res=low_res, high_res=high_res, gpx_data=gpx_data)
 
 
 @dataclass
@@ -72,15 +83,12 @@ class PosterImageCache:
     dpi: float
 
     @staticmethod
-    def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes],
-                 layout: VerticalLayout = VerticalLayout(),
-                 paper: PaperSize = PAPER_SIZES["30x40"],
-                 drawing_params: DrawingParams = DrawingParams(),
-                 dpi: float = HIGH_RES_DPI) -> 'PosterImageCache':
+    def from_gpx_data(gpx_data: AugmentedGpxData,
+                      paper: PaperSize,
+                      layout: VerticalLayout = VerticalLayout(),
+                      drawing_params: DrawingParams = DrawingParams(),
+                      dpi: float = HIGH_RES_DPI) -> 'PosterImageCache':
         """Create a PosterImageCache from a GPX file."""
-        # Extract GPX data and retrieve close mountain passes/huts
-        gpx_data = AugmentedGpxData.from_path(list_gpx_path)
-
         # Download the elevation map at the correct layout
         bounds, latlon_aspect_ratio = get_bounds(gpx_data.track, layout, paper)
         elevation = download_elevation_map(bounds)

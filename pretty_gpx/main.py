@@ -1,10 +1,12 @@
 #!/usr/bin/python3
 """NiceGUI Webapp. Drag&Drop GPX files to create a custom poster."""
+import copy
 import os
 import tempfile
 from collections.abc import Callable
 
 from natsort import index_natsorted
+from nicegui import app
 from nicegui import events
 from nicegui import run
 from nicegui import ui
@@ -16,14 +18,25 @@ from pretty_gpx.drawing.poster_image_cache import PosterImageCache
 from pretty_gpx.drawing.poster_image_cache import PosterImageCaches
 from pretty_gpx.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.drawing.theme_colors import LIGHT_COLOR_THEMES
+from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
+from pretty_gpx.layout.paper_size import PAPER_SIZES
+from pretty_gpx.layout.paper_size import PaperSize
 from pretty_gpx.utils.paths import HIKING_DIR
 from pretty_gpx.utils.ui_helper import on_click_slow_action_in_other_thread
 from pretty_gpx.utils.ui_helper import UiModal
 from pretty_gpx.utils.utils import safe
 
 
-def process_files(list_b: list[bytes]) -> PosterImageCaches:
-    return PosterImageCaches.from_gpx(list_b)
+def process_files(list_b: list[bytes] | list[str], new_paper_size: PaperSize) -> PosterImageCaches:
+    return PosterImageCaches.from_gpx(list_b, new_paper_size)
+
+
+async def _on_upload(contents: list[bytes] | list[str], msg: str) -> None:
+    with UiModal(msg):
+        global cache
+        cache = await run.cpu_bound(process_files, contents, PAPER_SIZES[safe(paper_size_mode_toggle.value)])
+
+    await on_click_update()()
 
 
 async def on_multi_upload(e: events.MultiUploadEventArguments):
@@ -32,24 +45,39 @@ async def on_multi_upload(e: events.MultiUploadEventArguments):
     contents = [e.contents[i].read() for i in sorted_indices]
     e.sender.reset()
 
-    if len(e.contents) == 1:
-        msg = f'Processing {names[0]}'
+    if len(contents) == 1:
+        msg = f"Processing {names[0]}"
     else:
-        msg = f'Processing a {len(contents)}-days track ({", ".join(names)})'
+        msg = f'Processing a {len(names)}-days track ({", ".join(names)})'
 
-    with UiModal(msg):
+    await _on_upload(contents, msg)
+
+
+def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize) -> PosterImageCaches:
+    return PosterImageCaches.from_gpx_data(gpx_data, new_paper_size)
+
+
+async def on_click_load_example() -> None:
+    contents = [os.path.join(HIKING_DIR, "vanoise1.gpx"),
+                os.path.join(HIKING_DIR, "vanoise2.gpx"),
+                os.path.join(HIKING_DIR, "vanoise3.gpx")]
+    await _on_upload(contents, "Generate a 3-days example poster")
+
+
+async def on_paper_size_change() -> None:
+    new_paper_size_name = safe(paper_size_mode_toggle.value)
+    with UiModal(f"Creating {new_paper_size_name} Poster"):
         global cache
-        cache = await run.cpu_bound(process_files, contents)
-        res = update_low_res()
-        update_done_callback_low_res(res)
-
+        cache = await run.cpu_bound(change_paper_size, copy.deepcopy(cache.gpx_data), PAPER_SIZES[new_paper_size_name])
+    await on_click_update()()
 
 with ui.row():
     with ui.card().style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
         with ui.pyplot(close=False) as plot:
             ax = plot.fig.add_subplot()
+            ax.axis('off')
 
-    with ui.column():
+    with ui.column(align_items="center"):
         ui.chat_message(
             ['Welcome 😀\nCreate a custom poster from\n'
              'your cycling/hiking GPX file! 🚵 🥾',
@@ -67,6 +95,10 @@ with ui.row():
                   ).props('accept=.gpx'
                           ).on('rejected', lambda: ui.notify('Please provide a GPX file')
                                ).classes('max-w-full')
+
+        with ui.card():
+            paper_size_mode_toggle = ui.toggle(list(PAPER_SIZES.keys()), value=list(PAPER_SIZES.keys())[0],
+                                               on_change=on_paper_size_change)
 
         # Update options
         with ui.card():
@@ -147,11 +179,8 @@ with ui.row():
 
             download_button = ui.button('Download', on_click=on_click_download)
 
-cache = PosterImageCaches.from_gpx([os.path.join(HIKING_DIR, "vanoise1.gpx"),
-                                   os.path.join(HIKING_DIR, "vanoise2.gpx"),
-                                   os.path.join(HIKING_DIR, "vanoise3.gpx")])
-res = update_low_res()
-update_done_callback_low_res(res)
+
+app.on_startup(on_click_load_example)
 
 ui.run(title='Pretty GPX',
        favicon="✨",
