@@ -16,6 +16,7 @@ from pretty_gpx.drawing.hillshading import AZIMUTHS
 from pretty_gpx.drawing.poster_image_cache import PosterDrawingData
 from pretty_gpx.drawing.poster_image_cache import PosterImageCache
 from pretty_gpx.drawing.poster_image_cache import PosterImageCaches
+from pretty_gpx.drawing.poster_image_cache import W_DISPLAY_PIX
 from pretty_gpx.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.drawing.theme_colors import LIGHT_COLOR_THEMES
 from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
@@ -72,7 +73,7 @@ async def on_paper_size_change() -> None:
     await on_click_update()()
 
 with ui.row():
-    with ui.card().style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
+    with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
         with ui.pyplot(close=False) as plot:
             ax = plot.fig.add_subplot()
             ax.axis('off')
@@ -170,6 +171,7 @@ with ui.row():
 
             def download_done_callback(svg_bytes: bytes):
                 ui.download(svg_bytes, f'poster_{sanitize_filename(str(title_button.value).replace(" ", "_"))}.svg')
+                print("Poster Downloaded")
 
             async def on_click_download() -> None:
                 await on_click_slow_action_in_other_thread(f'Rendering at High Resolution ({cache.high_res.dpi} dpi)',

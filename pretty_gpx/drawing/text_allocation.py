@@ -45,7 +45,7 @@ def allocate_text(fig: Figure,
     if DEBUG_TEXT_ALLOCATION:
         debug_fig, debug_ax = plt.subplots()
         base_fig.imshow(debug_fig, debug_ax, imshow_img)
-        base_fig.adjust_display_height(debug_fig, 800)
+        base_fig.adjust_display_width(debug_fig, 600)
         for list_x, list_y in zip(plots_x_to_avoid, plots_y_to_avoid):
             debug_ax.plot(list_x, list_y, "-r")
         for text_x, text_y, text_s in zip(x, y, s):
@@ -90,7 +90,7 @@ def allocate_text(fig: Figure,
 
     if DEBUG_TEXT_ALLOCATION:
         base_fig.imshow(fig, ax, imshow_img)
-        base_fig.adjust_display_height(fig, 800)
+        base_fig.adjust_display_width(fig, 600)
 
         for list_x, list_y in zip(plots_x_to_avoid, plots_y_to_avoid):
             plt.plot(list_x, list_y, "-r")
