@@ -157,7 +157,7 @@ def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[in
             ele = float(node.tags["ele"])
 
             if "hiking" in tags and tags["hiking"] == "yes":
-                if "col " not in name.lower():
+                if not name.lower().startswith(("col ", "golet ", "pic ", "mont ")):
                     continue
 
             # Check if close to the GPX track
@@ -201,9 +201,14 @@ def get_place_name(lon: float, lat: float) -> str:
     assert isinstance(location, Location)
     address = location.raw['address']
 
-    for key, place_name in address.items():
-        if key in place_types:
+    for place_type in place_types:
+        place_name = address.get(place_type, None)
+        if place_name is not None:
             return place_name
+
+    # for key, place_name in address.items():
+    #     if key in place_types:
+    #         return place_name
 
     raise RuntimeError(f"Place Not found at {lat:.3f}, {lon:.3f}. Got {address}")
 
@@ -290,6 +295,7 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
         if closest_distance < max_dist_deg:
             huts.append(candidate_huts[closest_idx])
         else:
+            # name = get_place_name(lon=hut_lon, lat=hut_lat)
             huts.append(MountainHut(name=None, lat=hut_lat, lon=hut_lon))
 
     print(f"Huts: {', '.join([h.name if h.name is not None else '?' for h in huts if h.name])}")
