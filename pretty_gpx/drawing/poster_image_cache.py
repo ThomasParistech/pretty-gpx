@@ -12,7 +12,8 @@ from pretty_gpx.drawing.drawing_data import PolyFillData
 from pretty_gpx.drawing.drawing_data import ScatterData
 from pretty_gpx.drawing.drawing_data import TextData
 from pretty_gpx.drawing.drawing_figure import DrawingFigure
-from pretty_gpx.drawing.drawing_params import DrawingParams
+from pretty_gpx.drawing.drawing_params import DrawingSizeParams
+from pretty_gpx.drawing.drawing_params import DrawingStyleParams
 from pretty_gpx.drawing.hillshading import CachedHillShading
 from pretty_gpx.drawing.text_allocation import allocate_text
 from pretty_gpx.drawing.theme_colors import hex_to_rgb
@@ -86,7 +87,6 @@ class PosterImageCache:
     def from_gpx_data(gpx_data: AugmentedGpxData,
                       paper: PaperSize,
                       layout: VerticalLayout = VerticalLayout(),
-                      drawing_params: DrawingParams = DrawingParams(),
                       dpi: float = HIGH_RES_DPI) -> 'PosterImageCache':
         """Create a PosterImageCache from a GPX file."""
         # Download the elevation map at the correct layout
@@ -99,6 +99,10 @@ class PosterImageCache:
         # Project the track on the elevation map
         h, w = elevation.shape[:2]
         x_pix, y_pix = gpx_data.track.project_on_image(elevation, bounds)
+
+        # Use default drawing params
+        drawing_size_params = DrawingSizeParams.default(paper)
+        drawing_style_params = DrawingStyleParams()
 
         # Allocate non-overlapping text annotations on the map
         list_x: list[float] = []
@@ -150,9 +154,9 @@ class PosterImageCache:
                                      s=list_text,
                                      plots_x_to_avoid=plots_x_to_avoid,
                                      plots_y_to_avoid=plots_y_to_avoid,
-                                     output_linewidth=drawing_params.text_arrow_linewidth,
-                                     fontsize=drawing_params.text_fontsize,
-                                     fontproperties=drawing_params.classic_font)
+                                     output_linewidth=drawing_size_params.text_arrow_linewidth,
+                                     fontsize=drawing_size_params.text_fontsize,
+                                     fontproperties=drawing_style_params.classic_font)
 
         # Draw the elevation profile
         draw_start = gpx_data.start_name is not None
@@ -165,19 +169,20 @@ class PosterImageCache:
                                                                    daily_dist_km=gpx_data.daily_dist_km,
                                                                    draw_start=draw_start,
                                                                    draw_end=draw_end,
-                                                                   drawing_params=drawing_params)
+                                                                   drawing_style_params=drawing_style_params,
+                                                                   drawing_size_params=drawing_size_params)
 
         # Prepare the plot data
-        track_data = [PlotData(x=x_pix, y=y_pix, linewidth=drawing_params.track_linewidth),
+        track_data = [PlotData(x=x_pix, y=y_pix, linewidth=drawing_size_params.track_linewidth),
                       ele_fill_poly]
         peak_data = ele_scatter + [ScatterData(x=[x_pix[idx] for idx in gpx_data.passes_ids],
                                                y=[y_pix[idx] for idx in gpx_data.passes_ids],
-                                               marker=drawing_params.peak_marker,
-                                               markersize=drawing_params.peak_markersize),
+                                               marker=drawing_style_params.peak_marker,
+                                               markersize=drawing_size_params.peak_markersize),
                                    ScatterData(x=[x_pix[idx] for idx in gpx_data.hut_ids],
                                                y=[y_pix[idx] for idx in gpx_data.hut_ids],
-                                               marker=drawing_params.hut_marker,
-                                               markersize=drawing_params.hut_markersize)]
+                                               marker=drawing_style_params.hut_marker,
+                                               markersize=drawing_size_params.hut_markersize)]
         peak_data += texts[passes_begin:passes_end]
         peak_data += lines[passes_begin:passes_end]
         peak_data += texts[huts_begin:huts_end]
@@ -188,8 +193,8 @@ class PosterImageCache:
             peak_data += [texts[i],
                           lines[i],
                           ScatterData(x=[list_x[i]], y=[list_y[i]],
-                                      marker=drawing_params.start_marker,
-                                      markersize=drawing_params.start_markersize)]
+                                      marker=drawing_style_params.start_marker,
+                                      markersize=drawing_size_params.start_markersize)]
 
         if gpx_data.end_name is not None:
             i = safe(end_idx)
@@ -197,12 +202,12 @@ class PosterImageCache:
                           lines[i],
                           ScatterData(x=[list_x[i]],
                                       y=[list_y[i]],
-                                      marker=drawing_params.end_marker,
-                                      markersize=drawing_params.end_markersize)]
+                                      marker=drawing_style_params.end_marker,
+                                      markersize=drawing_size_params.end_markersize)]
 
         title = TextData(x=0.5 * w, y=0.8 * h * layout.title_relative_h,
-                         s="", fontsize=drawing_params.title_fontsize,
-                           fontproperties=drawing_params.pretty_font, ha="center")
+                         s="", fontsize=drawing_size_params.title_fontsize,
+                           fontproperties=drawing_style_params.pretty_font, ha="center")
 
         plotter = DrawingFigure(ref_img_shape=(h, w),
                                 paper_size=paper,
@@ -270,7 +275,8 @@ def get_elevation_drawings(layout: VerticalLayout,
                            daily_dist_km: list[float],
                            draw_start: bool,
                            draw_end: bool,
-                           drawing_params: DrawingParams) -> tuple[list[ScatterData], PolyFillData, TextData]:
+                           drawing_style_params: DrawingStyleParams,
+                           drawing_size_params: DrawingSizeParams) -> tuple[list[ScatterData], PolyFillData, TextData]:
     """Create the plot elements for the elevation profile."""
     # Elevation Profile
     h_up_pix = h_pix * (layout.title_relative_h + layout.map_relative_h)
@@ -296,19 +302,21 @@ def get_elevation_drawings(layout: VerticalLayout,
         ScatterData(x=[elevation_poly_x[closest_idx] for closest_idx in ids],
                     y=[elevation_poly_y[closest_idx] for closest_idx in ids],
                     marker=marker, markersize=markersize)
-        for ids, marker, markersize in [(passes_ids, drawing_params.peak_marker, drawing_params.peak_markersize),
-                                        (huts_ids, drawing_params.hut_marker, drawing_params.hut_markersize)]
+        for ids, marker, markersize in [(passes_ids, drawing_style_params.peak_marker,
+                                         drawing_size_params.peak_markersize),
+                                        (huts_ids, drawing_style_params.hut_marker,
+                                         drawing_size_params.hut_markersize)]
     ]
 
     # Start and End
     if draw_start:
         scatter_data.append(ScatterData(x=[elevation_poly_x[0]], y=[elevation_poly_y[0]],
-                                        marker=drawing_params.start_marker,
-                                        markersize=drawing_params.start_markersize))
+                                        marker=drawing_style_params.start_marker,
+                                        markersize=drawing_size_params.start_markersize))
     if draw_end:
         scatter_data.append(ScatterData(x=[elevation_poly_x[-1]], y=[elevation_poly_y[-1]],
-                                        marker=drawing_params.end_marker,
-                                        markersize=drawing_params.end_markersize))
+                                        marker=drawing_style_params.end_marker,
+                                        markersize=drawing_size_params.end_markersize))
 
     # Complete the polygon for the elevation profile
     elevation_poly_x = np.hstack((0, 0, elevation_poly_x, w_pix, w_pix)).tolist()
@@ -316,8 +324,8 @@ def get_elevation_drawings(layout: VerticalLayout,
     elevation_data = PolyFillData(x=elevation_poly_x, y=elevation_poly_y)
 
     stats = TextData(x=0.5 * w_pix, y=0.5 * (h_bot_pix+h_pix),
-                     s="", fontsize=drawing_params.stats_fontsize,
-                     fontproperties=drawing_params.pretty_font, ha="center")
+                     s="", fontsize=drawing_size_params.stats_fontsize,
+                     fontproperties=drawing_style_params.pretty_font, ha="center")
 
     return scatter_data, elevation_data, stats
 
