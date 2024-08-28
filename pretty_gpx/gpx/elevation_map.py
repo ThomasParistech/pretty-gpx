@@ -34,6 +34,10 @@ def download_elevation_map(bounds: GpxBounds) -> np.ndarray:
     elevation = rasterio.open(cache_tif).read()[0]
     assert_close((bounds.lat_max-bounds.lat_min)/(bounds.lon_max - bounds.lon_min),
                  elevation.shape[0]/elevation.shape[1], eps=5e-3, msg="Wrong aspect ratio for elevation map")
+
+    # Handle NaNs
+    elevation[np.isnan(elevation)] = 0.0
+
     return elevation
 
 
