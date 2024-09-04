@@ -24,6 +24,7 @@ from pretty_gpx.layout.paper_size import PAPER_SIZES
 from pretty_gpx.layout.paper_size import PaperSize
 from pretty_gpx.utils.paths import HIKING_DIR
 from pretty_gpx.utils.ui_helper import on_click_slow_action_in_other_thread
+from pretty_gpx.utils.ui_helper import shutdown_app_and_close_tab
 from pretty_gpx.utils.ui_helper import UiModal
 from pretty_gpx.utils.utils import safe
 
@@ -181,6 +182,23 @@ with ui.row():
 
             download_button = ui.button('Download', on_click=on_click_download)
 
+
+with ui.dialog() as exit_dialog, ui.card():
+    ui.label('Confirm exit?')
+    with ui.row():
+        ui.button('Yes', on_click=lambda: shutdown_app_and_close_tab(), color='red-9')
+        ui.button('Cancel', on_click=exit_dialog.close)
+
+
+async def confirm_exit():
+    """Display a confirmation dialog before exiting."""
+    await exit_dialog
+
+
+exit_button = ui.button('Exit',
+                        on_click=confirm_exit,
+                        color='red-9',
+                        icon='logout').style('position: fixed; top: 10px; right: 10px;')
 
 app.on_startup(on_click_load_example)
 

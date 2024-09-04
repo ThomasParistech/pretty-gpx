@@ -4,6 +4,7 @@ import asyncio
 import concurrent.futures
 from collections.abc import Callable
 
+from nicegui import app
 from nicegui import ui
 
 
@@ -38,3 +39,9 @@ def on_click_slow_action_in_other_thread(label: str,
                 done_callback(res)
 
     return on_click
+
+
+def shutdown_app_and_close_tab():
+    """Shutdown the app and close the tab."""
+    ui.run_javascript("window.close();")
+    app.shutdown()
