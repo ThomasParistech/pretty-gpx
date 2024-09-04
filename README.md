@@ -29,11 +29,16 @@ This app is the perfect companion for cycling or hiking enthusiasts tackling rou
 
 ### 🌄 Hillshading
 
-Enhance your map with a beautiful hillshaded background that highlights the ruggedness of mountainous terrains. Adjust the sun's orientation to create the perfect lighting effect.
+Add depth and realism to your map with hillshading effects that emphasize the natural ruggedness of mountainous landscapes. Adjust the sun's orientation to create the perfect lighting.
+
+This feature leverages terrain elevation data from the [Global Copernicus Digital Elevation Model at 30 meter resolution](https://registry.opendata.aws/copernicus-dem/), ensuring high-quality elevation details for accurate and visually striking results.
 
 ### 🏔️ Mountain Passes & Elevation Profile
 
 Easily spot mountain passes and saddles along your track, with accurate elevation information. The elevation profile, displayed below the track, mirrors these key landmarks with matching icons, giving you a clear and intuitive overview of your journey's vertical challenges.
+
+This feature utilizes [OpenStreetMap data](https://www.openstreetmap.org) via the [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) for precise and up-to-date information.
+
 
 ### 🏕️ Multi-Day Trip Support
 
@@ -48,6 +53,18 @@ Personalize your poster with options to update the track title, adjust sun orien
 Once you’ve fine-tuned your poster, simply hit the Download button to save your customized map.
 
 
+### 📝 Text annotations
+
+Placing text annotations for mountain passes, huts, or other landmarks can be challenging, as they may overlap with each other or obscure the GPX track. To ensure precise placement and a clean layout, we rely on [textalloc](https://github.com/ckjellson/textalloc), a robust tool that automatically optimizes text to prevent overlap.
+
+
+### ⛶ Poster Size
+
+When you change the poster size, the corresponding latitude and longitude area also changes. This requires a fresh request for new elevation data, as the previous data no longer covers the updated area. 
+
+In addition to the elevation data, resizing the poster also impacts the available space around your track. This change in layout may affect the positioning of text annotations such as labels for mountain passes or huts.
+
+Because resizing involves both requesting new elevation data and reoptimizing the text annotations, the process takes longer than simpler adjustments like changing the color theme.
 
 
 # Explore new color themes
