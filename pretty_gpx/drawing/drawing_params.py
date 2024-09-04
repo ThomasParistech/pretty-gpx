@@ -68,7 +68,7 @@ class DrawingSizeParams:
         ref_diag_mm = np.linalg.norm([PAPER_SIZES["A4"].w_mm, PAPER_SIZES["A4"].h_mm])
         new_diag_mm = np.linalg.norm([paper_size.w_mm, paper_size.h_mm])
         scale = float(new_diag_mm/ref_diag_mm)
-        return DrawingSizeParams(text_fontsize=mm_to_point(4.0) * scale,
+        return DrawingSizeParams(text_fontsize=mm_to_point(3.0) * scale,
                                  text_arrow_linewidth=mm_to_point(0.3) * scale,
                                  title_fontsize=mm_to_point(20.0) * scale,
                                  stats_fontsize=mm_to_point(18.5) * scale,
