@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from dataclasses import asdict
 from dataclasses import dataclass
+from typing import Literal
 from typing import overload
 
 from matplotlib.axes import Axes
@@ -88,6 +89,7 @@ class PlotData(BaseDrawingData):
     y: list[float]
 
     linewidth: float
+    linestyle: Literal["solid", "dashed", "dashdot", "dotted"] = "solid"
 
     @staticmethod
     def get_plot_func(ax: Axes) -> Callable:

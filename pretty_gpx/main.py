@@ -64,6 +64,7 @@ async def on_click_load_example() -> None:
                 os.path.join(HIKING_DIR, "vanoise2.gpx"),
                 os.path.join(HIKING_DIR, "vanoise3.gpx")]
     await _on_upload(contents, "Generate a 3-days example poster")
+    await _on_upload(contents, f"Generate a {len(contents)}-days example poster")
 
 
 async def on_paper_size_change() -> None:

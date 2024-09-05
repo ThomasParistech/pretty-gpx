@@ -174,8 +174,23 @@ class PosterImageCache:
                                                                    drawing_size_params=drawing_size_params)
 
         # Prepare the plot data
-        track_data = [PlotData(x=x_pix, y=y_pix, linewidth=drawing_size_params.track_linewidth),
-                      ele_fill_poly]
+        augmented_hut_ids = [0] + gpx_data.hut_ids + [None]
+        track_data = []
+        for k in range(len(augmented_hut_ids)-1):
+            begin_i = augmented_hut_ids[k]
+            end_i = augmented_hut_ids[k+1]
+            track_data.append(PlotData(x=x_pix[begin_i:end_i],
+                                       y=y_pix[begin_i:end_i],
+                                       linewidth=drawing_size_params.track_linewidth))
+            if k != 0:
+                # Draw dotted line between huts, in case there's a visible gap
+                track_data.append(PlotData(x=[x_pix[begin_i-1], x_pix[begin_i]],
+                                           y=[y_pix[begin_i-1], y_pix[begin_i]],
+                                           linewidth=0.5*drawing_size_params.track_linewidth,
+                                           linestyle="dotted"))
+
+        track_data.append(ele_fill_poly)
+
         peak_data = ele_scatter + [ScatterData(x=[x_pix[idx] for idx in gpx_data.passes_ids],
                                                y=[y_pix[idx] for idx in gpx_data.passes_ids],
                                                marker=drawing_style_params.peak_marker,

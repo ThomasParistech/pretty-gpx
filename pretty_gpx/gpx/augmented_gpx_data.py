@@ -235,14 +235,19 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
         return list_gpx_track[0], list_dist_km[0], list_uphill_m[0], list_dist_km, [], []
 
     # Assert consecutive tracks
-    consecutive_ths_deg = local_m_to_deg(1000)
     for i in range(len(list_gpx_track) - 1):
         crt_track = list_gpx_track[i]
         next_track = list_gpx_track[i+1]
 
         distance = np.linalg.norm((crt_track.list_lon[-1] - next_track.list_lon[0],
                                    crt_track.list_lat[-1] - next_track.list_lat[0]))
-        assert distance < consecutive_ths_deg, "GPX tracks are not consecutive"
+        if distance > local_m_to_deg(5000):  # 5km Tolerance
+            raise AssertionError("Too large gap between consecutive GPX tracks. "
+                                 "Check the alphabetical order of the files. "
+                                 "Or edit the GPX files.")
+
+        if distance > local_m_to_deg(500):
+            print("Warning: GPX tracks are not perfectly consecutive")
 
     # Merge GPX tracks
     full_dist_km = sum(list_dist_km)
