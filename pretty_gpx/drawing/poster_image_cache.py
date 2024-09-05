@@ -145,6 +145,11 @@ class PosterImageCache:
             plots_x_to_avoid.append([0., w])
             plots_y_to_avoid.append([y, y])
 
+        scatter_passes_x = [x_pix[idx] for idx in gpx_data.passes_ids]
+        scatter_passes_y = [y_pix[idx] for idx in gpx_data.passes_ids]
+        scatter_huts_x = [x_pix[idx] for idx in gpx_data.hut_ids]
+        scatter_huts_y = [y_pix[idx] for idx in gpx_data.hut_ids]
+
         texts, lines = allocate_text(fig=plt.gcf(),
                                      ax=plt.gca(),
                                      imshow_img=np.full((h, w), fill_value=np.nan),
@@ -155,6 +160,10 @@ class PosterImageCache:
                                      s=list_text,
                                      plots_x_to_avoid=plots_x_to_avoid,
                                      plots_y_to_avoid=plots_y_to_avoid,
+                                     scatter_x_to_avoid=scatter_passes_x+scatter_huts_x,
+                                     scatter_y_to_avoid=scatter_passes_y+scatter_huts_y,
+                                     scatter_sizes=([drawing_size_params.peak_markersize]*len(scatter_passes_x)
+                                                    + [drawing_size_params.hut_markersize]*len(scatter_huts_x)),
                                      output_linewidth=drawing_size_params.text_arrow_linewidth,
                                      fontsize=drawing_size_params.text_fontsize,
                                      fontproperties=drawing_style_params.classic_font)
@@ -191,12 +200,12 @@ class PosterImageCache:
 
         track_data.append(ele_fill_poly)
 
-        peak_data = ele_scatter + [ScatterData(x=[x_pix[idx] for idx in gpx_data.passes_ids],
-                                               y=[y_pix[idx] for idx in gpx_data.passes_ids],
+        peak_data = ele_scatter + [ScatterData(x=scatter_passes_x,
+                                               y=scatter_passes_y,
                                                marker=drawing_style_params.peak_marker,
                                                markersize=drawing_size_params.peak_markersize),
-                                   ScatterData(x=[x_pix[idx] for idx in gpx_data.hut_ids],
-                                               y=[y_pix[idx] for idx in gpx_data.hut_ids],
+                                   ScatterData(x=scatter_huts_x,
+                                               y=scatter_huts_y,
                                                marker=drawing_style_params.hut_marker,
                                                markersize=drawing_size_params.hut_markersize)]
         peak_data += texts[passes_begin:passes_end]
