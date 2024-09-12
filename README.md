@@ -142,6 +142,23 @@ To give you a better idea of what this app can create, here are some example pos
 
 Contributions are welcome!
 
+When creating a Pull Request (PR), please prefix your PR title with one of the following tags to automatically apply the appropriate label:
+
+- **feat**: Introduce a new feature
+- **fix**: Fix a bug or issue
+- **docs**: Improve or add documentation
+- **test**: Add or modify tests
+- **ci**: Update continuous integration/configuration
+- **refactor**: Refactor code without changing functionality
+- **perf**: Improve performance
+- **revert**: Revert a previous change
+
+### Example PR Titles:
+- `feat: Add wonderful new feature`
+- `fix: Correct image aspect ratio issue`
+
+Thank you for contributing!
+
 # License
 
 This project is licensed under the non-commercial [CC BY-NC-SA 4.0 License](LICENSE).
