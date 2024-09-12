@@ -36,8 +36,6 @@ class MountainHut:
 class AugmentedGpxData:
     """Class storing the GPX track augmented with names of start/end points and mountain passes/huts along the way."""
     track: GpxTrack
-    dist_km: float
-    uphill_m: float
 
     start_name: str | None
     end_name: str | None
@@ -49,7 +47,16 @@ class AugmentedGpxData:
 
     huts: list[MountainHut]
     hut_ids: list[int]
-    daily_dist_km: list[float]  # Distance (in km) of each daily track
+
+    @property  
+    def dist_km(self) -> float:  
+        """Total distance in km."""  
+        return self.track.list_cumul_d[-1]
+    
+    @property  
+    def uphill_m(self) -> float:  
+        """Total climb in m."""  
+        return self.track.list_cumul_ele[-1]
 
     @staticmethod
     def from_path(list_gpx_path: str | bytes | list[str] | list[bytes],
@@ -61,11 +68,7 @@ class AugmentedGpxData:
         if isinstance(list_gpx_path[0], str):
             list_gpx_path = natsorted(list_gpx_path)
 
-        (gpx_track,
-         dist_km,
-         uphill_m,
-         daily_dist_km,
-         huts_ids, huts_names) = find_huts_between_daily_tracks(list_gpx_path)
+        gpx_track, huts_ids, huts_names = find_huts_between_daily_tracks(list_gpx_path)
 
         is_closed = gpx_track.is_closed(loose_ths_m)
         passes_ids, mountain_passes = get_close_mountain_passes(gpx_track, strict_ths_m)
@@ -89,9 +92,6 @@ class AugmentedGpxData:
             end_name = get_place_name(lon=gpx_track.list_lon[-1], lat=gpx_track.list_lat[-1])
 
         return AugmentedGpxData(track=gpx_track,
-                                dist_km=dist_km,
-                                uphill_m=uphill_m,
-                                daily_dist_km=daily_dist_km,
                                 start_name=start_name,
                                 end_name=end_name,
                                 is_closed=is_closed,
@@ -215,24 +215,14 @@ def get_place_name(lon: float, lat: float) -> str:
 
 def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
                                    max_dist_m: float = 300) -> tuple[GpxTrack,
-                                                                     float,
-                                                                     float,
-                                                                     list[float],
                                                                      list[int],
                                                                      list[MountainHut]]:
     """Merge ordered GPX tracks into a single one and find huts between them."""
     # Load GPX tracks
-    list_gpx_track: list[GpxTrack] = []
-    list_dist_km: list[float] = []
-    list_uphill_m: list[float] = []
-    for path in list_gpx_path:
-        gpx_track, dist_km, uphill_m = GpxTrack.load(path)
-        list_gpx_track.append(gpx_track)
-        list_dist_km.append(dist_km)
-        list_uphill_m.append(uphill_m)
+    list_gpx_track = [GpxTrack.load(path) for path in list_gpx_path]
 
     if len(list_gpx_track) == 1:
-        return list_gpx_track[0], list_dist_km[0], list_uphill_m[0], list_dist_km, [], []
+        return list_gpx_track[0], [], []
 
     # Assert consecutive tracks
     for i in range(len(list_gpx_track) - 1):
@@ -250,17 +240,7 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
             print("Warning: GPX tracks are not perfectly consecutive")
 
     # Merge GPX tracks
-    full_dist_km = sum(list_dist_km)
-    full_uphill_m = sum(list_uphill_m)
-    full_gpx_track = GpxTrack(list_lon=[lon
-                                        for gpx in list_gpx_track
-                                        for lon in gpx.list_lon],
-                              list_lat=[lat
-                                        for gpx in list_gpx_track
-                                        for lat in gpx.list_lat],
-                              list_ele=[ele
-                                        for gpx in list_gpx_track
-                                        for ele in gpx.list_ele])
+    full_gpx_track = GpxTrack.merge(list_gpx_track=list_gpx_track)
 
     # Request the huts
     result = overpass_query(["nwr['tourism'='alpine_hut']",
@@ -304,4 +284,4 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
             huts.append(MountainHut(name=None, lat=hut_lat, lon=hut_lon))
 
     print(f"Huts: {', '.join([h.name if h.name is not None else '?' for h in huts if h.name])}")
-    return full_gpx_track, full_dist_km, full_uphill_m, list_dist_km, huts_ids, huts
+    return full_gpx_track, huts_ids, huts
