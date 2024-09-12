@@ -11,17 +11,39 @@ Here's a demo GIF to give you a glimpse of a user interacting with the webapp an
 
 ![](./doc/demo.gif)
 
-# Usage
+# Installation
+
+### Option 1: Install Locally
+
+Make sure you have Python version 3.10 or higher installed.
 
 Install the dependencies.
 ```
 pip3 install -r .devcontainer/requirements
 ```
 
-And run the webapp.
+In ubuntu, install the packages.
+```
+sudo xargs -a .devcontainer/packages.txt apt-get install -y
+```
+
+
+### Option 2: Open in VS Code with Dev Containers
+
+If you are using Visual Studio Code, you can take advantage of the Dev Containers feature:
+* Install the Remote - Containers extension in VS Code.
+* Open this project folder in VS Code.
+* When prompted, select Reopen in Container.
+
+This will open the project in a fully configured container environment based on the `.devcontainer` configuration, allowing you to work without manually setting up dependencies.
+
+### Run
+
+Finally, run the webapp.
 ```
 python3 pretty_gpx/main.py
 ```
+
 
 # Features
 
@@ -82,7 +104,13 @@ python3 pretty_gpx/explore_color_themes.py
 ```
 
 
+# Simplify a GPX file
 
+If your GPX file is quite heavy, e.g. 20Mo, you can the following script to make it lighter.
+
+```
+python3 pretty_gpx/simplify_gpx.py --input <GPX_FILE>
+```
 
 # Examples
 
