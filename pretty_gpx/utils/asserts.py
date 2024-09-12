@@ -2,23 +2,61 @@
 """Asserts."""
 
 import os
-from typing import Any
 
 import numpy as np
 
+Number = float | int
 
-def assert_isfile(path: str, ext: str | None = None):
+
+def _clean_msg(prefix: str = "") -> str:
+    if prefix == "":
+        return ""
+    if prefix.endswith(":"):
+        return prefix+" "
+    if prefix.endswith(": "):
+        return prefix
+    return prefix+": "
+
+
+def assert_isfile(path: str, *, ext: str | None = None, msg: str = ""):
     """Assert path corresponds to an existing file."""
-    assert os.path.isfile(path), f"File doesn't exist: {path}"
+    m = _clean_msg(msg)
+    assert os.path.isfile(path), m+f"File doesn't exist: {path}"
     if ext is not None:
-        assert path.endswith(ext), f"File doesn't have the expected '{ext}' extension: {path}"
+        assert path.endswith(ext), m+f"File doesn't have the expected '{ext}' extension: {path}"
 
 
-def assert_close(val1: float | int, val2: float | int, *, eps: float, msg: str = ""):
+def assert_close(val1: Number, val2: Number, *, eps: float, msg: str = ""):
     """Assert difference between two floats is smaller than a threshold."""
-    assert np.abs(val1-val2) < eps, msg+f" Expect difference to be smaller than {eps}. Got {np.abs(val1-val2)}"
+    m = _clean_msg(msg)
+    assert np.abs(val1-val2) < eps, m+f" Expect difference to be smaller than {eps}. Got {np.abs(val1-val2)}"
 
 
-def assert_eq(val1: Any, val2: Any, *, msg: str = ""):
+def assert_eq(val1: Number, val2: Number, *, msg: str = ""):
     """Assert equality between two  values."""
-    assert val1 == val2, msg+f" {val1 =} and {val2 =} are not equal"
+    m = _clean_msg(msg)
+    assert val1 == val2, m+f" {val1 =} and {val2 =} are not equal"
+
+
+def assert_lt(val1: Number, val2: Number, *, msg: str = ""):
+    """Assert val1 < val2."""
+    m = _clean_msg(msg)
+    assert val1 < val2, m+f"Expect {val1 =} to be strictly lower than {val2 =}"
+
+
+def assert_le(val1: Number, val2: Number, *, msg: str = ""):
+    """Assert val1 <= val2."""
+    m = _clean_msg(msg)
+    assert val1 <= val2, m+f"Expect {val1 =} to be lower than {val2 =}"
+
+
+def assert_gt(val1: Number, val2: Number, *, msg: str = ""):
+    """Assert val1 > val2."""
+    m = _clean_msg(msg)
+    assert val1 > val2, m+f"Expect {val1 =} to be strictly greater than {val2 =}"
+
+
+def assert_ge(val1: Number, val2: Number, *, msg: str = ""):
+    """Assert val1 >= val2."""
+    m = _clean_msg(msg)
+    assert val1 >= val2, m+f"Expect {val1 =} to be greater than {val2 =}"
