@@ -1,0 +1,15 @@
+[project]
+name = "pretty-gpx"
+version = "1.2.1"
+authors = [
+  { name="Thomas Rouch", email="thom01.rouch@gmail.com" },
+]
+license = {text = "CC BY-NC-SA 4.0 License"}
+description = "GPX to Poster: Showcase Your Mountain Cycling or Hiking Adventures"
+readme = "README.md"
+requires-python = ">=3.10"
+
+
+[project.urls]
+"Homepage" = "https://github.com/ThomasParistech/pretty-gpx"
+"Bug Tracker" = "https://github.com/ThomasParistech/pretty-gpx/issues"
