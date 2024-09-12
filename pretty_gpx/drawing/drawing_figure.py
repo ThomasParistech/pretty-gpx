@@ -76,8 +76,9 @@ class DrawingFigure(BaseDrawingFigure):
     track_data: list[BaseDrawingData]
     peak_data: list[BaseDrawingData]
 
-    title: TextData
-    stats: TextData
+    title:      TextData
+    stats:      TextData
+    duration:   TextData
 
     def draw(self,
              fig: Figure,
@@ -85,7 +86,8 @@ class DrawingFigure(BaseDrawingFigure):
              img: np.ndarray,
              theme_colors: ThemeColors,
              title_txt: str,
-             stats_txt: str) -> None:
+             stats_txt: str,
+             duration_txt: str) -> None:
         """Plot the background image and the annotations on top of it."""
         self.imshow(fig, ax, img)
         self.adjust_display_width(fig, self.w_display_pix)
@@ -101,3 +103,7 @@ class DrawingFigure(BaseDrawingFigure):
 
         self.title.plot(ax, theme_colors.peak_color, self.ref_img_shape, img.shape)
         self.stats.plot(ax, theme_colors.background_color, self.ref_img_shape, img.shape)
+
+        if duration_txt is not None and duration_txt != "":
+            self.duration.s = duration_txt
+            self.duration.plot(ax, theme_colors.background_color, self.ref_img_shape, img.shape)

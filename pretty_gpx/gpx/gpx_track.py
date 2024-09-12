@@ -95,7 +95,7 @@ class GpxTrack:
         # possible to reduce the threshold 
         assert abs(all_segment_cumul_ele - gpx.get_uphill_downhill().uphill)/all_segment_cumul_ele < 0.2,f"Total climb is not coherent between point to point calculation ({all_segment_cumul_ele:.0f}) and total sum {gpx.get_uphill_downhill().uphill:.0f}"
 
-        return gpx_track
+        return gpx_track, gpx.get_duration()
 
     def is_closed(self, dist_m: float) -> bool:
         """Estimate if the track is closed."""

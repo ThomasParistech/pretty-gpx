@@ -60,6 +60,18 @@ class PosterImageCaches:
         low_res = high_res.change_dpi(WORKING_DPI)
         return PosterImageCaches(low_res=low_res, high_res=high_res, gpx_data=gpx_data)
 
+    @staticmethod
+    def update_duration_str(gpx_data: AugmentedGpxData,
+                            paper_size: PaperSize,
+                            override_duration_str:str) -> 'PosterImageCaches':
+        """Create a PosterImageCaches from a GPX file."""
+        high_res = PosterImageCache.from_gpx_data(gpx_data,
+                                                  dpi=HIGH_RES_DPI,
+                                                  paper=paper_size,
+                                                  override_duration=override_duration_str)
+        low_res = high_res.change_dpi(WORKING_DPI)
+        return PosterImageCaches(low_res=low_res, high_res=high_res, gpx_data=gpx_data)
+
 
 @dataclass
 class PosterDrawingData:
@@ -68,6 +80,7 @@ class PosterDrawingData:
     theme_colors: ThemeColors
     title_txt: str
     stats_text: str
+    duration_txt: str
 
 
 @dataclass
@@ -79,6 +92,7 @@ class PosterImageCache:
 
     stats_dist_km: float
     stats_uphill_m: float
+    stat_duration_str: str
 
     plotter: DrawingFigure
 
@@ -88,7 +102,8 @@ class PosterImageCache:
     def from_gpx_data(gpx_data: AugmentedGpxData,
                       paper: PaperSize,
                       layout: VerticalLayout = VerticalLayout(),
-                      dpi: float = HIGH_RES_DPI) -> 'PosterImageCache':
+                      dpi: float = HIGH_RES_DPI,
+                      override_duration: str=None) -> 'PosterImageCache':
         """Create a PosterImageCache from a GPX file."""
         # Download the elevation map at the correct layout
         bounds, latlon_aspect_ratio = get_bounds(gpx_data.track, layout, paper)
@@ -169,18 +184,28 @@ class PosterImageCache:
                                      fontproperties=drawing_style_params.classic_font)
 
         # Draw the elevation profile
+        if override_duration is not None and override_duration != "":
+            duration_to_draw = override_duration
+        else:
+            duration_to_draw = gpx_data.total_duration
+        
+        if duration_to_draw is not None and duration_to_draw != "":
+            draw_duration = True
+        else:
+            draw_duration = False
         draw_start = gpx_data.start_name is not None
         draw_end = draw_start if gpx_data.is_closed else gpx_data.end_name is not None
-        ele_scatter, ele_fill_poly, stats = get_elevation_drawings(layout=layout,
-                                                                   h_pix=h, w_pix=w,
-                                                                   list_ele=gpx_data.track.list_ele,
-                                                                   list_cum_d=gpx_data.track.list_cumul_d,
-                                                                   passes_ids=gpx_data.passes_ids,
-                                                                   huts_ids=gpx_data.hut_ids,
-                                                                   draw_start=draw_start,
-                                                                   draw_end=draw_end,
-                                                                   drawing_style_params=drawing_style_params,
-                                                                   drawing_size_params=drawing_size_params)
+        ele_scatter, ele_fill_poly, stats, duration_stat = get_elevation_drawings(layout=layout,
+                                                                             h_pix=h, w_pix=w,
+                                                                             list_ele=gpx_data.track.list_ele,
+                                                                             list_cum_d=gpx_data.track.list_cumul_d,
+                                                                             passes_ids=gpx_data.passes_ids,
+                                                                             huts_ids=gpx_data.hut_ids,
+                                                                             draw_start=draw_start,
+                                                                             draw_end=draw_end,
+                                                                             draw_duration=draw_duration,
+                                                                             drawing_style_params=drawing_style_params,
+                                                                             drawing_size_params=drawing_size_params)
 
         # Prepare the plot data
         augmented_hut_ids = [0] + gpx_data.hut_ids + [None]
@@ -241,13 +266,15 @@ class PosterImageCache:
                                 track_data=track_data,
                                 peak_data=peak_data,
                                 title=title,
-                                stats=stats)
+                                stats=stats,
+                                duration=duration_stat)
 
         print("Successful GPX Processing")
         return PosterImageCache(elevation_map=elevation,
                                 elevation_shading=CachedHillShading(elevation),
                                 stats_dist_km=gpx_data.dist_km,
                                 stats_uphill_m=gpx_data.uphill_m,
+                                stat_duration_str=duration_to_draw,
                                 plotter=plotter,
                                 dpi=dpi)
 
@@ -258,6 +285,7 @@ class PosterImageCache:
                                 elevation_shading=CachedHillShading(new_elevation_map),
                                 stats_dist_km=self.stats_dist_km,
                                 stats_uphill_m=self.stats_uphill_m,
+                                stat_duration_str=self.stat_duration_str,
                                 plotter=self.plotter,
                                 dpi=dpi)
 
@@ -266,7 +294,8 @@ class PosterImageCache:
                             theme_colors: ThemeColors,
                             title_txt: str,
                             uphill_m: str,
-                            dist_km: str) -> PosterDrawingData:
+                            dist_km: str,
+                            duration: str) -> PosterDrawingData:
         """Update the drawing data (can run in a separate thread)."""
         grey_hillshade = self.elevation_shading.render_grey(azimuth)[..., None]
         background_color_rgb = hex_to_rgb(theme_colors.background_color)
@@ -280,7 +309,7 @@ class PosterImageCache:
         uphill_m_int = int(uphill_m if uphill_m != '' else self.stats_uphill_m)
         stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
 
-        return PosterDrawingData(img, theme_colors, title_txt=title_txt, stats_text=stats_text)
+        return PosterDrawingData(img, theme_colors, title_txt=title_txt, stats_text=stats_text, duration_txt=duration)
 
     def draw(self, fig: Figure, ax: Axes, poster_drawing_data: PosterDrawingData) -> None:
         """Draw the updated drawing data (Must run in the main thread because of matplotlib backend)."""
@@ -288,7 +317,8 @@ class PosterImageCache:
                           poster_drawing_data.img,
                           poster_drawing_data.theme_colors,
                           poster_drawing_data.title_txt,
-                          poster_drawing_data.stats_text)
+                          poster_drawing_data.stats_text,
+                          poster_drawing_data.duration_txt)
         print(f"Drawing updated (Elevation Map {poster_drawing_data.img.shape[1]}x{poster_drawing_data.img.shape[0]})")
 
 
@@ -300,12 +330,15 @@ def get_elevation_drawings(layout: VerticalLayout,
                            huts_ids: list[int],
                            draw_start: bool,
                            draw_end: bool,
+                           draw_duration: bool,
                            drawing_style_params: DrawingStyleParams,
                            drawing_size_params: DrawingSizeParams) -> tuple[list[ScatterData], PolyFillData, TextData]:
     """Create the plot elements for the elevation profile."""
     # Elevation Profile
     h_up_pix = h_pix * (layout.title_relative_h + layout.map_relative_h)
     h_bot_pix = h_pix * (layout.title_relative_h + layout.map_relative_h + layout.elevation_relative_h)
+    h_stat_text = h_pix *(layout.title_relative_h + layout.map_relative_h + layout.elevation_relative_h + 1.0)/2.0
+    h_duration_text = h_pix * 0.99
 
     elevation_poly_x = np.array(list_cum_d)/list_cum_d[-1]*w_pix
 
@@ -339,11 +372,20 @@ def get_elevation_drawings(layout: VerticalLayout,
     elevation_poly_y = np.hstack((h_pix, h_bot_pix, elevation_poly_y, h_bot_pix, h_pix)).tolist()
     elevation_data = PolyFillData(x=elevation_poly_x, y=elevation_poly_y)
 
-    stats = TextData(x=0.5 * w_pix, y=0.5 * (h_bot_pix+h_pix),
-                     s="", fontsize=drawing_size_params.stats_fontsize,
-                     fontproperties=drawing_style_params.pretty_font, ha="center")
+    if draw_duration:
+        duration = TextData(x=0.01 * w_pix, y=h_duration_text,
+                         s="", fontsize=drawing_size_params.stats_fontsize*0.5,
+                         fontproperties=drawing_style_params.pretty_font, ha="left")
+        stats = TextData(x=0.5 * w_pix, y=h_stat_text,
+                         s="", fontsize=drawing_size_params.stats_fontsize*0.8,
+                         fontproperties=drawing_style_params.pretty_font, ha="center")
+    else:
+        duration = None
+        stats = TextData(x=0.5 * w_pix, y=h_stat_text,
+                         s="", fontsize=drawing_size_params.stats_fontsize*0.8,
+                         fontproperties=drawing_style_params.pretty_font, ha="center")
 
-    return scatter_data, elevation_data, stats
+    return scatter_data, elevation_data, stats, duration
 
 
 def rescale_elevation_to_dpi(elevation_map: np.ndarray, paper: PaperSize, target_dpi: float) -> np.ndarray:

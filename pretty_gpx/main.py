@@ -59,6 +59,12 @@ def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize) -> 
     return PosterImageCaches.from_gpx_data(gpx_data, new_paper_size)
 
 
+def change_duration_str(gpx_data: AugmentedGpxData, paper_size: PaperSize, new_duration_str: str) -> PosterImageCaches:
+    return PosterImageCaches.update_duration_str(gpx_data,
+                                                 paper_size,
+                                                 new_duration_str)
+
+
 async def on_click_load_example() -> None:
     contents = [os.path.join(HIKING_DIR, "vanoise1.gpx"),
                 os.path.join(HIKING_DIR, "vanoise2.gpx"),
@@ -72,6 +78,20 @@ async def on_paper_size_change() -> None:
     with UiModal(f"Creating {new_paper_size_name} Poster"):
         global cache
         cache = await run.cpu_bound(change_paper_size, copy.deepcopy(cache.gpx_data), PAPER_SIZES[new_paper_size_name])
+    await on_click_update()()
+
+async def on_duration_change() -> None:
+    duration_value = ""
+    if duration_switch.value:                
+        duration_value = override_duration.value
+    print("DURATION VALUE ",duration_value)
+    new_paper_size_name = safe(paper_size_mode_toggle.value)
+    with UiModal(f"Adding/deleting duration"):
+        global cache
+        cache = await run.cpu_bound(change_duration_str,
+                                    copy.deepcopy(cache.gpx_data),
+                                    PAPER_SIZES[new_paper_size_name],
+                                    duration_value)
     await on_click_update()()
 
 with ui.row():
@@ -112,7 +132,8 @@ with ui.row():
                                              theme_colors=color_themes[safe(theme_toggle.value)],
                                              title_txt=title_button.value,
                                              uphill_m=uphill_button.value,
-                                             dist_km=dist_km_button.value)
+                                             dist_km=dist_km_button.value,
+                                             duration=override_duration.value)
 
             def _update_done_callback(c: PosterImageCache, poster_drawing_data: PosterDrawingData) -> None:
                 with plot:
@@ -142,6 +163,15 @@ with ui.row():
 
             with ui.input(label='Distance (km)', value="").on('keydown.enter', on_click_update()) as dist_km_button:
                 ui.tooltip("Press Enter to override distance from GPX")
+
+            duration_switch = ui.switch(text='Duration', value=False)
+            duration_switch.tooltip("Toggle to show the duration")
+            
+            override_duration = ui.input(label='Duration', value="")
+            override_duration.tooltip("Press the update button to override the duration from GPX")
+            
+            button = ui.button('Update duration', on_click=on_duration_change)
+
 
             azimuth_toggle = ui.toggle(list(AZIMUTHS.keys()), value=list(AZIMUTHS.keys())[0],
                                        on_change=on_click_update())
