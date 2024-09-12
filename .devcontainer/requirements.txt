@@ -1,4 +1,5 @@
 dem-stitcher==2.5.5
+fire==0.6.0
 geopy==2.4.1
 gpxpy==1.6.2
 natsort==8.4.0
