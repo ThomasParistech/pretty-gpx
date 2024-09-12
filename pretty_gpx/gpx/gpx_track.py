@@ -40,11 +40,13 @@ class GpxTrack:
         all_segment_cumul_d = 0
         all_segment_cumul_ele = 0
 
+        n_skips = 0
         for track in gpx.tracks:
             for segment in track.segments:
                 for idx,point in enumerate(segment.points):
                     if point.elevation is None:
                         if len(gpx_track.list_ele) == 0:
+                            n_skips += 1
                             continue  # Skip first point if no elevation
                         point.elevation = gpx_track.list_ele[-1]
 
@@ -77,6 +79,10 @@ class GpxTrack:
                 all_segment_cumul_d += previous_cum_d
                 all_segment_cumul_ele += previous_cum_ele
 
+        if len(gpx_track.list_lon) == 0:
+            if n_skips > 0:
+                raise ValueError(f"No elevation found in GPX file (Skipped {n_skips} points)")
+            raise ValueError("No track found in GPX file")
 
         if DEBUG_TRACK:
             plt.plot(gpx_track.list_lon, gpx_track.list_lat)
