@@ -174,9 +174,9 @@ class PosterImageCache:
         ele_scatter, ele_fill_poly, stats = get_elevation_drawings(layout=layout,
                                                                    h_pix=h, w_pix=w,
                                                                    list_ele=gpx_data.track.list_ele,
+                                                                   list_cum_d=gpx_data.track.list_cumul_d,
                                                                    passes_ids=gpx_data.passes_ids,
                                                                    huts_ids=gpx_data.hut_ids,
-                                                                   daily_dist_km=gpx_data.daily_dist_km,
                                                                    draw_start=draw_start,
                                                                    draw_end=draw_end,
                                                                    drawing_style_params=drawing_style_params,
@@ -295,9 +295,9 @@ class PosterImageCache:
 def get_elevation_drawings(layout: VerticalLayout,
                            h_pix: int, w_pix: int,
                            list_ele: list[float],
+                           list_cum_d: list[float],
                            passes_ids: list[int],
                            huts_ids: list[int],
-                           daily_dist_km: list[float],
                            draw_start: bool,
                            draw_end: bool,
                            drawing_style_params: DrawingStyleParams,
@@ -307,16 +307,7 @@ def get_elevation_drawings(layout: VerticalLayout,
     h_up_pix = h_pix * (layout.title_relative_h + layout.map_relative_h)
     h_bot_pix = h_pix * (layout.title_relative_h + layout.map_relative_h + layout.elevation_relative_h)
 
-    if len(huts_ids) == 0:
-        elevation_poly_x = np.linspace(0., w_pix, num=len(list_ele))
-    else:
-        # Account for the potentially different sampling rates of the N daily tracks
-        daily_x_splits = w_pix * np.cumsum(np.array(daily_dist_km[:-1]) / np.sum(daily_dist_km))
-        daily_x_splits = np.hstack(([0.], daily_x_splits, [w_pix]))  # Shape (N+1,)
-        daily_lengths = np.hstack((huts_ids, [len(list_ele)])) - np.hstack(([0], huts_ids))  # Shape (N,)
-        elevation_poly_x = np.hstack([np.linspace(daily_x_splits[i], daily_x_splits[i+1], num=daily_lengths[i])
-                                      for i in range(len(daily_x_splits)-1)])
-        assert len(elevation_poly_x) == len(list_ele)
+    elevation_poly_x = np.array(list_cum_d)/list_cum_d[-1]*w_pix
 
     hmin, hmax = np.min(list_ele), np.max(list_ele)
     elevation_poly_y = h_bot_pix + (np.array(list_ele) -

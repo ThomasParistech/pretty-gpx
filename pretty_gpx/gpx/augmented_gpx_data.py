@@ -250,18 +250,15 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
             print("Warning: GPX tracks are not perfectly consecutive")
 
     # Merge GPX tracks
+    full_gpx_track = GpxTrack.merge(list_gpx_track=list_gpx_track)
     full_dist_km = sum(list_dist_km)
+    assert(abs(1-(full_gpx_track.list_cumul_d[-1]-full_dist_km)/
+               full_gpx_track.list_cumul_d[-1]) < 0.01, 
+               "Error on the total distance")
     full_uphill_m = sum(list_uphill_m)
-    full_gpx_track = GpxTrack(list_lon=[lon
-                                        for gpx in list_gpx_track
-                                        for lon in gpx.list_lon],
-                              list_lat=[lat
-                                        for gpx in list_gpx_track
-                                        for lat in gpx.list_lat],
-                              list_ele=[ele
-                                        for gpx in list_gpx_track
-                                        for ele in gpx.list_ele])
-
+    assert(abs(1-(full_gpx_track.list_cumul_ele[-1]-full_uphill_m)/
+                full_gpx_track.list_cumul_ele[-1]) < 0.01, 
+                "Error on the total climb")
     # Request the huts
     result = overpass_query(["nwr['tourism'='alpine_hut']",
                              "nwr['tourism'='wilderness_hut']",
