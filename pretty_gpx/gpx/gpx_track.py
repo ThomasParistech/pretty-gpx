@@ -87,8 +87,8 @@ class GpxTrack:
             plt.ylabel('Elevation (in m)')
             plt.show()
 
-        print(all_segment_cumul_d,gpx.length_3d()*1e-3)
-        print(all_segment_cumul_ele,gpx.get_uphill_downhill().uphill)
+        print("Distance\nPoint to point: ",all_segment_cumul_d,"\tTotal file: ",gpx.length_3d()*1e-3)
+        print("Climb\nPoint to point: ",all_segment_cumul_ele,"\tAveraged on 3 points: ",gpx.get_uphill_downhill().uphill)
 
         assert abs(all_segment_cumul_d - gpx.length_3d()*1e-3)/all_segment_cumul_d < 0.05, f"Total distance is not coherent between point to point calculation ({all_segment_cumul_d:.0f}) and total sum {gpx.length_3d()*1e-3:.0f}"
         # As the climb is averaged 20% seems good, as there are more points, then it should be 

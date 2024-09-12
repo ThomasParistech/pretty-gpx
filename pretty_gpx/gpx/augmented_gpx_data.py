@@ -219,12 +219,7 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
                                                                      list[MountainHut]]:
     """Merge ordered GPX tracks into a single one and find huts between them."""
     # Load GPX tracks
-    list_gpx_track: list[GpxTrack] = []
-    list_dist_km: list[float] = []
-    list_uphill_m: list[float] = []
-    for path in list_gpx_path:
-        gpx_track = GpxTrack.load(path)
-        list_gpx_track.append(gpx_track)
+    list_gpx_track = [GpxTrack.load(path) for path in list_gpx_path]
 
     if len(list_gpx_track) == 1:
         return list_gpx_track[0], [], []
