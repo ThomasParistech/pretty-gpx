@@ -12,6 +12,7 @@ from pretty_gpx.drawing.theme_colors import hex_to_rgb
 from pretty_gpx.drawing.theme_colors import ThemeColors
 from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
 from pretty_gpx.layout.paper_size import PAPER_SIZES
+from pretty_gpx.utils.logger import logger
 from pretty_gpx.utils.paths import COLOR_EXPLORATION_DIR
 from pretty_gpx.utils.paths import CYCLING_DIR
 
@@ -83,7 +84,7 @@ def main(color_palettes: list[tuple[str, str, str]]) -> None:
         basename = f"{theme.background_color}_{theme.track_color}_{theme.peak_color}.png".lower()
         plt.savefig(os.path.join(COLOR_EXPLORATION_DIR, prefix + basename))
 
-    print(f"Candidate posters have been saved inside {os.path.relpath(COLOR_EXPLORATION_DIR)}")
+    logger.info(f"Candidate posters have been saved inside {os.path.relpath(COLOR_EXPLORATION_DIR)}")
 
 
 if __name__ == "__main__":

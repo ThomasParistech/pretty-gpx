@@ -11,6 +11,7 @@ from gpxpy.gpx import GPXTrackPoint
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.utils.asserts import assert_close
 from pretty_gpx.utils.asserts import assert_isfile
+from pretty_gpx.utils.logger import logger
 
 DEBUG_TRACK = False
 
@@ -98,10 +99,10 @@ class GpxTrack:
             plt.ylabel('Elevation (in m)')
             plt.show()
 
-        print("Distance\nPoint to point: ", all_segment_cumul_d,
-              "\tTotal file: ", gpx.length_3d()*1e-3)
-        print("Climb\nPoint to point: ", all_segment_cumul_ele,
-              "\tAveraged on 3 points: ", gpx.get_uphill_downhill().uphill)
+        logger.info("Distance\nPoint to point: ", all_segment_cumul_d,
+                    "\tTotal file: ", gpx.length_3d()*1e-3)
+        logger.info("Climb\nPoint to point: ", all_segment_cumul_ele,
+                    "\tAveraged on 3 points: ", gpx.get_uphill_downhill().uphill)
 
         assert_close(all_segment_cumul_d, gpx.length_3d()*1e-3, eps=0.05*all_segment_cumul_d,
                      msg="Total distance is not coherent between point to point calculation and total sum")

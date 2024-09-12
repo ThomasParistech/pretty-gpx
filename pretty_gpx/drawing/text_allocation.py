@@ -13,6 +13,7 @@ from pretty_gpx.drawing.drawing_data import PlotData
 from pretty_gpx.drawing.drawing_data import TextData
 from pretty_gpx.drawing.drawing_figure import BaseDrawingFigure
 from pretty_gpx.layout.paper_size import PaperSize
+from pretty_gpx.utils.logger import logger
 from pretty_gpx.utils.paths import DATA_DIR
 
 DEBUG_TEXT_ALLOCATION = False
@@ -43,7 +44,7 @@ def allocate_text(fig: Figure,
     base_fig = BaseDrawingFigure(paper_size=paper_size, latlon_aspect_ratio=latlon_aspect_ratio)
     base_fig.imshow(fig, ax, imshow_img)
 
-    print(f"Optimize {len(s)} Text Allocations...")
+    logger.info(f"Optimize {len(s)} Text Allocations...")
 
     if DEBUG_TEXT_ALLOCATION:
         debug_fig, debug_ax = plt.subplots()
@@ -92,7 +93,7 @@ def allocate_text(fig: Figure,
         line_x, line_y = line
         list_plot_data.append(PlotData(x=list(line_x), y=list(line_y), linewidth=output_linewidth))
 
-    print("Succesful Text Allocation")
+    logger.info("Succesful Text Allocation")
 
     if DEBUG_TEXT_ALLOCATION:
         base_fig.imshow(fig, ax, imshow_img)

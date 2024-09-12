@@ -4,6 +4,7 @@ import fire
 import gpxpy
 
 from pretty_gpx.utils.asserts import assert_isfile
+from pretty_gpx.utils.logger import logger
 from pretty_gpx.utils.utils import suffix_filename
 
 
@@ -20,7 +21,7 @@ def main(input: str, max_distance_m: float = 5.0):
     with open(output, "w") as f:
         f.write(g.to_xml())
 
-    print(f"Saved simplified GPX to {output}")
+    logger.info(f"Saved simplified GPX to {output}")
 
 
 if __name__ == "__main__":

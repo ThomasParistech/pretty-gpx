@@ -22,6 +22,7 @@ from pretty_gpx.drawing.theme_colors import LIGHT_COLOR_THEMES
 from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
 from pretty_gpx.layout.paper_size import PAPER_SIZES
 from pretty_gpx.layout.paper_size import PaperSize
+from pretty_gpx.utils.logger import logger
 from pretty_gpx.utils.paths import HIKING_DIR
 from pretty_gpx.utils.ui_helper import on_click_slow_action_in_other_thread
 from pretty_gpx.utils.ui_helper import shutdown_app_and_close_tab
@@ -173,7 +174,7 @@ with ui.row():
 
             def download_done_callback(svg_bytes: bytes):
                 ui.download(svg_bytes, f'poster_{sanitize_filename(str(title_button.value).replace(" ", "_"))}.svg')
-                print("Poster Downloaded")
+                logger.info("Poster Downloaded")
 
             async def on_click_download() -> None:
                 await on_click_slow_action_in_other_thread(f'Rendering at High Resolution ({cache.high_res.dpi} dpi)',

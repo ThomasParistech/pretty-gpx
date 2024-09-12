@@ -11,6 +11,7 @@ from natsort import natsorted
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.gpx.gpx_track import GpxTrack
 from pretty_gpx.gpx.gpx_track import local_m_to_deg
+from pretty_gpx.utils.logger import logger
 
 DEBUG_OVERPASS_QUERY = False
 
@@ -48,14 +49,14 @@ class AugmentedGpxData:
     huts: list[MountainHut]
     hut_ids: list[int]
 
-    @property  
-    def dist_km(self) -> float:  
-        """Total distance in km."""  
+    @property
+    def dist_km(self) -> float:
+        """Total distance in km."""
         return self.track.list_cumul_d[-1]
-    
-    @property  
-    def uphill_m(self) -> float:  
-        """Total climb in m."""  
+
+    @property
+    def uphill_m(self) -> float:
+        """Total climb in m."""
         return self.track.list_cumul_ele[-1]
 
     @staticmethod
@@ -118,13 +119,13 @@ def overpass_query(query_elements: list[str], gpx_track: GpxTrack) -> overpy.Res
     out body;""")
 
     if DEBUG_OVERPASS_QUERY:
-        print("----")
-        print(f"GPX bounds: {bounds_str}")
+        logger.debug("----")
+        logger.debug(f"GPX bounds: {bounds_str}")
         named_nodes = [node for node in result.nodes if "name" in node.tags]
         named_nodes.sort(key=lambda node: node.tags['name'])
         for node in named_nodes:
-            print(f"{node.tags['name']} at ({node.lat:.3f}, {node.lon:.3f}) {node.tags}")
-        print("----")
+            logger.debug(f"{node.tags['name']} at ({node.lat:.3f}, {node.lon:.3f}) {node.tags}")
+        logger.debug("----")
 
     return result
 
@@ -237,7 +238,7 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
                                  "Or edit the GPX files.")
 
         if distance > local_m_to_deg(500):
-            print("Warning: GPX tracks are not perfectly consecutive")
+            logger.warning("Warning: GPX tracks are not perfectly consecutive")
 
     # Merge GPX tracks
     full_gpx_track = GpxTrack.merge(list_gpx_track=list_gpx_track)
@@ -283,5 +284,5 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
             # name = get_place_name(lon=hut_lon, lat=hut_lat)
             huts.append(MountainHut(name=None, lat=hut_lat, lon=hut_lon))
 
-    print(f"Huts: {', '.join([h.name if h.name is not None else '?' for h in huts if h.name])}")
+    logger.info(f"Huts: {', '.join([h.name if h.name is not None else '?' for h in huts if h.name])}")
     return full_gpx_track, huts_ids, huts

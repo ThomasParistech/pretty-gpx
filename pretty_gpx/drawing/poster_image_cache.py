@@ -24,6 +24,7 @@ from pretty_gpx.gpx.elevation_map import rescale_elevation
 from pretty_gpx.layout.paper_size import PaperSize
 from pretty_gpx.layout.vertical_layout import get_bounds
 from pretty_gpx.layout.vertical_layout import VerticalLayout
+from pretty_gpx.utils.logger import logger
 from pretty_gpx.utils.utils import mm_to_inch
 from pretty_gpx.utils.utils import safe
 
@@ -243,7 +244,7 @@ class PosterImageCache:
                                 title=title,
                                 stats=stats)
 
-        print("Successful GPX Processing")
+        logger.info("Successful GPX Processing")
         return PosterImageCache(elevation_map=elevation,
                                 elevation_shading=CachedHillShading(elevation),
                                 stats_dist_km=gpx_data.dist_km,
@@ -289,7 +290,8 @@ class PosterImageCache:
                           poster_drawing_data.theme_colors,
                           poster_drawing_data.title_txt,
                           poster_drawing_data.stats_text)
-        print(f"Drawing updated (Elevation Map {poster_drawing_data.img.shape[1]}x{poster_drawing_data.img.shape[0]})")
+        logger.info("Drawing updated "
+                    f"(Elevation Map {poster_drawing_data.img.shape[1]}x{poster_drawing_data.img.shape[0]})")
 
 
 def get_elevation_drawings(layout: VerticalLayout,
