@@ -67,11 +67,11 @@ class GpxTrack:
                         if h_diff < 0:
                             h_diff = 0.0
                     
-                    gpx_track.list_cumul_d.append(previous_cum_d+d)
-                    gpx_track.list_cumul_ele.append(previous_cum_ele+h_diff)
-
                     previous_cum_d += d
                     previous_cum_ele += h_diff
+
+                    gpx_track.list_cumul_d.append(previous_cum_d)
+                    gpx_track.list_cumul_ele.append(previous_cum_ele)
 
                     point_prev = point
                 all_segment_cumul_d += previous_cum_d
@@ -87,7 +87,15 @@ class GpxTrack:
             plt.ylabel('Elevation (in m)')
             plt.show()
 
-        return gpx_track, gpx.length_3d()*1e-3, gpx.get_uphill_downhill().uphill
+        print(all_segment_cumul_d,gpx.length_3d()*1e-3)
+        print(all_segment_cumul_ele,gpx.get_uphill_downhill().uphill)
+
+        assert abs(all_segment_cumul_d - gpx.length_3d()*1e-3)/all_segment_cumul_d < 0.05, f"Total distance is not coherent between point to point calculation ({all_segment_cumul_d:.0f}) and total sum {gpx.length_3d()*1e-3:.0f}"
+        # As the climb is averaged 20% seems good, as there are more points, then it should be 
+        # possible to reduce the threshold 
+        assert abs(all_segment_cumul_ele - gpx.get_uphill_downhill().uphill)/all_segment_cumul_ele < 0.2,f"Total climb is not coherent between point to point calculation ({all_segment_cumul_ele:.0f}) and total sum {gpx.get_uphill_downhill().uphill:.0f}"
+
+        return gpx_track
 
     def is_closed(self, dist_m: float) -> bool:
         """Estimate if the track is closed."""
