@@ -24,7 +24,7 @@ jobs:
           pip install -r .devcontainer/requirements.txt
 
       - name: Linter
-        run: ./run_linter.sh
+        run: ./scripts/run_linter.sh
 
       - name: Type-checker
-        run: ./run_mypy.sh
+        run: ./scripts/run_mypy.sh
