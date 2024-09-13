@@ -10,6 +10,7 @@ from nicegui import app
 from nicegui import events
 from nicegui import run
 from nicegui import ui
+from nicegui.elements.upload import Upload
 from pathvalidate import sanitize_filename
 
 from pretty_gpx.drawing.hillshading import AZIMUTHS
@@ -29,51 +30,75 @@ from pretty_gpx.utils.ui_helper import shutdown_app_and_close_tab
 from pretty_gpx.utils.ui_helper import UiModal
 from pretty_gpx.utils.utils import safe
 
+# ruff: noqa: PLW0603
+
+
+class UiManager:
+    """Manage the UI elements and the Poster cache."""
+
+    def __init__(self):
+        self.__cache: PosterImageCaches | None = None
+
+    async def _on_upload(self, contents: list[bytes] | list[str], msg: str) -> None:
+        """Pocess the files asynchronously to update the Poster cache."""
+        with UiModal(msg):
+            self.__cache = await run.cpu_bound(process_files, contents, PAPER_SIZES[safe(paper_size_mode_toggle.value)])
+
+        await on_click_update()()
+
+    async def on_multi_upload(self, e: events.MultiUploadEventArguments):
+        """Sort the uploaded files by name and process them to update the Poster cache."""
+        sorted_indices = index_natsorted(e.names)
+        names = [e.names[i] for i in sorted_indices]
+        contents = [e.contents[i].read() for i in sorted_indices]
+        assert isinstance(e.sender, Upload)
+        e.sender.reset()
+
+        if len(contents) == 1:
+            msg = f"Processing {names[0]}"
+        else:
+            msg = f'Processing a {len(names)}-days track ({", ".join(names)})'
+
+        await self._on_upload(contents, msg)
+
+    async def on_click_load_example(self) -> None:
+        """Load the example GPX files."""
+        contents = [os.path.join(HIKING_DIR, "vanoise1.gpx"),
+                    os.path.join(HIKING_DIR, "vanoise2.gpx"),
+                    os.path.join(HIKING_DIR, "vanoise3.gpx")]
+        await self._on_upload(contents, f"Generate a {len(contents)}-days example poster")
+
+    async def on_paper_size_change(self) -> None:
+        """Change the paper size and update the poster."""
+        new_paper_size_name = str(safe(paper_size_mode_toggle.value))
+        with UiModal(f"Creating {new_paper_size_name} Poster"):
+            self.__cache = await run.cpu_bound(change_paper_size, copy.deepcopy(safe(self.__cache).gpx_data),
+                                               PAPER_SIZES[new_paper_size_name])
+        await on_click_update()()
+
+    @property
+    def high_res_cache(self) -> PosterImageCache:
+        """Return the high resolution Poster cache."""
+        return safe(self.__cache).high_res
+
+    @property
+    def low_res_cache(self) -> PosterImageCache:
+        """Return the low resolution Poster cache."""
+        return safe(self.__cache).low_res
+
+
+ui_manager = UiManager()
+
 
 def process_files(list_b: list[bytes] | list[str], new_paper_size: PaperSize) -> PosterImageCaches:
+    """Process the uploaded files and return the PosterImageCaches."""
     return PosterImageCaches.from_gpx(list_b, new_paper_size)
 
 
-async def _on_upload(contents: list[bytes] | list[str], msg: str) -> None:
-    with UiModal(msg):
-        global cache
-        cache = await run.cpu_bound(process_files, contents, PAPER_SIZES[safe(paper_size_mode_toggle.value)])
-
-    await on_click_update()()
-
-
-async def on_multi_upload(e: events.MultiUploadEventArguments):
-    sorted_indices = index_natsorted(e.names)
-    names = [e.names[i] for i in sorted_indices]
-    contents = [e.contents[i].read() for i in sorted_indices]
-    e.sender.reset()
-
-    if len(contents) == 1:
-        msg = f"Processing {names[0]}"
-    else:
-        msg = f'Processing a {len(names)}-days track ({", ".join(names)})'
-
-    await _on_upload(contents, msg)
-
-
 def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize) -> PosterImageCaches:
-    return PosterImageCaches.from_gpx_data(gpx_data, new_paper_size)
+    """Return the PosterImageCaches with the new paper size."""
+    return PosterImageCaches.from_augmented_gpx_data(gpx_data, new_paper_size)
 
-
-async def on_click_load_example() -> None:
-    contents = [os.path.join(HIKING_DIR, "vanoise1.gpx"),
-                os.path.join(HIKING_DIR, "vanoise2.gpx"),
-                os.path.join(HIKING_DIR, "vanoise3.gpx")]
-    await _on_upload(contents, "Generate a 3-days example poster")
-    await _on_upload(contents, f"Generate a {len(contents)}-days example poster")
-
-
-async def on_paper_size_change() -> None:
-    new_paper_size_name = safe(paper_size_mode_toggle.value)
-    with UiModal(f"Creating {new_paper_size_name} Poster"):
-        global cache
-        cache = await run.cpu_bound(change_paper_size, copy.deepcopy(cache.gpx_data), PAPER_SIZES[new_paper_size_name])
-    await on_click_update()()
 
 with ui.row():
     with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
@@ -95,19 +120,21 @@ with ui.row():
 
         ui.upload(label="Drag & drop your GPX file(s) here and press upload",
                   multiple=True,
-                  on_multi_upload=on_multi_upload
+                  on_multi_upload=ui_manager.on_multi_upload
                   ).props('accept=.gpx'
                           ).on('rejected', lambda: ui.notify('Please provide a GPX file')
                                ).classes('max-w-full')
 
         with ui.card():
             paper_size_mode_toggle = ui.toggle(list(PAPER_SIZES.keys()), value=list(PAPER_SIZES.keys())[0],
-                                               on_change=on_paper_size_change)
+                                               on_change=ui_manager.on_paper_size_change)
 
         # Update options
         with ui.card():
             def _update(c: PosterImageCache) -> PosterDrawingData:
-                dark_mode = safe(dark_mode_switch.value)
+                """Asynchronously update the PosterDrawingData with the current settings."""
+                dark_mode = bool(safe(dark_mode_switch.value))
+
                 color_themes = (DARK_COLOR_THEMES if dark_mode else LIGHT_COLOR_THEMES)
                 return c.update_drawing_data(azimuth=AZIMUTHS[safe(azimuth_toggle.value)],
                                              theme_colors=color_themes[safe(theme_toggle.value)],
@@ -116,23 +143,29 @@ with ui.row():
                                              dist_km=dist_km_button.value)
 
             def _update_done_callback(c: PosterImageCache, poster_drawing_data: PosterDrawingData) -> None:
+                """Synchronously update the plot with the PosterDrawingData (Matplotlib must run in the main thread)."""
                 with plot:
                     c.draw(plot.fig, ax, poster_drawing_data)
                 ui.update(plot)
 
             def update_high_res() -> PosterDrawingData:
-                return _update(cache.high_res)
+                """Update the PosterDrawingData with the current settings, at the high resolution."""
+                return _update(ui_manager.high_res_cache)
 
             def update_low_res() -> PosterDrawingData:
-                return _update(cache.low_res)
+                """Update the PosterDrawingData with the current settings, at the low resolution."""
+                return _update(ui_manager.low_res_cache)
 
             def update_done_callback_high_res(poster_drawing_data: PosterDrawingData) -> None:
-                _update_done_callback(cache.high_res, poster_drawing_data)
+                """Update the plot with the high resolution PosterDrawingData."""
+                _update_done_callback(ui_manager.high_res_cache, poster_drawing_data)
 
             def update_done_callback_low_res(poster_drawing_data: PosterDrawingData) -> None:
-                _update_done_callback(cache.low_res, poster_drawing_data)
+                """Update the plot with the low resolution PosterDrawingData."""
+                _update_done_callback(ui_manager.low_res_cache, poster_drawing_data)
 
             def on_click_update() -> Callable:
+                """Return an async function that updates the poster with the current settings."""
                 return on_click_slow_action_in_other_thread('Updating', update_low_res, update_done_callback_low_res)
 
             with ui.input(label='Title', value="Title").on('keydown.enter', on_click_update()) as title_button:
@@ -151,6 +184,7 @@ with ui.row():
             LIGHT_MODE_TEXT = "☀️"
 
             def on_dark_mode_switch_change(e: events.ValueChangeEventArguments):
+                """Switch between dark and light mode."""
                 dark_mode = e.value
                 dark_mode_switch.text = DARK_MODE_TEXT if dark_mode else LIGHT_MODE_TEXT
                 theme_toggle.options = list(DARK_COLOR_THEMES.keys()) if dark_mode else list(LIGHT_COLOR_THEMES.keys())
@@ -166,20 +200,24 @@ with ui.row():
             # Download button
 
             def download() -> bytes:
+                """Save the high resolution poster as SVG and return the bytes."""
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     tmp_svg = os.path.join(tmp_dir, "tmp.svg")
-                    plot.fig.savefig(tmp_svg, dpi=cache.high_res.dpi)
+                    plot.fig.savefig(tmp_svg, dpi=ui_manager.high_res_cache.dpi)
                     with open(tmp_svg, "rb") as svg_file:
                         return svg_file.read()
 
             def download_done_callback(svg_bytes: bytes):
+                """Download the SVG file."""
                 ui.download(svg_bytes, f'poster_{sanitize_filename(str(title_button.value).replace(" ", "_"))}.svg')
                 logger.info("Poster Downloaded")
 
             async def on_click_download() -> None:
-                await on_click_slow_action_in_other_thread(f'Rendering at High Resolution ({cache.high_res.dpi} dpi)',
+                """Asynchronously render the high resolution poster and download it as SVG."""
+                dpi = ui_manager.high_res_cache.dpi
+                await on_click_slow_action_in_other_thread(f'Rendering at High Resolution ({dpi} dpi)',
                                                            update_high_res, update_done_callback_high_res)()
-                await on_click_slow_action_in_other_thread(f'Exporting SVG ({cache.high_res.dpi} dpi)',
+                await on_click_slow_action_in_other_thread(f'Exporting SVG ({dpi} dpi)',
                                                            download, download_done_callback)()
 
             download_button = ui.button('Download', on_click=on_click_download)
@@ -202,7 +240,7 @@ exit_button = ui.button('Exit',
                         color='red-9',
                         icon='logout').style('position: fixed; top: 10px; right: 10px;')
 
-app.on_startup(on_click_load_example)
+app.on_startup(ui_manager.on_click_load_example)
 
 ui.run(title='Pretty GPX',
        favicon="✨",
