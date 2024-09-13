@@ -78,3 +78,9 @@ def assert_same_len(seqs: Iterable[Sized], size: int | None = None, *,  msg: str
     if size is not None:
         common_length = list(lengths)[0]
         assert common_length == size,  m+f"Expect sequences of length {size}. Got {common_length}."
+
+
+def assert_not_empty(seq: Sized, *, msg: str = ""):
+    """Assert Sized element is not empty."""
+    m = _clean_msg(msg)
+    assert len(seq) != 0, m+"Got empty sequence."

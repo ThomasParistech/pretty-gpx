@@ -52,12 +52,12 @@ class AugmentedGpxData:
     @property
     def dist_km(self) -> float:
         """Total distance in km."""
-        return self.track.list_cumul_d[-1]
+        return self.track.list_cumul_dist_km[-1]
 
     @property
     def uphill_m(self) -> float:
         """Total climb in m."""
-        return self.track.list_cumul_ele[-1]
+        return self.track.uphill_m
 
     @staticmethod
     def from_path(list_gpx_path: str | bytes | list[str] | list[bytes],
