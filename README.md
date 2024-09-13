@@ -106,7 +106,7 @@ python3 pretty_gpx/explore_color_themes.py
 
 # Simplify a GPX file
 
-If your GPX file is quite heavy, e.g. 20Mo, you can the following script to make it lighter.
+If your GPX file is quite heavy, e.g. 20Mo, you can run the following script to make it lighter.
 
 ```
 python3 pretty_gpx/simplify_gpx.py --input <GPX_FILE>

@@ -1,0 +1,32 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint_and_typecheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r .devcontainer/requirements.txt
+
+      - name: Linter
+        if: always()
+        run: sh ./scripts/run_linter.sh
+
+      - name: Type-checker
+        if: always()
+        run: sh ./scripts/run_mypy.sh
