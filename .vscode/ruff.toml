@@ -19,7 +19,9 @@ lint.ignore = [
     "D408", # section-underline-after-name
     "D105", # undocumented-magic-method __**__
     "D107", # __init__
-    "PLR0913"
+    "PLR0913", # Too many arguments
+    "TD003", # Missing issue link on the line following this TODO
+    "TD002" #  Missing author in TODO
 ]
 
 target-version = "py310"

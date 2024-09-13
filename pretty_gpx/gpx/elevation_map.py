@@ -48,6 +48,6 @@ def rescale_elevation(elevation: np.ndarray, scale: float) -> np.ndarray:
     new_elevation = cv2.resize(elevation, (new_w, new_h),
                                interpolation=cv2.INTER_LANCZOS4)  # bicubic is ugly
 
-    # FIXME fix aliasing when upsapling
+    # TODO: aliasing when upsapling
 
     return new_elevation

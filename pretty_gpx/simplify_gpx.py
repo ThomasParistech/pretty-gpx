@@ -1,19 +1,15 @@
 #!/usr/bin/python3
 """Simplify GPX file."""
 import fire
-import gpxpy
 
-from pretty_gpx.utils.asserts import assert_isfile
+from pretty_gpx.gpx.gpx_io import load_gpxpy
 from pretty_gpx.utils.logger import logger
 from pretty_gpx.utils.utils import suffix_filename
 
 
 def main(input: str, max_distance_m: float = 5.0):
     """Simplify GPX file using the Ramer-Douglas-Peucker algorithm."""
-    assert_isfile(input, ext=".gpx")
-
-    with open(input) as f:
-        g = gpxpy.parse(f)
+    g = load_gpxpy(input)
 
     g.simplify(max_distance=max_distance_m)
 

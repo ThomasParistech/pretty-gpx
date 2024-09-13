@@ -10,6 +10,8 @@ from matplotlib.axes import Axes
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 
+from pretty_gpx.utils.asserts import assert_same_len
+
 
 @overload
 def imshow_scale(old_value: float, old_size: int, new_size: float) -> float: ...
@@ -44,6 +46,12 @@ class BaseDrawingData:
     def __init__(self) -> None:
         raise NotImplementedError()
 
+    def __post_init__(self) -> None:
+        """Ensure x and y have the same length."""
+        if isinstance(self.x, list) or isinstance(self.y, list):
+            assert isinstance(self.x, list) and isinstance(self.y, list), "x and y must be both lists or both floats"
+            assert_same_len([self.x, self.y], msg="x and y must have the same length")
+
     @staticmethod
     def get_plot_func(ax: Axes) -> Callable:
         """Get corresponding matplotlib plot function, e.g. ax.plot, ax.text, ax.fill ..."""
@@ -62,6 +70,10 @@ class BaseDrawingData:
         scaled_y = imshow_scale(self.y, old_h, new_h)
 
         self.get_plot_func(ax)(scaled_x, scaled_y, **kwargs, c=color)
+
+    def __len__(self) -> int:
+        """Return the number of points in the annotation."""
+        return len(self.x) if isinstance(self.x, list) else 1
 
 
 @dataclass

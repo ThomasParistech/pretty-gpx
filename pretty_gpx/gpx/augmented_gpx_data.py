@@ -6,9 +6,9 @@ import numpy as np
 import overpy
 from geopy.geocoders import Nominatim
 from geopy.location import Location
-from natsort import natsorted
 
 from pretty_gpx.gpx.gpx_bounds import GpxBounds
+from pretty_gpx.gpx.gpx_io import cast_to_list_gpx_path
 from pretty_gpx.gpx.gpx_track import GpxTrack
 from pretty_gpx.gpx.gpx_track import local_m_to_deg
 from pretty_gpx.utils.logger import logger
@@ -64,10 +64,7 @@ class AugmentedGpxData:
                   strict_ths_m: float = 50,
                   loose_ths_m: float = 1000) -> 'AugmentedGpxData':
         """Create an AugmentedGpxData instance from an ordered list of daily GPX files."""
-        if not isinstance(list_gpx_path, list):
-            list_gpx_path = [list_gpx_path]
-        if isinstance(list_gpx_path[0], str):
-            list_gpx_path = natsorted(list_gpx_path)
+        list_gpx_path = cast_to_list_gpx_path(list_gpx_path)
 
         gpx_track, huts_ids, huts_names = find_huts_between_daily_tracks(list_gpx_path)
 
