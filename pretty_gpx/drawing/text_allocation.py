@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 """Text Allocation."""
 import os
+from dataclasses import dataclass
+from dataclasses import field
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,30 +10,88 @@ import textalloc as ta
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
+from matplotlib.path import Path
 
 from pretty_gpx.drawing.drawing_data import PlotData
+from pretty_gpx.drawing.drawing_data import ScatterData
 from pretty_gpx.drawing.drawing_data import TextData
 from pretty_gpx.drawing.drawing_figure import BaseDrawingFigure
 from pretty_gpx.layout.paper_size import PaperSize
+from pretty_gpx.utils.asserts import assert_same_len
 from pretty_gpx.utils.logger import logger
 from pretty_gpx.utils.paths import DATA_DIR
 
 DEBUG_TEXT_ALLOCATION = False
 
 
+@dataclass
+class AnnotatedScatterDataCollection:
+    """List of scatter points with optional text annotations.
+
+    Following fields are used to allocate text annotations:
+    - list_text_x: list of x-coordinates that text annotations are tied to
+    - list_text_y: list of y-coordinates that text annotations are tied to
+    - list_text_s: list of text annotation strings
+
+    Whereas the field `list_scatter_data` stored all scatter points, which are used as obstacles to avoid text overlap.
+    """
+    list_text_x: list[float] = field(default_factory=list)
+    list_text_y: list[float] = field(default_factory=list)
+    list_text_s: list[str] = field(default_factory=list)
+
+    list_scatter_data: list[ScatterData] = field(default_factory=list)
+
+    def add_scatter_data(self,
+                         global_x: list[float],
+                         global_y: list[float],
+                         scatter_ids: list[int],
+                         scatter_texts: list[str] | list[str | None],
+                         marker: str | Path,
+                         markersize: float) -> None:
+        """Add scatter data."""
+        assert_same_len((global_x, global_y))
+        assert_same_len((scatter_ids, scatter_texts))
+        scatter_data = ScatterData(x=[global_x[idx] for idx in scatter_ids],
+                                   y=[global_y[idx] for idx in scatter_ids],
+                                   marker=marker, markersize=markersize)
+        self.list_scatter_data.append(scatter_data)
+
+        for x, y, s in zip(scatter_data.x, scatter_data.y, scatter_texts):
+            if s is not None:
+                self.list_text_x.append(x)
+                self.list_text_y.append(y)
+                self.list_text_s.append(s)
+
+    @property
+    def scatters_to_avoid_x(self) -> list[float]:
+        """Scatters to avoid x."""
+        return [x
+                for scatter_data in self.list_scatter_data
+                for x in scatter_data.x]
+
+    @property
+    def scatters_to_avoid_y(self) -> list[float]:
+        """Scatters to avoid y."""
+        return [y
+                for scatter_data in self.list_scatter_data
+                for y in scatter_data.y]
+
+    @property
+    def scatter_to_avoid_sizes(self) -> list[float]:
+        """Scatter to avoid sizes."""
+        return [s
+                for scatter_data in self.list_scatter_data
+                for s in [scatter_data.markersize]*len(scatter_data)]
+
+
 def allocate_text(fig: Figure,
                   ax: Axes,
                   imshow_img: np.ndarray,
                   paper_size: PaperSize,
-                  latlon_aspect_ratio: float,
-                  x: list[float],
-                  y: list[float],
-                  s: list[str],
+                  scatters: AnnotatedScatterDataCollection,
                   plots_x_to_avoid: list[list[float]],
                   plots_y_to_avoid: list[list[float]],
-                  scatter_x_to_avoid: list[float],
-                  scatter_y_to_avoid: list[float],
-                  scatter_sizes: list[float],
+                  latlon_aspect_ratio: float,
                   fontsize: float,
                   fontproperties: FontProperties,
                   output_linewidth: float,
@@ -44,7 +104,7 @@ def allocate_text(fig: Figure,
     base_fig = BaseDrawingFigure(paper_size=paper_size, latlon_aspect_ratio=latlon_aspect_ratio)
     base_fig.imshow(fig, ax, imshow_img)
 
-    logger.info(f"Optimize {len(s)} Text Allocations...")
+    logger.info(f"Optimize {len(scatters.list_text_x)} Text Allocations...")
 
     if DEBUG_TEXT_ALLOCATION:
         debug_fig, debug_ax = plt.subplots()
@@ -52,7 +112,7 @@ def allocate_text(fig: Figure,
         base_fig.adjust_display_width(debug_fig, 600)
         for list_x, list_y in zip(plots_x_to_avoid, plots_y_to_avoid):
             debug_ax.plot(list_x, list_y, "-r")
-        for text_x, text_y, text_s in zip(x, y, s):
+        for text_x, text_y, text_s in zip(scatters.list_text_x, scatters.list_text_y, scatters.list_text_s):
             debug_ax.text(text_x, text_y, text_s, ha="center", va="center",
                           fontsize=fontsize, fontproperties=fontproperties)
         plt.title("Texts to Allocate")
@@ -60,15 +120,15 @@ def allocate_text(fig: Figure,
         plt.show()
 
     result_text_xy, result_line = ta.allocate(ax,
-                                              x=x,
-                                              y=y,
-                                              text_list=s,
+                                              x=scatters.list_text_x,
+                                              y=scatters.list_text_y,
+                                              text_list=scatters.list_text_s,
                                               textsize=fontsize,
                                               x_lines=plots_x_to_avoid,
                                               y_lines=plots_y_to_avoid,
-                                              x_scatter=scatter_x_to_avoid,
-                                              y_scatter=scatter_y_to_avoid,
-                                              scatter_sizes=scatter_sizes,
+                                              x_scatter=scatters.scatters_to_avoid_x,
+                                              y_scatter=scatters.scatters_to_avoid_y,
+                                              scatter_sizes=scatters.scatter_to_avoid_sizes,
                                               max_distance=max_distance,
                                               min_distance=min_distance,
                                               margin=margin,
@@ -86,7 +146,7 @@ def allocate_text(fig: Figure,
         assert text is not None, "Failed to allocate text, consider using larger margins in VerticalLayout " \
             "or larger `max_distance` when calling `allocate_text`"
         text_x, text_y = text
-        list_text_data.append(TextData(x=text_x, y=text_y, s=s[i],
+        list_text_data.append(TextData(x=text_x, y=text_y, s=scatters.list_text_s[i],
                                        fontsize=fontsize, fontproperties=fontproperties, ha=ha))
 
         assert line is not None

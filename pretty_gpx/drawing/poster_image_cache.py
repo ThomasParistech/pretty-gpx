@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
+from pretty_gpx.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.drawing.drawing_data import PlotData
 from pretty_gpx.drawing.drawing_data import PolyFillData
 from pretty_gpx.drawing.drawing_data import ScatterData
@@ -16,6 +17,7 @@ from pretty_gpx.drawing.drawing_params import DrawingSizeParams
 from pretty_gpx.drawing.drawing_params import DrawingStyleParams
 from pretty_gpx.drawing.hillshading import CachedHillShading
 from pretty_gpx.drawing.text_allocation import allocate_text
+from pretty_gpx.drawing.text_allocation import AnnotatedScatterDataCollection
 from pretty_gpx.drawing.theme_colors import hex_to_rgb
 from pretty_gpx.drawing.theme_colors import ThemeColors
 from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
@@ -26,7 +28,6 @@ from pretty_gpx.layout.vertical_layout import get_bounds
 from pretty_gpx.layout.vertical_layout import VerticalLayout
 from pretty_gpx.utils.logger import logger
 from pretty_gpx.utils.utils import mm_to_inch
-from pretty_gpx.utils.utils import safe
 
 W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
 
@@ -51,11 +52,11 @@ class PosterImageCaches:
         """Create a PosterImageCaches from a GPX file."""
         # Extract GPX data and retrieve close mountain passes/huts
         gpx_data = AugmentedGpxData.from_path(list_gpx_path)
-        return PosterImageCaches.from_gpx_data(gpx_data, paper_size)
+        return PosterImageCaches.from_augmented_gpx_data(gpx_data, paper_size)
 
     @staticmethod
-    def from_gpx_data(gpx_data: AugmentedGpxData,
-                      paper_size: PaperSize) -> 'PosterImageCaches':
+    def from_augmented_gpx_data(gpx_data: AugmentedGpxData,
+                                paper_size: PaperSize) -> 'PosterImageCaches':
         """Create a PosterImageCaches from a GPX file."""
         high_res = PosterImageCache.from_gpx_data(gpx_data, dpi=HIGH_RES_DPI, paper=paper_size)
         low_res = high_res.change_dpi(WORKING_DPI)
@@ -106,143 +107,8 @@ class PosterImageCache:
         drawing_size_params = DrawingSizeParams.default(paper)
         drawing_style_params = DrawingStyleParams()
 
-        # Allocate non-overlapping text annotations on the map
-        list_x: list[float] = []
-        list_y: list[float] = []
-        list_text: list[str] = []
-
-        passes_begin = len(list_x)
-        for idx, mountain_pass in zip(gpx_data.passes_ids, gpx_data.mountain_passes):
-            list_x.append(x_pix[idx])
-            list_y.append(y_pix[idx])
-            list_text.append(f" {mountain_pass.name} \n({int(mountain_pass.ele)} m)")
-        passes_end = len(list_x)
-
-        huts_begin = len(list_x)
-        for idx, mountain_hut in zip(gpx_data.hut_ids, gpx_data.huts):
-            if mountain_hut.name is not None:
-                list_x.append(x_pix[idx])
-                list_y.append(y_pix[idx])
-                list_text.append(f" {mountain_hut.name} ")
-        huts_end = len(list_x)
-
-        start_idx = None
-        if gpx_data.start_name is not None:
-            start_idx = len(list_x)
-            list_x.append(x_pix[0])
-            list_y.append(y_pix[0])
-            list_text.append(f" {gpx_data.start_name} ")
-
-        end_idx = None
-        if gpx_data.end_name is not None:
-            end_idx = len(list_x)
-            list_x.append(x_pix[-1])
-            list_y.append(y_pix[-1])
-            list_text.append(f" {gpx_data.end_name} ")
-
-        plots_x_to_avoid, plots_y_to_avoid = [x_pix], [y_pix]
-        for y in np.concatenate((np.linspace(0., h * layout.title_relative_h, num=10),
-                                 np.linspace(h * (layout.title_relative_h + layout.map_relative_h), h, num=10))):
-            plots_x_to_avoid.append([0., w])
-            plots_y_to_avoid.append([y, y])
-
-        scatter_passes_x = [x_pix[idx] for idx in gpx_data.passes_ids]
-        scatter_passes_y = [y_pix[idx] for idx in gpx_data.passes_ids]
-        scatter_huts_x = [x_pix[idx] for idx in gpx_data.hut_ids]
-        scatter_huts_y = [y_pix[idx] for idx in gpx_data.hut_ids]
-
-        texts, lines = allocate_text(fig=plt.gcf(),
-                                     ax=plt.gca(),
-                                     imshow_img=np.full((h, w), fill_value=np.nan),
-                                     paper_size=paper,
-                                     latlon_aspect_ratio=latlon_aspect_ratio,
-                                     x=list_x,
-                                     y=list_y,
-                                     s=list_text,
-                                     plots_x_to_avoid=plots_x_to_avoid,
-                                     plots_y_to_avoid=plots_y_to_avoid,
-                                     scatter_x_to_avoid=scatter_passes_x+scatter_huts_x,
-                                     scatter_y_to_avoid=scatter_passes_y+scatter_huts_y,
-                                     scatter_sizes=([drawing_size_params.peak_markersize]*len(scatter_passes_x)
-                                                    + [drawing_size_params.hut_markersize]*len(scatter_huts_x)),
-                                     output_linewidth=drawing_size_params.text_arrow_linewidth,
-                                     fontsize=drawing_size_params.text_fontsize,
-                                     fontproperties=drawing_style_params.classic_font)
-
-        # Draw the elevation profile
-        draw_start = gpx_data.start_name is not None
-        draw_end = draw_start if gpx_data.is_closed else gpx_data.end_name is not None
-        ele_scatter, ele_fill_poly, stats = get_elevation_drawings(layout=layout,
-                                                                   h_pix=h, w_pix=w,
-                                                                   list_ele=gpx_data.track.list_ele,
-                                                                   list_cum_d=gpx_data.track.list_cumul_d,
-                                                                   passes_ids=gpx_data.passes_ids,
-                                                                   huts_ids=gpx_data.hut_ids,
-                                                                   draw_start=draw_start,
-                                                                   draw_end=draw_end,
-                                                                   drawing_style_params=drawing_style_params,
-                                                                   drawing_size_params=drawing_size_params)
-
-        # Prepare the plot data
-        augmented_hut_ids = [0] + gpx_data.hut_ids + [None]
-        track_data = []
-        for k in range(len(augmented_hut_ids)-1):
-            begin_i = augmented_hut_ids[k]
-            end_i = augmented_hut_ids[k+1]
-            track_data.append(PlotData(x=x_pix[begin_i:end_i],
-                                       y=y_pix[begin_i:end_i],
-                                       linewidth=drawing_size_params.track_linewidth))
-            if k != 0:
-                # Draw dotted line between huts, in case there's a visible gap
-                track_data.append(PlotData(x=[x_pix[begin_i-1], x_pix[begin_i]],
-                                           y=[y_pix[begin_i-1], y_pix[begin_i]],
-                                           linewidth=0.5*drawing_size_params.track_linewidth,
-                                           linestyle="dotted"))
-
-        track_data.append(ele_fill_poly)
-
-        peak_data = ele_scatter + [ScatterData(x=scatter_passes_x,
-                                               y=scatter_passes_y,
-                                               marker=drawing_style_params.peak_marker,
-                                               markersize=drawing_size_params.peak_markersize),
-                                   ScatterData(x=scatter_huts_x,
-                                               y=scatter_huts_y,
-                                               marker=drawing_style_params.hut_marker,
-                                               markersize=drawing_size_params.hut_markersize)]
-        peak_data += texts[passes_begin:passes_end]
-        peak_data += lines[passes_begin:passes_end]
-        peak_data += texts[huts_begin:huts_end]
-        peak_data += lines[huts_begin:huts_end]
-
-        if gpx_data.start_name is not None:
-            i = safe(start_idx)
-            peak_data += [texts[i],
-                          lines[i],
-                          ScatterData(x=[list_x[i]], y=[list_y[i]],
-                                      marker=drawing_style_params.start_marker,
-                                      markersize=drawing_size_params.start_markersize)]
-
-        if gpx_data.end_name is not None:
-            i = safe(end_idx)
-            peak_data += [texts[i],
-                          lines[i],
-                          ScatterData(x=[list_x[i]],
-                                      y=[list_y[i]],
-                                      marker=drawing_style_params.end_marker,
-                                      markersize=drawing_size_params.end_markersize)]
-
-        title = TextData(x=0.5 * w, y=0.8 * h * layout.title_relative_h,
-                         s="", fontsize=drawing_size_params.title_fontsize,
-                           fontproperties=drawing_style_params.pretty_font, ha="center")
-
-        plotter = DrawingFigure(ref_img_shape=(h, w),
-                                paper_size=paper,
-                                w_display_pix=W_DISPLAY_PIX,
-                                latlon_aspect_ratio=latlon_aspect_ratio,
-                                track_data=track_data,
-                                peak_data=peak_data,
-                                title=title,
-                                stats=stats)
+        plotter = init_and_populate_drawing_figure(gpx_data, latlon_aspect_ratio, paper, layout, drawing_size_params,
+                                                   drawing_style_params, x_pix=x_pix, y_pix=y_pix, w=w, h=h)
 
         logger.info("Successful GPX Processing")
         return PosterImageCache(elevation_map=elevation,
@@ -294,6 +160,121 @@ class PosterImageCache:
                     f"(Elevation Map {poster_drawing_data.img.shape[1]}x{poster_drawing_data.img.shape[0]})")
 
 
+def init_and_populate_drawing_figure(gpx_data: AugmentedGpxData,
+                                     latlon_aspect_ratio: float,
+                                     paper: PaperSize, layout: VerticalLayout,
+                                     drawing_size_params: DrawingSizeParams,
+                                     drawing_style_params: DrawingStyleParams,
+                                     *,
+                                     x_pix: list[float], y_pix: list[float],
+                                     w: int, h: int) -> DrawingFigure:
+    """Set up and populate the DrawingFigure for the poster."""
+    scatters = init_annotated_scatter_collection(gpx_data, x_pix, y_pix, drawing_style_params, drawing_size_params)
+
+    plots_x_to_avoid, plots_y_to_avoid = [x_pix], [y_pix]
+    for y in np.concatenate((np.linspace(0., h * layout.title_relative_h, num=10),
+                             np.linspace(h * (layout.title_relative_h + layout.map_relative_h), h, num=10))):
+        plots_x_to_avoid.append([0., w])
+        plots_y_to_avoid.append([y, y])
+
+    texts, lines = allocate_text(fig=plt.gcf(),
+                                 ax=plt.gca(),
+                                 imshow_img=np.full((h, w), fill_value=np.nan),
+                                 paper_size=paper,
+                                 scatters=scatters,
+                                 plots_x_to_avoid=plots_x_to_avoid,
+                                 plots_y_to_avoid=plots_y_to_avoid,
+                                 latlon_aspect_ratio=latlon_aspect_ratio,
+                                 output_linewidth=drawing_size_params.text_arrow_linewidth,
+                                 fontsize=drawing_size_params.text_fontsize,
+                                 fontproperties=drawing_style_params.classic_font)
+
+    # Draw the elevation profile
+    draw_start = gpx_data.start_name is not None
+    draw_end = draw_start if gpx_data.is_closed else gpx_data.end_name is not None
+    ele_scatter, ele_fill_poly, stats = get_elevation_drawings(layout=layout,
+                                                               h_pix=h, w_pix=w,
+                                                               list_ele=gpx_data.track.list_ele,
+                                                               list_cum_d=gpx_data.track.list_cumul_d,
+                                                               passes_ids=gpx_data.passes_ids,
+                                                               huts_ids=gpx_data.hut_ids,
+                                                               draw_start=draw_start,
+                                                               draw_end=draw_end,
+                                                               drawing_style_params=drawing_style_params,
+                                                               drawing_size_params=drawing_size_params)
+
+    # Prepare the plot data
+    augmented_hut_ids = [0] + gpx_data.hut_ids
+    track_data: list[BaseDrawingData] = []
+    for k in range(len(augmented_hut_ids)):
+        begin_i = augmented_hut_ids[k]
+        end_i = augmented_hut_ids[k+1] if k+1 < len(augmented_hut_ids) else None
+        track_data.append(PlotData(x=x_pix[begin_i:end_i],
+                                   y=y_pix[begin_i:end_i],
+                                   linewidth=drawing_size_params.track_linewidth))
+        if k != 0:
+            # Draw dotted line between huts, in case there's a visible gap
+            track_data.append(PlotData(x=[x_pix[begin_i-1], x_pix[begin_i]],
+                                       y=[y_pix[begin_i-1], y_pix[begin_i]],
+                                       linewidth=0.5*drawing_size_params.track_linewidth,
+                                       linestyle="dotted"))
+
+    track_data.append(ele_fill_poly)
+
+    peak_data: list[BaseDrawingData] = ele_scatter + scatters.list_scatter_data + texts + lines  # type:ignore
+
+    title = TextData(x=0.5 * w, y=0.8 * h * layout.title_relative_h,
+                     s="", fontsize=drawing_size_params.title_fontsize,
+                     fontproperties=drawing_style_params.pretty_font, ha="center")
+
+    return DrawingFigure(ref_img_shape=(h, w),
+                         paper_size=paper,
+                         w_display_pix=W_DISPLAY_PIX,
+                         latlon_aspect_ratio=latlon_aspect_ratio,
+                         track_data=track_data,
+                         peak_data=peak_data,
+                         title=title,
+                         stats=stats)
+
+
+def init_annotated_scatter_collection(gpx_data: AugmentedGpxData,
+                                      global_x_pix: list[float],
+                                      global_y_pix: list[float],
+                                      drawing_style_params: DrawingStyleParams,
+                                      drawing_size_params: DrawingSizeParams) -> AnnotatedScatterDataCollection:
+    """Initialize the AnnotatedScatterDataCollection with the mountain passes, huts, start and end markers."""
+    scatter_collection = AnnotatedScatterDataCollection()
+
+    scatter_collection.add_scatter_data(global_x=global_x_pix, global_y=global_y_pix,
+                                        scatter_ids=gpx_data.passes_ids,
+                                        scatter_texts=[f" {mountain_pass.name} \n({int(mountain_pass.ele)} m)"
+                                                       for mountain_pass in gpx_data.mountain_passes],
+                                        marker=drawing_style_params.peak_marker,
+                                        markersize=drawing_size_params.peak_markersize)
+
+    scatter_collection.add_scatter_data(global_x=global_x_pix, global_y=global_y_pix,
+                                        scatter_ids=gpx_data.hut_ids,
+                                        scatter_texts=[f" {mountain_hut.name} "
+                                                       for mountain_hut in gpx_data.huts],
+                                        marker=drawing_style_params.hut_marker,
+                                        markersize=drawing_size_params.hut_markersize)
+
+    if gpx_data.start_name is not None:
+        scatter_collection.add_scatter_data(global_x=global_x_pix, global_y=global_y_pix,
+                                            scatter_ids=[0],
+                                            scatter_texts=[f" {gpx_data.start_name} "],
+                                            marker=drawing_style_params.start_marker,
+                                            markersize=drawing_size_params.start_markersize)
+
+    if gpx_data.end_name is not None:
+        scatter_collection.add_scatter_data(global_x=global_x_pix, global_y=global_y_pix,
+                                            scatter_ids=[len(global_x_pix)-1],
+                                            scatter_texts=[f" {gpx_data.end_name} "],
+                                            marker=drawing_style_params.end_marker,
+                                            markersize=drawing_size_params.end_markersize)
+    return scatter_collection
+
+
 def get_elevation_drawings(layout: VerticalLayout,
                            h_pix: int, w_pix: int,
                            list_ele: list[float],
@@ -337,9 +318,9 @@ def get_elevation_drawings(layout: VerticalLayout,
                                         markersize=drawing_size_params.end_markersize))
 
     # Complete the polygon for the elevation profile
-    elevation_poly_x = np.hstack((0, 0, elevation_poly_x, w_pix, w_pix)).tolist()
-    elevation_poly_y = np.hstack((h_pix, h_bot_pix, elevation_poly_y, h_bot_pix, h_pix)).tolist()
-    elevation_data = PolyFillData(x=elevation_poly_x, y=elevation_poly_y)
+    elevation_poly_x = np.hstack((0, 0, elevation_poly_x, w_pix, w_pix))
+    elevation_poly_y = np.hstack((h_pix, h_bot_pix, elevation_poly_y, h_bot_pix, h_pix))
+    elevation_data = PolyFillData(x=elevation_poly_x.tolist(), y=elevation_poly_y.tolist())
 
     stats = TextData(x=0.5 * w_pix, y=0.5 * (h_bot_pix+h_pix),
                      s="", fontsize=drawing_size_params.stats_fontsize,
