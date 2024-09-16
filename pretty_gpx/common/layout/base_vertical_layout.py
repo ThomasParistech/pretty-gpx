@@ -14,7 +14,7 @@ from pretty_gpx.common.utils.asserts import assert_float_eq
 from pretty_gpx.common.utils.asserts import assert_in_range
 from pretty_gpx.common.utils.asserts import assert_lt
 
-DEBUG = True
+DEBUG = False
 
 
 @dataclass(init=False, kw_only=True)
