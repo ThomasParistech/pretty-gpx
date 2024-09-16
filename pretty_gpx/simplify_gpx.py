@@ -2,9 +2,9 @@
 """Simplify GPX file."""
 import fire
 
-from pretty_gpx.gpx.gpx_io import load_gpxpy
-from pretty_gpx.utils.logger import logger
-from pretty_gpx.utils.utils import suffix_filename
+from pretty_gpx.common.gpx.gpx_io import load_gpxpy
+from pretty_gpx.common.utils.logger import logger
+from pretty_gpx.common.utils.utils import suffix_filename
 
 
 def main(input: str, max_distance_m: float = 5.0):

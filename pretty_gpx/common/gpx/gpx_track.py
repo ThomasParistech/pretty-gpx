@@ -7,13 +7,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gpxpy.gpx import GPXTrackPoint
 
-from pretty_gpx.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.gpx.gpx_io import load_gpxpy
-from pretty_gpx.utils.asserts import assert_close
-from pretty_gpx.utils.asserts import assert_not_empty
-from pretty_gpx.utils.asserts import assert_same_len
-from pretty_gpx.utils.logger import logger
-from pretty_gpx.utils.utils import safe
+from pretty_gpx.common.gpx.gpx_io import load_gpxpy
+from pretty_gpx.common.utils.asserts import assert_close
+from pretty_gpx.common.utils.asserts import assert_not_empty
+from pretty_gpx.common.utils.asserts import assert_same_len
+from pretty_gpx.common.utils.logger import logger
+from pretty_gpx.common.utils.utils import safe
 
 DEBUG_TRACK = False
 
@@ -73,16 +72,6 @@ class GpxTrack:
         dist_deg = float(np.linalg.norm((self.list_lon[0] - self.list_lon[-1],
                                          self.list_lat[0] - self.list_lat[-1])))
         return dist_deg < local_m_to_deg(dist_m)
-
-    def project_on_image(self,
-                         img: np.ndarray,
-                         bounds: GpxBounds) -> tuple[list[float], list[float]]:
-        """Convert lat/lon to pixel coordinates."""
-        x_pix = [(lon - bounds.lon_min) / (bounds.lon_max-bounds.lon_min) * img.shape[1]
-                 for lon in self.list_lon]
-        y_pix = [(bounds.lat_max - lat) / (bounds.lat_max-bounds.lat_min) * img.shape[0]
-                 for lat in self.list_lat]
-        return x_pix, y_pix
 
     @staticmethod
     def merge(list_gpx_track: list['GpxTrack']) -> 'GpxTrack':

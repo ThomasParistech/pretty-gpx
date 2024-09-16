@@ -13,24 +13,22 @@ from nicegui import ui
 from nicegui.elements.upload import Upload
 from pathvalidate import sanitize_filename
 
-from pretty_gpx.drawing.hillshading import AZIMUTHS
-from pretty_gpx.drawing.poster_image_cache import PosterDrawingData
-from pretty_gpx.drawing.poster_image_cache import PosterImageCache
-from pretty_gpx.drawing.poster_image_cache import PosterImageCaches
-from pretty_gpx.drawing.poster_image_cache import W_DISPLAY_PIX
-from pretty_gpx.drawing.theme_colors import DARK_COLOR_THEMES
-from pretty_gpx.drawing.theme_colors import LIGHT_COLOR_THEMES
-from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
-from pretty_gpx.layout.paper_size import PAPER_SIZES
-from pretty_gpx.layout.paper_size import PaperSize
-from pretty_gpx.utils.logger import logger
-from pretty_gpx.utils.paths import HIKING_DIR
-from pretty_gpx.utils.ui_helper import on_click_slow_action_in_other_thread
-from pretty_gpx.utils.ui_helper import shutdown_app_and_close_tab
-from pretty_gpx.utils.ui_helper import UiModal
-from pretty_gpx.utils.utils import safe
-
-# ruff: noqa: PLW0603
+from pretty_gpx.common.layout.paper_size import PAPER_SIZES
+from pretty_gpx.common.layout.paper_size import PaperSize
+from pretty_gpx.common.utils.logger import logger
+from pretty_gpx.common.utils.paths import HIKING_DIR
+from pretty_gpx.common.utils.ui_helper import on_click_slow_action_in_other_thread
+from pretty_gpx.common.utils.ui_helper import shutdown_app_and_close_tab
+from pretty_gpx.common.utils.ui_helper import UiModal
+from pretty_gpx.common.utils.utils import safe
+from pretty_gpx.mountain.augmented_gpx_data import AugmentedGpxData
+from pretty_gpx.mountain.drawing.hillshading import AZIMUTHS
+from pretty_gpx.mountain.drawing.poster_image_cache import PosterDrawingData
+from pretty_gpx.mountain.drawing.poster_image_cache import PosterImageCache
+from pretty_gpx.mountain.drawing.poster_image_cache import PosterImageCaches
+from pretty_gpx.mountain.drawing.poster_image_cache import W_DISPLAY_PIX
+from pretty_gpx.mountain.drawing.theme_colors import DARK_COLOR_THEMES
+from pretty_gpx.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
 
 
 class UiManager:

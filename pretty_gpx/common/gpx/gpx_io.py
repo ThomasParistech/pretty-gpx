@@ -6,7 +6,7 @@ import gpxpy.gpx
 from gpxpy.gpx import GPX
 from natsort import natsorted
 
-from pretty_gpx.utils.asserts import assert_isfile
+from pretty_gpx.common.utils.asserts import assert_isfile
 
 
 def cast_to_list_gpx_path(list_gpx_path: str | bytes | list[str] | list[bytes]) -> list[str] | list[bytes]:

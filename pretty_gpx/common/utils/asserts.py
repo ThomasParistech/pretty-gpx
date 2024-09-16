@@ -4,10 +4,13 @@
 import os
 from collections.abc import Iterable
 from collections.abc import Sized
+from typing import Final
 
 import numpy as np
 
 Number = float | int
+
+EPSILON: Final[float] = float(np.finfo(float).eps)
 
 
 def _clean_msg(prefix: str = "") -> str:
@@ -40,6 +43,11 @@ def assert_eq(val1: Number, val2: Number, *, msg: str = ""):
     assert val1 == val2, m+f" {val1 =} and {val2 =} are not equal"
 
 
+def assert_float_eq(val1: Number, val2: Number, *, msg: str = ""):
+    """Assert equality between two float values."""
+    assert_close(val1, val2, eps=EPSILON, msg=msg)
+
+
 def assert_lt(val1: Number, val2: Number, *, msg: str = ""):
     """Assert val1 < val2."""
     m = _clean_msg(msg)
@@ -62,6 +70,18 @@ def assert_ge(val1: Number, val2: Number, *, msg: str = ""):
     """Assert val1 >= val2."""
     m = _clean_msg(msg)
     assert val1 >= val2, m+f"Expect {val1 =} to be greater than {val2 =}"
+
+
+def assert_in_range(val: Number, mini: Number, maxi: Number, *, msg: str = ""):
+    """Assert mini <= val <= maxi."""
+    m = _clean_msg(msg)
+    assert mini <= val <= maxi, m+f"Expect {val} to be inside [{mini}, {maxi}]"
+
+
+def assert_in_strict_range(val: Number, mini: Number, maxi: Number, *, msg: str = ""):
+    """Assert mini < val < maxi."""
+    m = _clean_msg(msg)
+    assert mini < val < maxi, m+f"Expect {val} to be inside [{mini}, {maxi}]"
 
 
 def assert_len(seq: Sized, size: int, *, msg: str = ""):
