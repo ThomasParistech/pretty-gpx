@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from matplotlib.axes import Axes
+from matplotlib.collections import LineCollection
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 
@@ -78,3 +79,16 @@ class PolyFillData(BaseDrawingData):
         """Plot the annotation."""
         kwargs = asdict(self)
         ax.fill(kwargs.pop('x'), kwargs.pop('y'), **kwargs, c=color)
+
+
+@dataclass
+class LineCollectionData(BaseDrawingData):
+    """LineCollection Data."""
+    segments: list[list[tuple[float, float]]]
+
+    linewidth: float
+
+    def plot(self, ax: Axes, color: str) -> None:
+        """Plot the annotation."""
+        kwargs = asdict(self)
+        ax.add_collection(LineCollection(**kwargs, colors=color))

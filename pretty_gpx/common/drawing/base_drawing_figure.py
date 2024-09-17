@@ -23,6 +23,10 @@ class BaseDrawingFigure:
         """Setup the figure with the appropriate aspect-ratio, xlim/ylim, size in inches and dpi."""
         ax.cla()
         ax.axis('off')
+
+        ax.add_artist(ax.patch)  # Keep the background color if set with ax.set_facecolor
+        ax.patch.set_zorder(-1)
+
         fig.tight_layout(pad=0)
 
         ax.set_xlim((self.gpx_bounds.lon_min, self.gpx_bounds.lon_max))
