@@ -31,6 +31,8 @@ class CityDrawingFigure(BaseDrawingFigure):
 
     track_data: list[BaseDrawingData]
     road_data: list[BaseDrawingData]
+    forest_data: list[BaseDrawingData]
+    rivers_data: list[BaseDrawingData]
 
     # title: TextData
     # stats: TextData

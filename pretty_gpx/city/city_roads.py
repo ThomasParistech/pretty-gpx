@@ -29,6 +29,9 @@ class CityRoadType(Enum):
     STREET = auto()
     ACCESS_ROAD = auto()
 
+class AirportRoadsType(Enum):
+    RUNWAY = auto()
+    TAXIWAY = auto()
 
 HIGHWAY_TAGS_PER_CITY_ROAD_TYPE = {
     CityRoadType.HIGHWAY: ["motorway", "trunk", "primary"],
@@ -115,6 +118,19 @@ def _query_roads(bounds: GpxBounds, city_road_type:  CityRoadType) -> list[RoadL
         if len(road) > 0:
             roads.append(road)
     return roads
+
+
+def _query_railways(bounds: GpxBounds, city_road_type:  CityRoadType) -> list[RoadLonLat]:
+    """Query the overpass API to get the roads of a city."""
+    result = overpass_query([f"way['railway'~'rail'][!'tunnel']['usage'='main']"], bounds, include_way_nodes=True)
+
+    railways: list[RoadLonLat] = []
+    for way in result.ways:
+        railway = [(float(node.lon), float(node.lat))
+                   for node in way.get_nodes(resolve_missing=True)]
+        if len(railway) > 0:
+            railways.append(railway)
+    return railways
 
 
 def _query_forests(bounds: GpxBounds):

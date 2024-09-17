@@ -29,17 +29,21 @@ def overpass_query(query_elements: list[str],
     bounds_str = f"({bounds.lat_min:.5f}, {bounds.lon_min:.5f}, {bounds.lat_max:.5f}, {bounds.lon_max:.5f})"
 
     query_body = "\n".join([f"{element}{bounds_str};" for element in query_elements])
-    if include_way_nodes:
-        query_body += "\n>;\n"
-    
+
     if return_geometry:
         out_param = "geom"
     else:
         out_param = "body"
 
+    if include_way_nodes:
+        recursion_param = "(._;>;);\n"
+    else:
+        recursion_param = ""
+
     query = f"""(
        {query_body}
     );
+    {recursion_param}
     out {out_param};"""
     result = api.query(query)
 
