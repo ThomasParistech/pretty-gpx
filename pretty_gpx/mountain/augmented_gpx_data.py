@@ -3,17 +3,14 @@
 from dataclasses import dataclass
 
 import numpy as np
-import overpy
 from geopy.geocoders import Nominatim
 from geopy.location import Location
 
-from pretty_gpx.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.gpx.gpx_io import cast_to_list_gpx_path
-from pretty_gpx.gpx.gpx_track import GpxTrack
-from pretty_gpx.gpx.gpx_track import local_m_to_deg
-from pretty_gpx.utils.logger import logger
-
-DEBUG_OVERPASS_QUERY = False
+from pretty_gpx.common.gpx.gpx_io import cast_to_list_gpx_path
+from pretty_gpx.common.gpx.gpx_track import GpxTrack
+from pretty_gpx.common.gpx.gpx_track import local_m_to_deg
+from pretty_gpx.common.gpx.overpass import overpass_query
+from pretty_gpx.common.utils.logger import logger
 
 
 @dataclass
@@ -97,34 +94,6 @@ class AugmentedGpxData:
                                 passes_ids=passes_ids,
                                 huts=huts_names,
                                 hut_ids=huts_ids)
-
-
-def overpass_query(query_elements: list[str], gpx_track: GpxTrack) -> overpy.Result:
-    """Query the overpass API."""
-    # See https://wiki.openstreetmap.org/wiki/Key:natural
-    # See https://wiki.openstreetmap.org/wiki/Key:mountain_pass
-    # See https://wiki.openstreetmap.org/wiki/Tag:tourism=alpine_hut
-    api = overpy.Overpass()
-    bounds = GpxBounds.from_list(list_lon=gpx_track.list_lon,
-                                 list_lat=gpx_track.list_lat).add_relative_margin(0.1)
-    bounds_str = f"({bounds.lat_min:.5f}, {bounds.lon_min:.5f}, {bounds.lat_max:.5f}, {bounds.lon_max:.5f})"
-
-    query_body = "\n".join([f"{element}{bounds_str};" for element in query_elements])
-    result = api.query(f"""(
-       {query_body}
-    );
-    out body;""")
-
-    if DEBUG_OVERPASS_QUERY:
-        logger.debug("----")
-        logger.debug(f"GPX bounds: {bounds_str}")
-        named_nodes = [node for node in result.nodes if "name" in node.tags]
-        named_nodes.sort(key=lambda node: node.tags['name'])
-        for node in named_nodes:
-            logger.debug(f"{node.tags['name']} at ({node.lat:.3f}, {node.lon:.3f}) {node.tags}")
-        logger.debug("----")
-
-    return result
 
 
 def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[int], list[MountainPass]]:

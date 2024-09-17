@@ -7,14 +7,14 @@ import shutil
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from pretty_gpx.drawing.poster_image_cache import PosterImageCache
-from pretty_gpx.drawing.theme_colors import hex_to_rgb
-from pretty_gpx.drawing.theme_colors import ThemeColors
-from pretty_gpx.gpx.augmented_gpx_data import AugmentedGpxData
-from pretty_gpx.layout.paper_size import PAPER_SIZES
-from pretty_gpx.utils.logger import logger
-from pretty_gpx.utils.paths import COLOR_EXPLORATION_DIR
-from pretty_gpx.utils.paths import CYCLING_DIR
+from pretty_gpx.common.layout.paper_size import PAPER_SIZES
+from pretty_gpx.common.utils.logger import logger
+from pretty_gpx.common.utils.paths import COLOR_EXPLORATION_DIR
+from pretty_gpx.common.utils.paths import CYCLING_DIR
+from pretty_gpx.mountain.augmented_gpx_data import AugmentedGpxData
+from pretty_gpx.mountain.drawing.poster_image_cache import PosterImageCache
+from pretty_gpx.mountain.drawing.theme_colors import hex_to_rgb
+from pretty_gpx.mountain.drawing.theme_colors import ThemeColors
 
 
 def generate_color_candidates(colors: list[tuple[str, str, str]], dark_mode: bool) -> list[ThemeColors]:

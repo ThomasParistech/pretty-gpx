@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """Elevation Map."""
-import hashlib
 import os
 
 import cv2
@@ -8,21 +7,18 @@ import numpy as np
 import rasterio
 from dem_stitcher import stitch_dem
 
-from pretty_gpx.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.utils.asserts import assert_close
-from pretty_gpx.utils.paths import DEM_CACHE_DIR
+from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
+from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
+from pretty_gpx.common.utils.asserts import assert_close
+
+ELEVATION_CACHE = GpxDataCacheHandler(name='elevation', extension='.tif')
 
 
 def download_elevation_map(bounds: GpxBounds) -> np.ndarray:
     """Download elevation map from Copernicus DEM."""
-    bounds_str = f"{bounds.lon_min:.4f},{bounds.lon_max:.4f},{bounds.lat_min:.4f},{bounds.lat_max:.4f}"
-    bounds_hash = hashlib.sha256(bounds_str.encode('utf-8')).hexdigest()
-
-    cache_basename = f"dem_{bounds_hash}.tif"
-    cache_tif = os.path.join(DEM_CACHE_DIR, cache_basename)
+    cache_tif = ELEVATION_CACHE.get_path(bounds)
 
     if not os.path.isfile(cache_tif):
-        os.makedirs(DEM_CACHE_DIR, exist_ok=True)
         elevation, p = stitch_dem([bounds.lon_min, bounds.lat_min, bounds.lon_max, bounds.lat_max],
                                   dem_name='glo_30',  # Global Copernicus 30 meter resolution DEM
                                   dst_ellipsoidal_height=False,
