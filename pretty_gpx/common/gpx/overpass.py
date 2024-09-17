@@ -12,12 +12,14 @@ DEBUG_OVERPASS_QUERY = False
 
 def overpass_query(query_elements: list[str],
                    bounds: GpxBounds | GpxTrack,
-                   include_way_nodes: bool = False) -> overpy.Result:
+                   include_way_nodes: bool = False,
+                   return_geometry: bool = False,
+                   max_retry_count: int = 2) -> overpy.Result:
     """Query the overpass API."""
     # See https://wiki.openstreetmap.org/wiki/Key:natural
     # See https://wiki.openstreetmap.org/wiki/Key:mountain_pass
     # See https://wiki.openstreetmap.org/wiki/Tag:tourism=alpine_hut
-    api = overpy.Overpass()
+    api = overpy.Overpass(max_retry_count=max_retry_count)
     if isinstance(bounds, GpxTrack):
         bounds = GpxBounds.from_list(list_lon=bounds.list_lon,
                                      list_lat=bounds.list_lat)
@@ -29,12 +31,19 @@ def overpass_query(query_elements: list[str],
     query_body = "\n".join([f"{element}{bounds_str};" for element in query_elements])
     if include_way_nodes:
         query_body += "\n>;\n"
+    
+    if return_geometry:
+        out_param = "geom"
+    else:
+        out_param = "body"
 
     query = f"""(
        {query_body}
     );
-    out body;"""
+    out {out_param};"""
     result = api.query(query)
+
+    logger.info(f"Overpass query :\n{query}")
 
     if DEBUG_OVERPASS_QUERY:
         logger.debug("----")
