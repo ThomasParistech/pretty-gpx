@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Mountain Drawing Figure."""
+"""City Drawing Figure."""
 from dataclasses import dataclass
 
 import numpy as np
@@ -14,7 +14,7 @@ from pretty_gpx.mountain.drawing.theme_colors import ThemeColors
 
 
 @dataclass
-class MountainDrawingFigure(BaseDrawingFigure):
+class CityDrawingFigure(BaseDrawingFigure):
     """Drawing Figure displaying annotations on top of an image plotted with plt.imshow.
 
     w_display_pix: Expected screen Figure width in pixels (when displayed on screen)
@@ -30,34 +30,34 @@ class MountainDrawingFigure(BaseDrawingFigure):
     w_display_pix: int
 
     track_data: list[BaseDrawingData]
-    peak_data: list[BaseDrawingData]
+    road_data: list[BaseDrawingData]
 
-    title: TextData
-    stats: TextData
-
-    img_gpx_bounds: GpxBounds
+    # title: TextData
+    # stats: TextData
 
     def draw(self,
              fig: Figure,
              ax: Axes,
-             img: np.ndarray,
-             theme_colors: ThemeColors,
-             title_txt: str,
-             stats_txt: str) -> None:
+             background_color: str,
+             road_color: str,
+             track_color: str,
+             #  title_txt: str,
+             #  stats_txt: str
+             ) -> None:
         """Plot the background image and the annotations on top of it."""
         self.setup(fig, ax)
         self.adjust_display_width(fig, self.w_display_pix)
 
-        self.imshow(ax, img, self.img_gpx_bounds)
+        # self.title.s = title_txt
+        # self.stats.s = stats_txt
 
-        self.title.s = title_txt
-        self.stats.s = stats_txt
+        for data in self.road_data:
+            data.plot(ax, road_color)
 
         for data in self.track_data:
-            data.plot(ax, theme_colors.track_color)
+            data.plot(ax, track_color)
 
-        for data in self.peak_data:
-            data.plot(ax, theme_colors.peak_color)
+        ax.set_facecolor(background_color)
 
-        self.title.plot(ax, theme_colors.peak_color)
-        self.stats.plot(ax, theme_colors.background_color)
+        # self.title.plot(ax, theme_colors.peak_color)
+        # self.stats.plot(ax, theme_colors.background_color)
