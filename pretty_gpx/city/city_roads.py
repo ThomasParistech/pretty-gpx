@@ -3,6 +3,7 @@
 import os
 import shapely
 import overpy
+import numpy as np
 from enum import auto
 from enum import Enum
 
@@ -38,6 +39,11 @@ HIGHWAY_TAGS_PER_CITY_ROAD_TYPE = {
     CityRoadType.SECONDARY_ROAD: ["tertiary", "secondary"],
     CityRoadType.STREET: ["residential", "living_street"],
     CityRoadType.ACCESS_ROAD: ["unclassified", "service"]
+}
+
+AIRWAY_TAGS_PER_AIRPORT_ROAD_TYPE = {
+    AirportRoadsType.RUNWAY: ["runway"],
+    AirportRoadsType.TAXIWAY: ["taxiway"]
 }
 
 
@@ -81,7 +87,7 @@ def download_city_forests(bounds: GpxBounds) -> list[shapely.Polygon]:
         forests: list[shapely.Polygon] = read_pickle(cache_pkl)
     else:
         forests_osm_results = _query_forests(bounds=bounds)
-        forests = get_polygons_from_results(results=forests_osm_results)
+        forests = get_polygons_from_relations(results=forests_osm_results)
         write_pickle(cache_pkl, forests)
     return forests
 
@@ -100,8 +106,10 @@ def download_city_rivers(bounds: GpxBounds) -> list[shapely.Polygon]:
     if os.path.isfile(cache_pkl):
         rivers: list[shapely.Polygon] = read_pickle(cache_pkl)
     else:
-        rivers_osm_results = _query_rivers(bounds=bounds)
-        rivers = get_polygons_from_results(results=rivers_osm_results)
+        rivers_relation_results = _query_rivers_relations(bounds=bounds)
+        rivers_way_results = _query_rivers_ways(bounds=bounds)
+        rivers = get_polygons_from_relations(results=rivers_relation_results)
+        rivers += get_polygons_from_closed_ways(rivers_way_results.ways)
         write_pickle(cache_pkl, rivers)
     return rivers
 
@@ -112,25 +120,40 @@ def _query_roads(bounds: GpxBounds, city_road_type:  CityRoadType) -> list[RoadL
     result = overpass_query([f"way['highway'~'({highway_tags_str})']"], bounds, include_way_nodes=True)
 
     roads: list[RoadLonLat] = []
-    for way in result.ways:
-        road = [(float(node.lon), float(node.lat))
-                for node in way.get_nodes(resolve_missing=True)]
-        if len(road) > 0:
-            roads.append(road)
+    roads = get_ways_coordinates_from_results(result)
     return roads
 
 
-def _query_railways(bounds: GpxBounds, city_road_type:  CityRoadType) -> list[RoadLonLat]:
-    """Query the overpass API to get the roads of a city."""
+def _query_railways(bounds: GpxBounds) -> list[RoadLonLat]:
+    """Query the overpass API to get the railways of a city."""
     result = overpass_query([f"way['railway'~'rail'][!'tunnel']['usage'='main']"], bounds, include_way_nodes=True)
-
-    railways: list[RoadLonLat] = []
-    for way in result.ways:
-        railway = [(float(node.lon), float(node.lat))
-                   for node in way.get_nodes(resolve_missing=True)]
-        if len(railway) > 0:
-            railways.append(railway)
+    railways = get_ways_coordinates_from_results(result)
     return railways
+
+
+def _query_airports_ways(bounds: GpxBounds, airport_way_type:  AirportRoadsType) -> list[RoadLonLat]:
+    """Query the overpass API to get the airport runways/taxiways of a city."""
+    aeroway_tags_str = "|".join(AIRWAY_TAGS_PER_AIRPORT_ROAD_TYPE[airport_way_type])
+    result = overpass_query([f"way['aeroway'~'({aeroway_tags_str})']"], bounds, include_way_nodes=True)
+    airport_ways = get_ways_coordinates_from_results(result)
+    return airport_ways
+
+
+
+def _query_airports_locations(bounds: GpxBounds) -> list[RoadLonLat]:
+    """Query the overpass API to get the location of airports."""
+    result = overpass_query(["relation['aeroway'='aerodrome']['icao'~'.*']",
+                             "way['aeroway'='aerodrome']['icao'~'.*']"], bounds)
+
+    airport_coords = []
+    for way in result.ways:
+        x,y = lat_lon_to_mercator(float(way.center_lat),float(way.center_lon))
+        airport_coords.append((x,y))
+
+    for relation in result.relations:
+        x,y = lat_lon_to_mercator(float(relation.center_lat),float(relation.center_lon))
+        airport_coords.append((x,y))
+    return airport_coords
 
 
 def _query_forests(bounds: GpxBounds):
@@ -143,16 +166,46 @@ def _query_forests(bounds: GpxBounds):
     return result
 
 
-def _query_rivers(bounds: GpxBounds):
-    """Query the overpass API to get the rivers of a city."""
-    result = overpass_query(['relation["natural"="water"]'],
+def _query_rivers_relations(bounds: GpxBounds):
+    """Query the overpass API to get the rivers of a city using relations."""
+    result = overpass_query(['relation["natural"="water"]["water" = "river"]'],
                             bounds,
                             include_way_nodes=True,
                             return_geometry=True)    
     return result
 
 
-def get_polygons_from_results(results: overpy.Result) -> list[shapely.Polygon]:
+def _query_rivers_ways(bounds: GpxBounds):
+    """Query the overpass API to get the rivers of a city using ways."""
+    result = overpass_query(['way["natural"="water"]["water" = "river"]'],
+                            bounds,
+                            include_way_nodes=True,
+                            return_geometry=True)    
+    return result
+
+
+
+def get_polygons_from_closed_ways(ways_l: list[overpy.Way]) -> list[shapely.Polygon]:
+    """
+    Sometimes ways instead of relations are used to describe an area
+    It have an impact on the map mainly for rivers
+    """
+    river_way_polygon = []
+    for way in ways_l:
+        way_coords = []
+        for node in way.get_nodes(resolve_missing=True):
+            x,y = lat_lon_to_mercator(float(node.lat), float(node.lon))
+            way_coords.append((x,y))
+        if len(way_coords)>0:
+            if way_coords[0][0] == way_coords[-1][0] and way_coords[0][1] == way_coords[-1][1]:
+                river_way_polygon.append(shapely.Polygon(way_coords))
+            else:
+                print("WARNING : shape not closed, skipped")
+    return river_way_polygon
+
+
+
+def get_polygons_from_relations(results: overpy.Result) -> list[shapely.Polygon]:
     """
     Get the shapely polygons from the results with all the relations obtained 
     with the Overpass API
@@ -307,3 +360,51 @@ def get_lat_lon_from_geometry(geom : list[overpy.RelationWayGeometryValue]) -> l
         lat,lon = lat_lon_to_mercator(float(point.lat),float(point.lon))
         point_l.append((lat,lon))
     return point_l
+
+
+def get_ways_coordinates_from_results(api_result) -> list[tuple[list[float],list[float]]]:
+    """Get a list of tuples containing the list of x and y coordinates of the road"""
+    ways_coords = []
+    for way in api_result.ways:
+        road = [(float(node.lon), float(node.lat))
+                for node in way.get_nodes(resolve_missing=True)]
+        if len(road) > 0:
+            ways_coords.append(road)
+    return ways_coords
+
+
+def generate_evenly_spaced_sleepers(x, y, sleeper_distance=0.5, sleeper_length=0.05):
+    """
+    For railways, sleepers are created so that railways are distinguished on the map,
+    They are evenly spaced by sleeper_distance in meters and sleeper_length in meters
+    """
+    segments = []
+    total_distance = 0
+    next_sleeper_distance = sleeper_distance
+
+    for i in range(1, len(x)):
+        # Compute distance between consecutive points
+        dx = x[i] - x[i - 1]
+        dy = y[i] - y[i - 1]
+        distance = np.hypot(dx, dy)
+        total_distance += distance
+
+        while total_distance >= next_sleeper_distance:
+            # interpolate along the segment
+            t = (next_sleeper_distance - (total_distance - distance)) / distance
+            sleeper_x = x[i - 1] + t * (x[i] - x[i - 1])
+            sleeper_y = y[i - 1] + t * (y[i] - y[i - 1])
+            
+            # Get the perpendicular direction
+            dx_grad = np.gradient(x)[i]
+            dy_grad = np.gradient(y)[i]
+            length = np.hypot(dx_grad, dy_grad)
+            perp_dx = -dy_grad / length * sleeper_length
+            perp_dy = dx_grad / length * sleeper_length
+            
+            segments.append([(sleeper_x - perp_dx, sleeper_y - perp_dy), (sleeper_x + perp_dx, sleeper_y + perp_dy)])
+            
+            # Update the distance for the next sleeper
+            next_sleeper_distance += sleeper_distance
+
+    return segments

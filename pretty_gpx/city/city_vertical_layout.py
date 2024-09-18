@@ -55,7 +55,7 @@ class CityVerticalLayout(BaseVerticalLayout):
 
     def get_download_bounds_mercator(self,
                                      gpx_track: GpxTrack, 
-                                     paper: PaperSize) -> tuple[GpxBounds, BaseDrawingFigure]:
+                                     paper: PaperSize) -> GpxBounds:
         """Get GPX bounds around the GPX track to match the input vertical layout and paper size."""
         # Remove the margins
         paper_w_mm = (paper.w_mm - 2*paper.margin_mm)
