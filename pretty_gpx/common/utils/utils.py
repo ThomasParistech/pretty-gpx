@@ -5,8 +5,9 @@ import os
 from typing import TypeVar
 import numpy as np
 
+EARTH_RADIUS = 6371000
+
 T = TypeVar('T')
-CoordinatesType = TypeVar('A', np.ndarray, float)
 
 
 def safe(value: T | None) -> T:
@@ -74,28 +75,3 @@ def format_timedelta(total_seconds: float) -> str:
 
     # Join the parts with commas
     return ''.join(parts) if parts else '0s'
-
-
-def lat_lon_to_mercator(lat: CoordinatesType, lon: CoordinatesType) -> tuple[CoordinatesType, CoordinatesType]:
-    """
-    Convert latitude and longitude to Mercator projection coordinates.
-    
-    Parameters:
-    - lat: Latitude in degrees (float or numpy array)
-    - lon: Longitude in degrees (float or numpy array)
-    
-    Returns:
-    - (x, y): Tuple of Mercator projection coordinates in meters (float or numpy array)
-    """
-    # Constants
-    R = 6378137  # Radius of Earth in meters (WGS84)
-
-    # Convert latitude and longitude from degrees to radians
-    lat_rad = np.radians(lat)
-    lon_rad = np.radians(lon)
-
-    # Mercator projection formulas
-    x = R * lon_rad
-    y = R * np.log(np.tan(np.pi / 4 + lat_rad / 2))
-
-    return x, y

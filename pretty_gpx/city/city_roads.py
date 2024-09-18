@@ -15,7 +15,7 @@ from pretty_gpx.common.gpx.overpass import overpass_query
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
 from pretty_gpx.common.utils.utils import is_close_to
-from pretty_gpx.common.utils.utils import lat_lon_to_mercator
+from pretty_gpx.common.utils.utils import EARTH_RADIUS
 from pretty_gpx.common.utils.logger import logger
 
 ROADS_CACHE = GpxDataCacheHandler(name='roads', extension='.pkl')
@@ -147,12 +147,10 @@ def _query_airports_locations(bounds: GpxBounds) -> list[RoadLonLat]:
 
     airport_coords = []
     for way in result.ways:
-        x,y = lat_lon_to_mercator(float(way.center_lat),float(way.center_lon))
-        airport_coords.append((x,y))
+        airport_coords.append((float(way.center_lat),float(way.center_lon)))
 
     for relation in result.relations:
-        x,y = lat_lon_to_mercator(float(relation.center_lat),float(relation.center_lon))
-        airport_coords.append((x,y))
+        airport_coords.append((float(relation.center_lat),float(relation.center_lon)))
     return airport_coords
 
 
@@ -194,8 +192,7 @@ def get_polygons_from_closed_ways(ways_l: list[overpy.Way]) -> list[shapely.Poly
     for way in ways_l:
         way_coords = []
         for node in way.get_nodes(resolve_missing=True):
-            x,y = lat_lon_to_mercator(float(node.lat), float(node.lon))
-            way_coords.append((x,y))
+            way_coords.append((float(node.lat), float(node.lon)))
         if len(way_coords)>0:
             if way_coords[0][0] == way_coords[-1][0] and way_coords[0][1] == way_coords[-1][1]:
                 river_way_polygon.append(shapely.Polygon(way_coords))
@@ -281,11 +278,11 @@ def merge_ways(geometry_l: list[list[overpy.RelationWayGeometryValue]],
         q = p+1
         while q < len(geometry_l):
             geom_p = geometry_l[p]
-            x_p_first,y_p_first = lat_lon_to_mercator(float(geom_p[0].lat),float(geom_p[0].lon))
-            x_p_last,y_p_last = lat_lon_to_mercator(float(geom_p[-1].lat),float(geom_p[-1].lon))
+            x_p_first,y_p_first = float(geom_p[0].lat),float(geom_p[0].lon)
+            x_p_last,y_p_last = float(geom_p[-1].lat),float(geom_p[-1].lon)
             geom_q = geometry_l[q]
-            x_q_first,y_q_first = lat_lon_to_mercator(float(geom_q[0].lat),float(geom_q[0].lon))
-            x_q_last,y_q_last = lat_lon_to_mercator(float(geom_q[-1].lat),float(geom_q[-1].lon))
+            x_q_first,y_q_first = float(geom_q[0].lat),float(geom_q[0].lon)
+            x_q_last,y_q_last = float(geom_q[-1].lat),float(geom_q[-1].lon)
 
             if is_close_to(x_p_first, x_q_first, eps) and is_close_to(y_p_first, y_q_first, eps):
                 geometry_l[q].reverse()
@@ -335,8 +332,7 @@ def create_polygons_from_geom(outer_geoms: list[list[overpy.RelationWayGeometryV
         other_holes = []
         for j in range(len(inner_geoms)):
             member_geom = inner_geoms[j]
-            x, y = lat_lon_to_mercator(float(member_geom[0].lat),float(member_geom[0].lon))
-            inner_shape_point = shapely.Point((x, y))
+            inner_shape_point = shapely.Point((float(member_geom[0].lat),float(member_geom[0].lon)))
             if outer_polygon_i.contains(inner_shape_point):
                 hole = get_lat_lon_from_geometry(member_geom)
                 holes_i.append(hole)
@@ -353,16 +349,15 @@ def create_polygons_from_geom(outer_geoms: list[list[overpy.RelationWayGeometryV
 
 
 
-def get_lat_lon_from_geometry(geom : list[overpy.RelationWayGeometryValue]) -> list[tuple[float,float]]:
+def get_lat_lon_from_geometry(geom: list[overpy.RelationWayGeometryValue]) -> list[tuple[float,float]]:
     """Returns latitude and longitude points in order to create a shapely shape"""
     point_l = []
     for point in geom:
-        lat,lon = lat_lon_to_mercator(float(point.lat),float(point.lon))
-        point_l.append((lat,lon))
+        point_l.append((float(point.lat),float(point.lon)))
     return point_l
 
 
-def get_ways_coordinates_from_results(api_result) -> list[tuple[list[float],list[float]]]:
+def get_ways_coordinates_from_results(api_result: overpy.Result) -> list[tuple[list[float],list[float]]]:
     """Get a list of tuples containing the list of x and y coordinates of the road"""
     ways_coords = []
     for way in api_result.ways:
@@ -373,14 +368,22 @@ def get_ways_coordinates_from_results(api_result) -> list[tuple[list[float],list
     return ways_coords
 
 
-def generate_evenly_spaced_sleepers(x, y, sleeper_distance=0.5, sleeper_length=0.05):
+def generate_evenly_spaced_sleepers(x: list[float],
+                                    y: list[float],
+                                    sleeper_distance: float=0.5,
+                                    sleeper_length: float=0.05):
     """
     For railways, sleepers are created so that railways are distinguished on the map,
     They are evenly spaced by sleeper_distance in meters and sleeper_length in meters
     """
+
+    # Convert meters to the lat lon degrees
+    meters_to_degrees = 180.0/(EARTH_RADIUS*np.pi)
+
     segments = []
     total_distance = 0
-    next_sleeper_distance = sleeper_distance
+    next_sleeper_distance = sleeper_distance*meters_to_degrees
+    sleeper_length = sleeper_length*meters_to_degrees
 
     for i in range(1, len(x)):
         # Compute distance between consecutive points
