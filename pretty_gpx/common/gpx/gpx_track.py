@@ -13,7 +13,6 @@ from pretty_gpx.common.utils.asserts import assert_not_empty
 from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.utils import safe
-from pretty_gpx.common.utils.utils import lat_lon_to_mercator
 
 DEBUG_TRACK = False
 
@@ -32,7 +31,7 @@ class GpxTrack:
     list_cumul_dist_km: list[float] = field(default_factory=list)
 
     uphill_m: float = 0.0
-    duration_s: float = 0.0
+    duration_s: float | None = None
 
     def __post_init__(self):
         assert_same_len((self.list_lon, self.list_lat, self.list_ele_m, self.list_cumul_dist_km))
@@ -63,17 +62,14 @@ class GpxTrack:
                      msg="Total distance must be coherent with `gpx.length_3d()` from gpxpy")
 
         gpx_track.uphill_m = gpx.get_uphill_downhill().uphill
-        
-        activity_duration = gpx.get_duration()
-        if activity_duration is None:
-            activity_duration = -1.
-            logger.warning(f"Impossible to get activity duration")
 
-        gpx_track.duration_s = activity_duration
+        gpx_track.duration_s = gpx.get_duration()
 
         logger.info(f"Loaded GPX track with {len(gpx_track.list_lon)} points: "
-                    f"Distance={gpx_track.list_cumul_dist_km[-1]:.1f}km" 
-                    f"Uphill={gpx_track.uphill_m:.0f}m and duration={activity_duration:.0f}s")
+                    + f"Distance={gpx_track.list_cumul_dist_km[-1]:.1f}km"
+                    + f"Uphill={gpx_track.uphill_m:.0f}m "
+                    + "and "
+                    + "Duration=???" if gpx_track.duration_s is None else f"Duration={gpx_track.duration_s:.0f}s")
 
         return gpx_track
 
@@ -92,11 +88,8 @@ class GpxTrack:
         for gpx in list_gpx_track[1:]:
             list_cumul_d.extend([cumul_d + list_cumul_d[-1] for cumul_d in gpx.list_cumul_dist_km])
 
-        for gpx in list_gpx_track:
-            if gpx.duration_s <= 0.:
-                total_duration = -1.
-            else:
-                total_duration += gpx.duration_s
+        durations = [gpx.duration_s for gpx in list_gpx_track if gpx.duration_s is not None]
+        total_duration = sum(durations) if len(durations) == len(list_gpx_track) else None
 
         return GpxTrack(list_lon=[lon
                                   for gpx in list_gpx_track
@@ -111,29 +104,15 @@ class GpxTrack:
                         uphill_m=sum(gpx.uphill_m for gpx in list_gpx_track),
                         duration_s=total_duration)
 
-    def mercator_projection(self) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Convert latitude and longitude to Mercator projection coordinates.
-        
-        Parameters:
-        - lat: Latitude in degrees
-        - lon: Longitude in degrees
-        
-        Returns:
-        - (x, y): Mercator projection coordinates in meters
-        """
-        # Put the list in arrays so that we can apply the projection
-        # directly on all points
-        lat = np.array(self.list_lat)
-        lon = np.array(self.list_lon)
-
-        return lat_lon_to_mercator(lat,lon)
-
 
 def append_track_to_gpx_track(gpx_track: GpxTrack, track_points: list[GPXTrackPoint]) -> None:
-    """"
-    Append track points to a GpxTrack. Update cumulative distance like in gpxpy with GPX.length_3d().
-    Note that uphill_m and duration_s are not updated in this function.
+    """"Append track points to a GpxTrack. Update cumulative distance like in gpxpy with GPX.length_3d().
+
+    Warning: uphill_m and duration_s are not updated in this function.
+
+    Args:
+        gpx_track: GpxTrack to update
+        track_points: List of GPXTrackPoint to append (segment.points)
     """
     has_started = len(gpx_track.list_lon) > 0
 
