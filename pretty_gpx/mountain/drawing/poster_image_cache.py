@@ -173,9 +173,11 @@ def init_and_populate_drawing_figure(gpx_data: AugmentedGpxData,
     scatters = init_annotated_scatter_collection(gpx_data, list_x, list_y, drawing_style_params, drawing_size_params)
 
     plots_x_to_avoid, plots_y_to_avoid = [list_x], [list_y]
-    for y in b.lat_min + np.concatenate((np.linspace(0., b.dlat * layout.title_relative_h, num=10),
-                                         np.linspace(b.dlat * (layout.title_relative_h + layout.map_relative_h), b.dlat,
-                                                     num=10))):
+
+    for y in b.lat_min+b.dlat*np.concatenate((np.linspace(0., layout.stats_relative_h + layout.elevation_relative_h,
+                                                          num=10, endpoint=True),  # Stats+Elevation area
+                                              np.linspace(1.0-layout.title_relative_h, 1.0,
+                                                          num=10, endpoint=True))):  # Title area
         plots_x_to_avoid.append([b.lon_min, b.lon_max])
         plots_y_to_avoid.append([y, y])
 
@@ -256,6 +258,7 @@ def init_annotated_scatter_collection(gpx_data: AugmentedGpxData,
     scatter_collection.add_scatter_data(global_x=global_list_x, global_y=global_list_y,
                                         scatter_ids=gpx_data.hut_ids,
                                         scatter_texts=[f" {mountain_hut.name} "
+                                                       if mountain_hut.name is not None else None
                                                        for mountain_hut in gpx_data.huts],
                                         marker=drawing_style_params.hut_marker,
                                         markersize=drawing_size_params.hut_markersize)

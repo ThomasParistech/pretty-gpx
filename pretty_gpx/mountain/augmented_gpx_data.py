@@ -247,8 +247,9 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
         if closest_distance < max_dist_deg:
             huts.append(candidate_huts[closest_idx])
         else:
-            # name = get_place_name(lon=hut_lon, lat=hut_lat)
-            huts.append(MountainHut(name=None, lat=hut_lat, lon=hut_lon))
+            name = get_place_name(lon=hut_lon, lat=hut_lat)
+            # name  = None
+            huts.append(MountainHut(name=name, lat=hut_lat, lon=hut_lon))
 
     logger.info(f"Huts: {', '.join([h.name if h.name is not None else '?' for h in huts if h.name])}")
     return full_gpx_track, huts_ids, huts
