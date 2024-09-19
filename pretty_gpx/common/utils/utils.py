@@ -4,6 +4,8 @@
 import os
 from typing import TypeVar
 
+EARTH_RADIUS_M = 6371000
+
 T = TypeVar('T')
 
 
@@ -35,3 +37,8 @@ def suffix_filename(filepath: str, suffix: str) -> str:
     """
     base, ext = os.path.splitext(filepath)
     return f"{base}{suffix}{ext}"
+
+
+def are_close(ref: float, var: float, *, eps: float = 1e-3):
+    """Get if the two floats are closer than the input epsilon."""
+    return abs(var-ref) < eps

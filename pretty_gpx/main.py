@@ -21,7 +21,7 @@ from pretty_gpx.common.utils.ui_helper import on_click_slow_action_in_other_thre
 from pretty_gpx.common.utils.ui_helper import shutdown_app_and_close_tab
 from pretty_gpx.common.utils.ui_helper import UiModal
 from pretty_gpx.common.utils.utils import safe
-from pretty_gpx.mountain.augmented_gpx_data import AugmentedGpxData
+from pretty_gpx.mountain.data.augmented_gpx_data import AugmentedGpxData
 from pretty_gpx.mountain.drawing.hillshading import AZIMUTHS
 from pretty_gpx.mountain.drawing.poster_image_cache import PosterDrawingData
 from pretty_gpx.mountain.drawing.poster_image_cache import PosterImageCache

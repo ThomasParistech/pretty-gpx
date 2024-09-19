@@ -31,6 +31,7 @@ class GpxTrack:
     list_cumul_dist_km: list[float] = field(default_factory=list)
 
     uphill_m: float = 0.0
+    duration_s: float | None = None
 
     def __post_init__(self):
         assert_same_len((self.list_lon, self.list_lat, self.list_ele_m, self.list_cumul_dist_km))
@@ -62,8 +63,13 @@ class GpxTrack:
 
         gpx_track.uphill_m = gpx.get_uphill_downhill().uphill
 
+        gpx_track.duration_s = gpx.get_duration()
+
         logger.info(f"Loaded GPX track with {len(gpx_track.list_lon)} points: "
-                    f"Distance={gpx_track.list_cumul_dist_km[-1]:.1f}km and uphill={gpx_track.uphill_m:.0f}m")
+                    + f"Distance={gpx_track.list_cumul_dist_km[-1]:.1f}km, "
+                    + f"Uphill={gpx_track.uphill_m:.0f}m "
+                    + "and "
+                    + "Duration=???" if gpx_track.duration_s is None else f"Duration={gpx_track.duration_s:.0f}s")
 
         return gpx_track
 
@@ -82,6 +88,9 @@ class GpxTrack:
         for gpx in list_gpx_track[1:]:
             list_cumul_d.extend([cumul_d + list_cumul_d[-1] for cumul_d in gpx.list_cumul_dist_km])
 
+        durations = [gpx.duration_s for gpx in list_gpx_track if gpx.duration_s is not None]
+        total_duration = sum(durations) if len(durations) == len(list_gpx_track) else None
+
         return GpxTrack(list_lon=[lon
                                   for gpx in list_gpx_track
                                   for lon in gpx.list_lon],
@@ -92,11 +101,19 @@ class GpxTrack:
                                     for gpx in list_gpx_track
                                     for ele in gpx.list_ele_m],
                         list_cumul_dist_km=list_cumul_d,
-                        uphill_m=sum(gpx.uphill_m for gpx in list_gpx_track))
+                        uphill_m=sum(gpx.uphill_m for gpx in list_gpx_track),
+                        duration_s=total_duration)
 
 
 def append_track_to_gpx_track(gpx_track: GpxTrack, track_points: list[GPXTrackPoint]) -> None:
-    """"Append track points to a GpxTrack. Update cumulative distance like in gpxpy with GPX.length_3d()."""
+    """"Append track points to a GpxTrack. Update cumulative distance like in gpxpy with GPX.length_3d().
+
+    Warning: uphill_m and duration_s are not updated in this function.
+
+    Args:
+        gpx_track: GpxTrack to update
+        track_points: List of GPXTrackPoint to append (segment.points)
+    """
     has_started = len(gpx_track.list_lon) > 0
 
     if has_started:
