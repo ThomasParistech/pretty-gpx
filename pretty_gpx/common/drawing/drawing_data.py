@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Drawing Data."""
+from matplotlib.collections import LineCollection
 from dataclasses import dataclass
 from dataclasses import fields
 from typing import Literal
@@ -82,3 +83,14 @@ class PolyFillData(BaseDrawingData):
         """Plot the annotation."""
         ax.fill(self.x, self.y, **self.kwargs(skip_xy=True), c=color)
 
+
+@dataclass
+class LineCollectionData(BaseDrawingData):
+    """LineCollection Data."""
+    segments: list[list[tuple[float, float]]]
+
+    linewidth: float
+
+    def plot(self, ax: Axes, color: str) -> None:
+        """Plot the annotation."""
+        ax.add_collection(LineCollection(**self.kwargs(), colors=color))
