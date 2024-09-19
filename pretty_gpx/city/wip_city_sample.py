@@ -18,6 +18,7 @@ from pretty_gpx.common.drawing.drawing_data import TextData
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.utils.paths import FONTS_DIR
+from pretty_gpx.common.utils.paths import RUNNING_DIR
 from pretty_gpx.common.utils.utils import mm_to_point
 from pretty_gpx.mountain.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
@@ -93,6 +94,6 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors):
 
 
 if __name__ == "__main__":
-    gpx_track = GpxTrack.load("data/marathon.gpx")
+    gpx_track = GpxTrack.load(os.path.join(RUNNING_DIR, "marathon_paris.gpx"))
     for theme in list(DARK_COLOR_THEMES.values())+list(LIGHT_COLOR_THEMES.values()):
         plot(gpx_track, theme)

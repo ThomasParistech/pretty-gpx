@@ -40,7 +40,6 @@ class CityDrawingFigure(BaseDrawingFigure):
              peak_color: str,
              ) -> None:
         """Plot the background image and the annotations on top of it."""
-
         self.setup(fig, ax)
         self.adjust_display_width(fig, self.w_display_pix)
 

@@ -11,6 +11,7 @@ COLOR_EXPLORATION_DIR = os.path.join(DATA_DIR, 'color_exploration')
 EXAMPLES_DIR = os.path.join(MAIN_DIR, 'examples')
 CYCLING_DIR = os.path.join(EXAMPLES_DIR, 'cycling')
 HIKING_DIR = os.path.join(EXAMPLES_DIR, 'hiking')
+RUNNING_DIR = os.path.join(EXAMPLES_DIR, 'running')
 
 ASSETS_DIR = os.path.join(MAIN_DIR, 'assets')
 ICONS_DIR = os.path.join(ASSETS_DIR, 'icons')
