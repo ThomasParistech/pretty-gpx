@@ -52,4 +52,4 @@ class MountainVerticalLayout(BaseVerticalLayout):
 
     def _get_track_margin(self) -> float:
         """Get relative Horizonal/Vertical Margin around the Track Area."""
-        return 0.08
+        return 0.10
