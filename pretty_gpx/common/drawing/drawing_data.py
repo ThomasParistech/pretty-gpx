@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 """Drawing Data."""
-from matplotlib.collections import LineCollection
 from dataclasses import dataclass
 from dataclasses import fields
 from typing import Literal
 
 from matplotlib.axes import Axes
+from matplotlib.collections import LineCollection
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 
