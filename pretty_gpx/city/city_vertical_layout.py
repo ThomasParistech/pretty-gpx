@@ -1,14 +1,9 @@
 #!/usr/bin/python3
 """Vertical Layout."""
 from dataclasses import dataclass
-import numpy as np
 
 from pretty_gpx.common.layout.base_vertical_layout import BaseVerticalLayout
 from pretty_gpx.common.layout.base_vertical_layout import RelativeYBounds
-from pretty_gpx.common.layout.base_vertical_layout import PaperSize
-from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.common.gpx.gpx_track import GpxTrack
-from pretty_gpx.common.utils.utils import lat_lon_to_mercator
 
 
 @dataclass(kw_only=True)
@@ -51,4 +46,4 @@ class CityVerticalLayout(BaseVerticalLayout):
 
     def _get_track_margin(self) -> float:
         """Get relative Horizonal/Vertical Margin around the Track Area."""
-        return 0.08
+        return 0.10
