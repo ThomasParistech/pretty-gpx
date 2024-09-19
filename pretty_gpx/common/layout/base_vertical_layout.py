@@ -10,6 +10,7 @@ from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.layout.paper_size import PaperSize
+from pretty_gpx.common.utils.asserts import assert_close
 from pretty_gpx.common.utils.asserts import assert_float_eq
 from pretty_gpx.common.utils.asserts import assert_in_range
 from pretty_gpx.common.utils.asserts import assert_lt
@@ -133,6 +134,11 @@ class BaseVerticalLayout:
 
         if DEBUG:
             _debug(self, paper_bounds, download_bounds, bounds, gpx_track, latlon_aspect_ratio)
+
+        assert_close(download_bounds.lat_min,
+                     paper_bounds.lat_min + paper_bounds.dlat*self._get_download_y_bounds().bot, eps=1e-16)
+        assert_close(download_bounds.lat_max,
+                     paper_bounds.lat_min + paper_bounds.dlat*self._get_download_y_bounds().top, eps=1e-16)
 
         return download_bounds, drawing_fig
 

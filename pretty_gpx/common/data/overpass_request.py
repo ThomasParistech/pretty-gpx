@@ -10,10 +10,14 @@ from pretty_gpx.common.utils.logger import logger
 DEBUG_OVERPASS_QUERY = False
 
 
+ListLonLat = list[tuple[float, float]]
+
+
 def overpass_query(query_elements: list[str],
                    bounds: GpxBounds | GpxTrack,
                    include_way_nodes: bool = False,
                    return_geometry: bool = False,
+                   add_relative_margin: float | None = None,
                    max_retry_count: int = 2) -> overpy.Result:
     """Query the overpass API."""
     # See https://wiki.openstreetmap.org/wiki/Key:natural
@@ -24,7 +28,8 @@ def overpass_query(query_elements: list[str],
         bounds = GpxBounds.from_list(list_lon=bounds.list_lon,
                                      list_lat=bounds.list_lat)
 
-    bounds = bounds.add_relative_margin(0.1)
+    if add_relative_margin is not None:
+        bounds = bounds.add_relative_margin(add_relative_margin)
 
     bounds_str = f"({bounds.lat_min:.5f}, {bounds.lon_min:.5f}, {bounds.lat_max:.5f}, {bounds.lon_max:.5f})"
 
@@ -47,7 +52,7 @@ def overpass_query(query_elements: list[str],
     out {out_param};"""
     result = api.query(query)
 
-    logger.info(f"Overpass query :\n{query}")
+    # logger.info(f"Overpass query :\n{query}")
 
     if DEBUG_OVERPASS_QUERY:
         logger.debug("----")

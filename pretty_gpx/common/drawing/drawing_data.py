@@ -14,6 +14,8 @@ from matplotlib.path import Path
 class BaseDrawingData:
     """Base Drawing Annotations."""
 
+    zorder: int = 2
+
     def plot(self, ax: Axes, color: str) -> None:
         """Plot the annotation."""
         raise NotImplementedError("Plot method must be implemented in child classes")

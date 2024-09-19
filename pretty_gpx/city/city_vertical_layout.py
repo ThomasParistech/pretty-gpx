@@ -30,9 +30,9 @@ class CityVerticalLayout(BaseVerticalLayout):
     │      Dist / Time / Speed  / Bib        │   │   stats_relative_h
     └────────────────────────────────────────┘   ▼
     """
-    title_relative_h: float = 0.18
-    map_relative_h: float = 0.7
-    stats_relative_h: float = 0.12
+    title_relative_h: float = 0.20
+    map_relative_h: float = 0.6
+    stats_relative_h: float = 0.20
 
     def _get_download_y_bounds(self) -> RelativeYBounds:
         """Get relative Vertical Bounds of the Download Area, e.g. (0.0, 1.0) for the entire paper."""

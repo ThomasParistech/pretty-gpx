@@ -66,7 +66,7 @@ class GpxTrack:
         gpx_track.duration_s = gpx.get_duration()
 
         logger.info(f"Loaded GPX track with {len(gpx_track.list_lon)} points: "
-                    + f"Distance={gpx_track.list_cumul_dist_km[-1]:.1f}km"
+                    + f"Distance={gpx_track.list_cumul_dist_km[-1]:.1f}km, "
                     + f"Uphill={gpx_track.uphill_m:.0f}m "
                     + "and "
                     + "Duration=???" if gpx_track.duration_s is None else f"Duration={gpx_track.duration_s:.0f}s")
