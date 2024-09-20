@@ -7,6 +7,7 @@ from matplotlib.figure import Figure
 
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
+from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
 from pretty_gpx.common.drawing.drawing_data import TextData
 
 
@@ -26,7 +27,9 @@ class CityDrawingFigure(BaseDrawingFigure):
 
     track_data: list[BaseDrawingData]
     road_data: list[BaseDrawingData]
-    peak_data: list[BaseDrawingData]
+    point_data: list[BaseDrawingData]
+    forests_data: list[PolygonCollectionData]
+    rivers_data: list[PolygonCollectionData]
 
     title: TextData
     stats: TextData
@@ -37,11 +40,19 @@ class CityDrawingFigure(BaseDrawingFigure):
              background_color: str,
              road_color: str,
              track_color: str,
-             peak_color: str,
+             point_color: str,
+             forests_color: str,
+             rivers_color: str
              ) -> None:
         """Plot the background image and the annotations on top of it."""
         self.setup(fig, ax)
         self.adjust_display_width(fig, self.w_display_pix)
+
+        for surface_data in self.forests_data:
+            surface_data.plot(ax, forests_color, background_color)
+
+        for surface_data in self.rivers_data:
+            surface_data.plot(ax, rivers_color, background_color)
 
         for data in self.road_data:
             data.plot(ax, road_color)
@@ -49,10 +60,10 @@ class CityDrawingFigure(BaseDrawingFigure):
         for data in self.track_data:
             data.plot(ax, track_color)
 
-        for data in self.peak_data:
-            data.plot(ax, peak_color)
+        for data in self.point_data:
+            data.plot(ax, point_color)
 
         ax.set_facecolor(background_color)
 
-        self.title.plot(ax, peak_color)
+        self.title.plot(ax, point_color)
         self.stats.plot(ax, background_color)

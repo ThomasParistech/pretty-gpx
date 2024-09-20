@@ -9,10 +9,16 @@ from pretty_gpx.city.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.city.city_vertical_layout import CityVerticalLayout
 from pretty_gpx.city.data.roads import CityRoadType
 from pretty_gpx.city.data.roads import download_city_roads
+from pretty_gpx.city.data.surface_features import download_city_forests
+from pretty_gpx.city.data.surface_features import download_city_rivers
+from pretty_gpx.city.drawing.theme_colors import DARK_COLOR_THEMES
+from pretty_gpx.city.drawing.theme_colors import LIGHT_COLOR_THEMES
+from pretty_gpx.city.drawing.theme_colors import ThemeColors
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import LineCollectionData
 from pretty_gpx.common.drawing.drawing_data import PlotData
 from pretty_gpx.common.drawing.drawing_data import PolyFillData
+from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
 from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
@@ -20,9 +26,6 @@ from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.utils.paths import FONTS_DIR
 from pretty_gpx.common.utils.paths import RUNNING_DIR
 from pretty_gpx.common.utils.utils import mm_to_point
-from pretty_gpx.mountain.drawing.theme_colors import DARK_COLOR_THEMES
-from pretty_gpx.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
-from pretty_gpx.mountain.drawing.theme_colors import ThemeColors
 
 
 def plot(gpx_track: GpxTrack, theme_colors: ThemeColors):
@@ -33,8 +36,6 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors):
     else:
         background_color = theme_colors.background_color
         road_color = "white"
-
-    track_color = theme_colors.track_color
 
     paper = PAPER_SIZES['A4']
     layout = CityVerticalLayout()
@@ -48,9 +49,17 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors):
         CityRoadType.ACCESS_ROAD: 0.1
     }
 
+    forests = download_city_forests(roads_bounds)
+    rivers = download_city_rivers(roads_bounds)
+
     track_data: list[BaseDrawingData] = []
     road_data: list[BaseDrawingData] = []
-    peak_data: list[BaseDrawingData] = []
+    point_data: list[BaseDrawingData] = []
+    forests_data: list[PolygonCollectionData] = []
+    rivers_data: list[PolygonCollectionData] = []
+
+    forests_data.append(PolygonCollectionData(polygons=forests))
+    rivers_data.append(PolygonCollectionData(polygons=rivers))
 
     track_data.append(PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=2.0))
 
@@ -67,9 +76,9 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors):
                      s=stats_text, fontsize=mm_to_point(18.5),
                      fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
                      ha="center")
-    peak_data.append(ScatterData(x=[gpx_track.list_lon[0]], y=[gpx_track.list_lat[0]],
+    point_data.append(ScatterData(x=[gpx_track.list_lon[0]], y=[gpx_track.list_lat[0]],
                                  marker="o", markersize=mm_to_point(3.5)))
-    peak_data.append(ScatterData(x=[gpx_track.list_lon[-1]], y=[gpx_track.list_lat[-1]],
+    point_data.append(ScatterData(x=[gpx_track.list_lon[-1]], y=[gpx_track.list_lat[-1]],
                                  marker="s", markersize=mm_to_point(3.5)))
 
     h_top_stats = b.lat_min + b.dlat * layout.stats_relative_h
@@ -82,13 +91,22 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors):
                                 w_display_pix=800,
                                 track_data=track_data,
                                 road_data=road_data,
-                                peak_data=peak_data,
+                                point_data=point_data,
+                                forests_data=forests_data,
+                                rivers_data=rivers_data,
                                 title=title,
                                 stats=stats)
 
     fig, ax = plt.subplots(figsize=(10, 10))
 
-    plotter.draw(fig, ax, background_color, road_color, track_color, theme_colors.peak_color)
+    plotter.draw(fig=fig,
+                 ax=ax,
+                 background_color=background_color,
+                 road_color=road_color,
+                 track_color=theme_colors.track_color,
+                 point_color=theme_colors.point_color,
+                 forests_color=theme_colors.forests_color,
+                 rivers_color=theme_colors.rivers_color)
 
     plt.show()
 
