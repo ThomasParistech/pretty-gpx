@@ -6,8 +6,11 @@ from typing import Literal
 
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
+from matplotlib.collections import PatchCollection
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
+
+from pretty_gpx.common.data.overpass_processing import Surface_Polygons
 
 
 @dataclass(kw_only=True, init=False)
@@ -96,3 +99,18 @@ class LineCollectionData(BaseDrawingData):
     def plot(self, ax: Axes, color: str) -> None:
         """Plot the annotation."""
         ax.add_collection(LineCollection(**self.kwargs(), colors=color))
+
+@dataclass
+class PolygonCollectionData:
+    """ShapelyPolygon Data."""
+    polygons: Surface_Polygons
+
+    def plot(self, ax: Axes, color_patch: str, color_background: str) -> None:
+        """Plot the polygons."""
+        ax.add_collection(PatchCollection(self.polygons.exterior_polygons,
+                                          facecolor=color_patch,
+                                          edgecolor=None))
+        if self.polygons.interior_polygons is not None and len(self.polygons.interior_polygons) > 0:
+            ax.add_collection(PatchCollection(self.polygons.interior_polygons,
+                                              facecolor=color_background,
+                                              edgecolor=None))
