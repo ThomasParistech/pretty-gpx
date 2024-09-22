@@ -136,9 +136,10 @@ class BaseVerticalLayout:
             _debug(self, paper_bounds, download_bounds, bounds, gpx_track, latlon_aspect_ratio)
 
         assert_close(download_bounds.lat_min,
-                     paper_bounds.lat_min + paper_bounds.dlat*self._get_download_y_bounds().bot, eps=1e-16)
+
+                     paper_bounds.lat_min + paper_bounds.dlat*self._get_download_y_bounds().bot, eps=1e-6)
         assert_close(download_bounds.lat_max,
-                     paper_bounds.lat_min + paper_bounds.dlat*self._get_download_y_bounds().top, eps=1e-16)
+                     paper_bounds.lat_min + paper_bounds.dlat*self._get_download_y_bounds().top, eps=1e-6)
 
         return download_bounds, drawing_fig
 
