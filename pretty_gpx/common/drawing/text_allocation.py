@@ -15,6 +15,7 @@ from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.drawing_data import PlotData
 from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
+from pretty_gpx.common.utils.asserts import assert_len
 from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.paths import DATA_DIR
@@ -54,38 +55,42 @@ def allocate_text(fig: Figure,
         plt.savefig(os.path.join(DATA_DIR, "text_before.svg"))
         plt.show()
 
-    result_text_xy, result_line = ta.allocate(ax,
-                                              x=scatters.list_text_x,
-                                              y=scatters.list_text_y,
-                                              text_list=scatters.list_text_s,
-                                              textsize=fontsize,
-                                              x_lines=plots_x_to_avoid,
-                                              y_lines=plots_y_to_avoid,
-                                              x_scatter=scatters.scatters_to_avoid_x,
-                                              y_scatter=scatters.scatters_to_avoid_y,
-                                              scatter_sizes=scatters.scatter_to_avoid_sizes,
-                                              max_distance=max_distance,
-                                              min_distance=min_distance,
-                                              margin=margin,
-                                              nbr_candidates=nbr_candidates,
-                                              linewidth=output_linewidth,
-                                              draw_lines=True,
-                                              draw_all=False,
-                                              avoid_label_lines_overlap=True,
-                                              ha=ha,
-                                              fontproperties=fontproperties)
+    result_text_xy, result_line, _, _ = ta.allocate(ax,
+                                                    x=scatters.list_text_x,
+                                                    y=scatters.list_text_y,
+                                                    text_list=scatters.list_text_s,
+                                                    textsize=fontsize,
+                                                    x_lines=plots_x_to_avoid,
+                                                    y_lines=plots_y_to_avoid,
+                                                    x_scatter=scatters.scatters_to_avoid_x,
+                                                    y_scatter=scatters.scatters_to_avoid_y,
+                                                    scatter_sizes=scatters.scatter_to_avoid_sizes,
+                                                    max_distance=max_distance,
+                                                    min_distance=min_distance,
+                                                    margin=margin,
+                                                    nbr_candidates=nbr_candidates,
+                                                    linewidth=output_linewidth,
+                                                    draw_lines=True,
+                                                    draw_all=False,
+                                                    priority_strategy="largest",
+                                                    avoid_label_lines_overlap=True,
+                                                    avoid_crossing_label_lines=True,
+                                                    ha=ha,
+                                                    fontproperties=fontproperties)
 
     list_text_data: list[TextData] = []
     list_plot_data: list[PlotData] = []
     for i, (text, line) in enumerate(zip(result_text_xy, result_line)):
         assert text is not None, "Failed to allocate text, consider using larger margins in VerticalLayout " \
             "or larger `max_distance` when calling `allocate_text`"
-        text_x, text_y = text
+        assert_len(text, 3)
+        text_x, text_y, _ = text
         list_text_data.append(TextData(x=text_x, y=text_y, s=scatters.list_text_s[i],
                                        fontsize=fontsize, fontproperties=fontproperties, ha=ha))
 
         assert line is not None
-        line_x, line_y = line
+        assert_len(line, 3)
+        line_x, line_y, _ = line
         list_plot_data.append(PlotData(x=list(line_x), y=list(line_y), linewidth=output_linewidth))
 
     logger.info("Succesful Text Allocation")
@@ -93,13 +98,14 @@ def allocate_text(fig: Figure,
     if DEBUG_TEXT_ALLOCATION:
         debug_fig, debug_ax = plt.subplots()
         base_fig.setup(debug_fig, debug_ax)
-        base_fig.adjust_display_width(fig, 600)
+        base_fig.adjust_display_width(debug_fig, 600)
 
         for list_x, list_y in zip(plots_x_to_avoid, plots_y_to_avoid):
             plt.plot(list_x, list_y, "-r")
 
         for data in list_text_data + list_plot_data:
-            data.plot(ax, "g")
+            data.plot(debug_ax, "g")
+
         plt.savefig(os.path.join(DATA_DIR, "text_after.svg"))
         plt.show()
 
