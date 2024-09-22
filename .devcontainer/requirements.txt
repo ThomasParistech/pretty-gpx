@@ -15,4 +15,4 @@ pathvalidate==3.2.0
 svgpathtools==1.6.1
 svgpath2mpl==1.0.0
 ruff==0.4.6
-textalloc==1.0.6
+textalloc==1.1.3
