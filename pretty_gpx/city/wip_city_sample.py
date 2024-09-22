@@ -7,10 +7,10 @@ from matplotlib.font_manager import FontProperties
 
 from pretty_gpx.city.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.city.city_vertical_layout import CityVerticalLayout
+from pretty_gpx.city.data.forest import download_city_forests
+from pretty_gpx.city.data.rivers import download_city_rivers
 from pretty_gpx.city.data.roads import CityRoadType
 from pretty_gpx.city.data.roads import download_city_roads
-from pretty_gpx.city.data.surface_features import download_city_forests
-from pretty_gpx.city.data.surface_features import download_city_rivers
 from pretty_gpx.city.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.city.drawing.theme_colors import LIGHT_COLOR_THEMES
 from pretty_gpx.city.drawing.theme_colors import ThemeColors
@@ -51,6 +51,11 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors):
 
     forests = download_city_forests(roads_bounds)
     rivers = download_city_rivers(roads_bounds)
+
+    # Remove the holes in the forest that corresponds to monuments inside the forest
+    # playground and other things that are too micro too display. 
+    # For a macro view we prefer to have only the shape of the forest
+    forests.interior_polygons = []
 
     track_data: list[BaseDrawingData] = []
     road_data: list[BaseDrawingData] = []
