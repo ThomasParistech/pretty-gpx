@@ -7,12 +7,15 @@ from matplotlib.font_manager import FontProperties
 
 from pretty_gpx.city.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.city.city_vertical_layout import CityVerticalLayout
-from pretty_gpx.city.data.rivers import download_city_rivers
+from pretty_gpx.city.data.rivers import prepare_download_city_rivers
+from pretty_gpx.city.data.rivers import process_city_rivers
 from pretty_gpx.city.data.roads import CityRoadType
-from pretty_gpx.city.data.roads import download_city_roads
+from pretty_gpx.city.data.roads import prepare_download_city_roads
+from pretty_gpx.city.data.roads import process_city_roads
 from pretty_gpx.city.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.city.drawing.theme_colors import LIGHT_COLOR_THEMES
 from pretty_gpx.city.drawing.theme_colors import ThemeColors
+from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import LineCollectionData
 from pretty_gpx.common.drawing.drawing_data import PlotData
@@ -41,7 +44,31 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     layout = CityVerticalLayout()
     roads_bounds, base_plotter = layout.get_download_bounds_and_paper_figure(gpx_track, paper)
 
-    roads = download_city_roads(roads_bounds)
+
+    total_query = OverpassQuery()
+
+    # Add the queries to the overpass_query class to run all queries at once
+
+    prepare_download_city_roads(query=total_query,
+                                bounds=roads_bounds)
+
+
+    prepare_download_city_rivers(query=total_query,
+                                 bounds=roads_bounds)
+
+
+    # Merge and run all queries
+    total_query.launch_queries()
+
+
+    # Retrieve the data
+    roads = process_city_roads(query=total_query,
+                               bounds=roads_bounds)
+
+    rivers = process_city_rivers(query=total_query,
+                                 bounds=roads_bounds)
+
+
     linewidth_priority = {
         CityRoadType.HIGHWAY: 1.0,
         CityRoadType.SECONDARY_ROAD: 0.5,
@@ -49,7 +76,6 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
         CityRoadType.ACCESS_ROAD: 0.1
     }
 
-    rivers = download_city_rivers(roads_bounds)
 
     track_data: list[BaseDrawingData] = []
     road_data: list[BaseDrawingData] = []
