@@ -24,6 +24,7 @@ from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.utils.paths import FONTS_DIR
 from pretty_gpx.common.utils.paths import RUNNING_DIR
+from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import mm_to_point
 
 
@@ -109,3 +110,4 @@ if __name__ == "__main__":
     gpx_track = GpxTrack.load(os.path.join(RUNNING_DIR, "marathon_paris.gpx"))
     for theme in list(DARK_COLOR_THEMES.values())+list(LIGHT_COLOR_THEMES.values()):
         plot(gpx_track, theme)
+    Profiling.export_events()

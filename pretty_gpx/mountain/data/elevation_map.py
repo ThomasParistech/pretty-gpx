@@ -10,6 +10,7 @@ from dem_stitcher import stitch_dem
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
 from pretty_gpx.common.utils.asserts import assert_close
+from pretty_gpx.common.utils.profile import Profiling
 
 ELEVATION_CACHE = GpxDataCacheHandler(name='elevation', extension='.tif')
 
@@ -19,10 +20,12 @@ def download_elevation_map(bounds: GpxBounds) -> np.ndarray:
     cache_tif = ELEVATION_CACHE.get_path(bounds)
 
     if not os.path.isfile(cache_tif):
-        elevation, p = stitch_dem([bounds.lon_min, bounds.lat_min, bounds.lon_max, bounds.lat_max],
-                                  dem_name='glo_30',  # Global Copernicus 30 meter resolution DEM
-                                  dst_ellipsoidal_height=False,
-                                  dst_area_or_point='Point')
+        with Profiling.Scope("Download elevation map"):
+            elevation, p = stitch_dem([bounds.lon_min, bounds.lat_min, bounds.lon_max, bounds.lat_max],
+                                      dem_name='glo_30',  # Global Copernicus 30 meter resolution DEM
+                                      dst_ellipsoidal_height=False,
+                                      dst_area_or_point='Point')
+
         with rasterio.open(cache_tif, 'w', **p) as f:
             f.write(elevation, 1)
             f.update_tags(AREA_OR_POINT='Point')

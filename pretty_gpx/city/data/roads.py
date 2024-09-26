@@ -13,6 +13,8 @@ from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
+from pretty_gpx.common.utils.profile import profile
+from pretty_gpx.common.utils.profile import Profiling
 
 ROADS_CACHE = GpxDataCacheHandler(name='roads', extension='.pkl')
 
@@ -49,13 +51,15 @@ def download_city_roads(bounds: GpxBounds) -> CityRoads:
     if os.path.isfile(cache_pkl):
         roads: CityRoads = read_pickle(cache_pkl)
     else:
-        roads = {city_road_type: _query_roads(bounds, city_road_type)
-                 for city_road_type in tqdm(CityRoadType)}
+        with Profiling.Scope("Download City Roads"):
+            roads = {city_road_type: _query_roads(bounds, city_road_type)
+                     for city_road_type in tqdm(CityRoadType)}
         write_pickle(cache_pkl, roads)
 
     return roads
 
 
+@profile
 def _query_roads(bounds: GpxBounds, city_road_type: CityRoadType) -> list[ListLonLat]:
     """Query the overpass API to get the roads of a city."""
     highway_tags_str = "|".join(HIGHWAY_TAGS_PER_CITY_ROAD_TYPE[city_road_type])

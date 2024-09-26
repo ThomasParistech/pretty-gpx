@@ -18,6 +18,7 @@ from pretty_gpx.common.drawing.text_allocation import AnnotatedScatterDataCollec
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
+from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import mm_to_inch
 from pretty_gpx.mountain.data.augmented_gpx_data import AugmentedGpxData
 from pretty_gpx.mountain.data.elevation_map import download_elevation_map
@@ -87,6 +88,7 @@ class PosterImageCache:
 
     dpi: float
 
+    @profile
     @staticmethod
     def from_gpx_data(gpx_data: AugmentedGpxData,
                       paper: PaperSize,
@@ -115,6 +117,7 @@ class PosterImageCache:
                                 plotter=plotter,
                                 dpi=dpi)
 
+    @profile
     def change_dpi(self, dpi: float) -> 'PosterImageCache':
         """Scale the elevation map to a new DPI."""
         new_ele_map = rescale_elevation_to_dpi(self.elevation_map, self.plotter.img_gpx_bounds, self.plotter, dpi)
@@ -146,6 +149,7 @@ class PosterImageCache:
 
         return PosterDrawingData(img, theme_colors, title_txt=title_txt, stats_text=stats_text)
 
+    @profile
     def draw(self, fig: Figure, ax: Axes, poster_drawing_data: PosterDrawingData) -> None:
         """Draw the updated drawing data (Must run in the main thread because of matplotlib backend)."""
         self.plotter.draw(fig, ax,
@@ -211,6 +215,7 @@ def init_and_populate_drawing_figure(gpx_data: AugmentedGpxData,
     for k in range(len(augmented_hut_ids)):
         begin_i = augmented_hut_ids[k]
         end_i = augmented_hut_ids[k+1] if k+1 < len(augmented_hut_ids) else None
+
         track_data.append(PlotData(x=list_x[begin_i:end_i],
                                    y=list_y[begin_i:end_i],
                                    linewidth=drawing_size_params.track_linewidth))

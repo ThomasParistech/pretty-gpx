@@ -6,11 +6,12 @@ import numpy as np
 from geopy.geocoders import Nominatim
 from geopy.location import Location
 
+from pretty_gpx.common.data.overpass_request import overpass_query
 from pretty_gpx.common.gpx.gpx_io import cast_to_list_gpx_path
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.gpx.gpx_track import local_m_to_deg
-from pretty_gpx.common.data.overpass_request import overpass_query
 from pretty_gpx.common.utils.logger import logger
+from pretty_gpx.common.utils.profile import profile
 
 
 @dataclass
@@ -56,6 +57,7 @@ class AugmentedGpxData:
         """Total climb in m."""
         return self.track.uphill_m
 
+    @profile
     @staticmethod
     def from_path(list_gpx_path: str | bytes | list[str] | list[bytes],
                   strict_ths_m: float = 50,
@@ -96,6 +98,7 @@ class AugmentedGpxData:
                                 hut_ids=huts_ids)
 
 
+@profile
 def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[int], list[MountainPass]]:
     """Get mountain passes close to a GPX track."""
     max_dist_deg = local_m_to_deg(max_dist_m)
@@ -180,6 +183,7 @@ def get_place_name(lon: float, lat: float) -> str:
     raise RuntimeError(f"Place Not found at {lat:.3f}, {lon:.3f}. Got {address}")
 
 
+@profile
 def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
                                    max_dist_m: float = 300) -> tuple[GpxTrack,
                                                                      list[int],

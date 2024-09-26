@@ -20,6 +20,8 @@ from pretty_gpx.common.data.overpass_processing import get_polygons_from_closed_
 
 
 
+from pretty_gpx.common.utils.profile import profile
+from pretty_gpx.common.utils.profile import Profiling
 
 RIVERS_CACHE = GpxDataCacheHandler(name='rivers', extension='.pkl')
 
@@ -38,13 +40,15 @@ def download_city_rivers(bounds: GpxBounds) -> Surface_Polygons:
     if os.path.isfile(cache_pkl):
         rivers_patches: Surface_Polygons = read_pickle(cache_pkl)
     else:
-        rivers_relation_results = _query_rivers_relations(bounds=bounds)
-        rivers_way_results = _query_rivers_ways(bounds=bounds)
-        rivers_relations = get_polygons_from_relations(results=rivers_relation_results)
-        rivers_ways = get_polygons_from_closed_ways(rivers_way_results.ways)
-        logger.info(f"Found {len(rivers_relations)} polygons for rivers with relations and {len(rivers_ways)} with ways")
-        rivers = rivers_relations + rivers_ways
-        rivers_patches = create_patch_collection_from_polygons(rivers)
+        with Profiling.Scope("Download Rivers"):
+            rivers_relation_results = _query_rivers_relations(bounds=bounds)
+            rivers_way_results = _query_rivers_ways(bounds=bounds)
+            rivers_relations = get_polygons_from_relations(results=rivers_relation_results)
+            rivers_ways = get_polygons_from_closed_ways(rivers_way_results.ways)
+            logger.info(f"Found {len(rivers_relations)} polygons for rivers with relations "
+                        f"and {len(rivers_ways)} with ways")
+            rivers = rivers_relations + rivers_ways
+            rivers_patches = create_patch_collection_from_polygons(rivers)
         write_pickle(cache_pkl, rivers_patches)
     return rivers_patches
 

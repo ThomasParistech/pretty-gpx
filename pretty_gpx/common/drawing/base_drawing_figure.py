@@ -9,6 +9,7 @@ from matplotlib.figure import Figure
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.asserts import assert_ge
+from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import mm_to_inch
 
 
@@ -19,6 +20,7 @@ class BaseDrawingFigure:
     latlon_aspect_ratio: float
     gpx_bounds: GpxBounds
 
+    @profile
     def setup(self, fig: Figure, ax: Axes) -> None:
         """Setup the figure with the appropriate aspect-ratio, xlim/ylim, size in inches and dpi."""
         ax.cla()

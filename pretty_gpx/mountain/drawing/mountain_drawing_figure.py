@@ -10,6 +10,7 @@ from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import TextData
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
+from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.mountain.drawing.theme_colors import ThemeColors
 
 
@@ -37,6 +38,7 @@ class MountainDrawingFigure(BaseDrawingFigure):
 
     img_gpx_bounds: GpxBounds
 
+    @profile
     def draw(self,
              fig: Figure,
              ax: Axes,

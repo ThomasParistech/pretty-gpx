@@ -19,10 +19,12 @@ from pretty_gpx.common.utils.asserts import assert_len
 from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.paths import DATA_DIR
+from pretty_gpx.common.utils.profile import profile
 
 DEBUG_TEXT_ALLOCATION = False
 
 
+@profile
 def allocate_text(fig: Figure,
                   ax: Axes,
                   base_fig: BaseDrawingFigure,
