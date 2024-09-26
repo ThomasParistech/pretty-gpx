@@ -24,10 +24,11 @@ from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.utils.paths import FONTS_DIR
 from pretty_gpx.common.utils.paths import RUNNING_DIR
+from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import mm_to_point
 
 
-def plot(gpx_track: GpxTrack, theme_colors: ThemeColors):
+def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     """Plot a GPX track on a city map."""
     if theme_colors.dark_mode:
         background_color = theme_colors.background_color
@@ -73,9 +74,9 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors):
                      fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
                      ha="center")
     point_data.append(ScatterData(x=[gpx_track.list_lon[0]], y=[gpx_track.list_lat[0]],
-                                 marker="o", markersize=mm_to_point(3.5)))
+                                  marker="o", markersize=mm_to_point(3.5)))
     point_data.append(ScatterData(x=[gpx_track.list_lon[-1]], y=[gpx_track.list_lat[-1]],
-                                 marker="s", markersize=mm_to_point(3.5)))
+                                  marker="s", markersize=mm_to_point(3.5)))
 
     h_top_stats = b.lat_min + b.dlat * layout.stats_relative_h
     track_data.append(PolyFillData(x=[b.lon_min, b.lon_max, b.lon_max, b.lon_min],
@@ -109,3 +110,4 @@ if __name__ == "__main__":
     gpx_track = GpxTrack.load(os.path.join(RUNNING_DIR, "marathon_paris.gpx"))
     for theme in list(DARK_COLOR_THEMES.values())+list(LIGHT_COLOR_THEMES.values()):
         plot(gpx_track, theme)
+    Profiling.export_events()

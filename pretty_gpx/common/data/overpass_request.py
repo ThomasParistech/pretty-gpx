@@ -6,6 +6,7 @@ import overpy
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.utils.logger import logger
+from pretty_gpx.common.utils.profile import profile
 
 DEBUG_OVERPASS_QUERY = False
 
@@ -13,6 +14,7 @@ DEBUG_OVERPASS_QUERY = False
 ListLonLat = list[tuple[float, float]]
 
 
+@profile
 def overpass_query(query_elements: list[str],
                    bounds: GpxBounds | GpxTrack,
                    include_way_nodes: bool = False,

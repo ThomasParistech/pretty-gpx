@@ -33,7 +33,7 @@ class GpxTrack:
     uphill_m: float = 0.0
     duration_s: float | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert_same_len((self.list_lon, self.list_lat, self.list_ele_m, self.list_cumul_dist_km))
 
     @staticmethod

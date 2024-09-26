@@ -15,6 +15,6 @@ def read_pickle(file_path: str) -> Any:
     try:
         with open(file_path, 'rb') as f:
             return pickle.load(f)
-    except ModuleNotFoundError as e:
+    except Exception as e:
         raise ValueError(f"Error reading pickle file {file_path}. "
-                         "The corresponding class definition no longers exists. Pease clean the cache") from e
+                         "The corresponding class definition no longers exists. Please clean the cache") from e

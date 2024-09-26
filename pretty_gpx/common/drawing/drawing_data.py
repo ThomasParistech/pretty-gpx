@@ -10,7 +10,8 @@ from matplotlib.collections import PatchCollection
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 
-from pretty_gpx.common.data.overpass_processing import Surface_Polygons
+from pretty_gpx.common.data.overpass_processing import SurfacePolygons
+from pretty_gpx.common.utils.profile import Profiling
 
 
 @dataclass(kw_only=True, init=False)
@@ -20,6 +21,11 @@ class BaseDrawingData:
     zorder: int = 2
 
     def plot(self, ax: Axes, color: str) -> None:
+        """Plot the annotation."""
+        with Profiling.Scope(f"Plot {self.__class__.__name__}"):
+            self._plot(ax, color)
+
+    def _plot(self, ax: Axes, color: str) -> None:
         """Plot the annotation."""
         raise NotImplementedError("Plot method must be implemented in child classes")
 
@@ -43,7 +49,7 @@ class TextData(BaseDrawingData):
     fontproperties: FontProperties
     ha: str
 
-    def plot(self, ax: Axes, color: str) -> None:
+    def _plot(self, ax: Axes, color: str) -> None:
         """Plot the annotation."""
         ax.text(**self.kwargs(), c=color)
 
@@ -57,7 +63,7 @@ class PlotData(BaseDrawingData):
     linewidth: float
     linestyle: Literal["solid", "dashed", "dashdot", "dotted"] = "solid"
 
-    def plot(self, ax: Axes, color: str) -> None:
+    def _plot(self, ax: Axes, color: str) -> None:
         """Plot the annotation."""
         ax.plot(self.x, self.y, **self.kwargs(skip_xy=True), c=color)
 
@@ -71,7 +77,7 @@ class ScatterData(BaseDrawingData):
     marker: str | Path
     markersize: float
 
-    def plot(self, ax: Axes, color: str) -> None:
+    def _plot(self, ax: Axes, color: str) -> None:
         """Plot the annotation."""
         ax.plot(self.x, self.y, **self.kwargs(skip_xy=True),
                 linestyle='', clip_on=False,  # Allow start/end markers to be drawn outside the plot area
@@ -84,7 +90,7 @@ class PolyFillData(BaseDrawingData):
     x: list[float]
     y: list[float]
 
-    def plot(self, ax: Axes, color: str) -> None:
+    def _plot(self, ax: Axes, color: str) -> None:
         """Plot the annotation."""
         ax.fill(self.x, self.y, **self.kwargs(skip_xy=True), c=color)
 
@@ -96,14 +102,15 @@ class LineCollectionData(BaseDrawingData):
 
     linewidth: float
 
-    def plot(self, ax: Axes, color: str) -> None:
+    def _plot(self, ax: Axes, color: str) -> None:
         """Plot the annotation."""
         ax.add_collection(LineCollection(**self.kwargs(), colors=color))
+
 
 @dataclass
 class PolygonCollectionData:
     """ShapelyPolygon Data."""
-    polygons: Surface_Polygons
+    polygons: SurfacePolygons
 
     def plot(self, ax: Axes, color_patch: str, color_background: str) -> None:
         """Plot the polygons."""

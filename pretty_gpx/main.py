@@ -3,12 +3,12 @@
 import copy
 import os
 import tempfile
+from collections.abc import Awaitable
 from collections.abc import Callable
 
 from natsort import index_natsorted
 from nicegui import app
 from nicegui import events
-from nicegui import run
 from nicegui import ui
 from nicegui.elements.upload import Upload
 from pathvalidate import sanitize_filename
@@ -16,10 +16,14 @@ from pathvalidate import sanitize_filename
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
+from pretty_gpx.common.utils.nicegui_helper import on_click_slow_action_in_other_thread
+from pretty_gpx.common.utils.nicegui_helper import run_cpu_bound
+from pretty_gpx.common.utils.nicegui_helper import shutdown_app_and_close_tab
+from pretty_gpx.common.utils.nicegui_helper import UiModal
 from pretty_gpx.common.utils.paths import HIKING_DIR
-from pretty_gpx.common.utils.ui_helper import on_click_slow_action_in_other_thread
-from pretty_gpx.common.utils.ui_helper import shutdown_app_and_close_tab
-from pretty_gpx.common.utils.ui_helper import UiModal
+from pretty_gpx.common.utils.profile import profile
+from pretty_gpx.common.utils.profile import profile_parallel
+from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import safe
 from pretty_gpx.mountain.data.augmented_gpx_data import AugmentedGpxData
 from pretty_gpx.mountain.drawing.hillshading import AZIMUTHS
@@ -34,17 +38,17 @@ from pretty_gpx.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
 class UiManager:
     """Manage the UI elements and the Poster cache."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__cache: PosterImageCaches | None = None
 
     async def _on_upload(self, contents: list[bytes] | list[str], msg: str) -> None:
         """Pocess the files asynchronously to update the Poster cache."""
         with UiModal(msg):
-            self.__cache = await run.cpu_bound(process_files, contents, PAPER_SIZES[safe(paper_size_mode_toggle.value)])
-
+            self.__cache = await run_cpu_bound(process_files,
+                                               contents, PAPER_SIZES[safe(paper_size_mode_toggle.value)])
         await on_click_update()()
 
-    async def on_multi_upload(self, e: events.MultiUploadEventArguments):
+    async def on_multi_upload(self, e: events.MultiUploadEventArguments) -> None:
         """Sort the uploaded files by name and process them to update the Poster cache."""
         sorted_indices = index_natsorted(e.names)
         names = [e.names[i] for i in sorted_indices]
@@ -70,7 +74,7 @@ class UiManager:
         """Change the paper size and update the poster."""
         new_paper_size_name = str(safe(paper_size_mode_toggle.value))
         with UiModal(f"Creating {new_paper_size_name} Poster"):
-            self.__cache = await run.cpu_bound(change_paper_size, copy.deepcopy(safe(self.__cache).gpx_data),
+            self.__cache = await run_cpu_bound(change_paper_size, copy.deepcopy(safe(self.__cache).gpx_data),
                                                PAPER_SIZES[new_paper_size_name])
         await on_click_update()()
 
@@ -88,11 +92,13 @@ class UiManager:
 ui_manager = UiManager()
 
 
+@profile_parallel
 def process_files(list_b: list[bytes] | list[str], new_paper_size: PaperSize) -> PosterImageCaches:
     """Process the uploaded files and return the PosterImageCaches."""
     return PosterImageCaches.from_gpx(list_b, new_paper_size)
 
 
+@profile_parallel
 def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize) -> PosterImageCaches:
     """Return the PosterImageCaches with the new paper size."""
     return PosterImageCaches.from_augmented_gpx_data(gpx_data, new_paper_size)
@@ -142,27 +148,31 @@ with ui.row():
 
             def _update_done_callback(c: PosterImageCache, poster_drawing_data: PosterDrawingData) -> None:
                 """Synchronously update the plot with the PosterDrawingData (Matplotlib must run in the main thread)."""
-                with plot:
+                with Profiling.Scope("Pyplot Context"), plot:
                     c.draw(plot.fig, ax, poster_drawing_data)
                 ui.update(plot)
 
+            @profile_parallel
             def update_high_res() -> PosterDrawingData:
                 """Update the PosterDrawingData with the current settings, at the high resolution."""
                 return _update(ui_manager.high_res_cache)
 
+            @profile_parallel
             def update_low_res() -> PosterDrawingData:
                 """Update the PosterDrawingData with the current settings, at the low resolution."""
                 return _update(ui_manager.low_res_cache)
 
+            @profile
             def update_done_callback_high_res(poster_drawing_data: PosterDrawingData) -> None:
                 """Update the plot with the high resolution PosterDrawingData."""
                 _update_done_callback(ui_manager.high_res_cache, poster_drawing_data)
 
+            @profile
             def update_done_callback_low_res(poster_drawing_data: PosterDrawingData) -> None:
                 """Update the plot with the low resolution PosterDrawingData."""
                 _update_done_callback(ui_manager.low_res_cache, poster_drawing_data)
 
-            def on_click_update() -> Callable:
+            def on_click_update() -> Callable[[], Awaitable[None]]:
                 """Return an async function that updates the poster with the current settings."""
                 return on_click_slow_action_in_other_thread('Updating', update_low_res, update_done_callback_low_res)
 
@@ -181,7 +191,7 @@ with ui.row():
             DARK_MODE_TEXT = "🌙"
             LIGHT_MODE_TEXT = "☀️"
 
-            def on_dark_mode_switch_change(e: events.ValueChangeEventArguments):
+            def on_dark_mode_switch_change(e: events.ValueChangeEventArguments) -> None:
                 """Switch between dark and light mode."""
                 dark_mode = e.value
                 dark_mode_switch.text = DARK_MODE_TEXT if dark_mode else LIGHT_MODE_TEXT
@@ -197,15 +207,17 @@ with ui.row():
 
             # Download button
 
+            @profile_parallel
             def download() -> bytes:
                 """Save the high resolution poster as SVG and return the bytes."""
                 with tempfile.TemporaryDirectory() as tmp_dir:
-                    tmp_svg = os.path.join(tmp_dir, "tmp.svg")
-                    plot.fig.savefig(tmp_svg, dpi=ui_manager.high_res_cache.dpi)
+                    with Profiling.Scope("Matplotlib Save SVG"):
+                        tmp_svg = os.path.join(tmp_dir, "tmp.svg")
+                        plot.fig.savefig(tmp_svg, dpi=ui_manager.high_res_cache.dpi)
                     with open(tmp_svg, "rb") as svg_file:
                         return svg_file.read()
 
-            def download_done_callback(svg_bytes: bytes):
+            def download_done_callback(svg_bytes: bytes) -> None:
                 """Download the SVG file."""
                 ui.download(svg_bytes, f'poster_{sanitize_filename(str(title_button.value).replace(" ", "_"))}.svg')
                 logger.info("Poster Downloaded")
@@ -228,7 +240,7 @@ with ui.dialog() as exit_dialog, ui.card():
         ui.button('Cancel', on_click=exit_dialog.close)
 
 
-async def confirm_exit():
+async def confirm_exit() -> None:
     """Display a confirmation dialog before exiting."""
     await exit_dialog
 
@@ -239,6 +251,7 @@ exit_button = ui.button('Exit',
                         icon='logout').style('position: fixed; top: 10px; right: 10px;')
 
 app.on_startup(ui_manager.on_click_load_example)
+app.on_shutdown(lambda: Profiling.export_events())
 
 ui.run(title='Pretty GPX',
        favicon="✨",

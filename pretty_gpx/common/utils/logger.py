@@ -4,7 +4,7 @@ import logging
 import sys
 
 
-def setup_logger(name: str, level=logging.INFO) -> logging.Logger:
+def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """Set up a logger that can be reused across modules."""
     logger = logging.getLogger(name)
     logger.setLevel(level)

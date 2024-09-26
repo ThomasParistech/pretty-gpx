@@ -16,7 +16,7 @@ class GpxDataCacheHandler:
     name: str
     extension: str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.extension.startswith('.')
 
     def get_path(self, bounds: GpxBounds) -> str:
