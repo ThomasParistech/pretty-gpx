@@ -1,32 +1,26 @@
 #!/usr/bin/python3
-"""Rivers"""
+"""Rivers."""
 import os
-import numpy as np
 
+import overpy
 
-from matplotlib.patches import Polygon
-from shapely import Polygon as ShapelyPolygon
-
+from pretty_gpx.common.data.overpass_processing import create_patch_collection_from_polygons
+from pretty_gpx.common.data.overpass_processing import get_polygons_from_closed_ways
+from pretty_gpx.common.data.overpass_processing import get_polygons_from_relations
+from pretty_gpx.common.data.overpass_processing import SurfacePolygons
+from pretty_gpx.common.data.overpass_request import overpass_query
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
-from pretty_gpx.common.data.overpass_request import overpass_query
+from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
-from pretty_gpx.common.utils.logger import logger
-from pretty_gpx.common.data.overpass_processing import Surface_Polygons
-from pretty_gpx.common.data.overpass_processing import create_patch_collection_from_polygons
-from pretty_gpx.common.data.overpass_processing import get_polygons_from_relations
-from pretty_gpx.common.data.overpass_processing import get_polygons_from_closed_ways
-
-
-
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
 
 RIVERS_CACHE = GpxDataCacheHandler(name='rivers', extension='.pkl')
 
 
-def download_city_rivers(bounds: GpxBounds) -> Surface_Polygons:
+def download_city_rivers(bounds: GpxBounds) -> SurfacePolygons:
     """Download rivers area from OpenStreetMap.
 
     Args:
@@ -38,7 +32,7 @@ def download_city_rivers(bounds: GpxBounds) -> Surface_Polygons:
     cache_pkl = RIVERS_CACHE.get_path(bounds)
 
     if os.path.isfile(cache_pkl):
-        rivers_patches: Surface_Polygons = read_pickle(cache_pkl)
+        rivers_patches: SurfacePolygons = read_pickle(cache_pkl)
     else:
         with Profiling.Scope("Download Rivers"):
             rivers_relation_results = _query_rivers_relations(bounds=bounds)
@@ -53,19 +47,21 @@ def download_city_rivers(bounds: GpxBounds) -> Surface_Polygons:
     return rivers_patches
 
 
-def _query_rivers_relations(bounds: GpxBounds):
+@profile
+def _query_rivers_relations(bounds: GpxBounds) -> overpy.Result:
     """Query the overpass API to get the rivers of a city using relations."""
     result = overpass_query(['relation["natural"="water"]["water" = "river"]'],
                             bounds,
                             include_way_nodes=True,
-                            return_geometry=True)    
+                            return_geometry=True)
     return result
 
 
-def _query_rivers_ways(bounds: GpxBounds):
+@profile
+def _query_rivers_ways(bounds: GpxBounds) -> overpy.Result:
     """Query the overpass API to get the rivers of a city using ways."""
     result = overpass_query(['way["natural"="water"]["water" = "river"]'],
                             bounds,
                             include_way_nodes=True,
-                            return_geometry=True)    
+                            return_geometry=True)
     return result

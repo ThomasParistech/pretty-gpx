@@ -10,7 +10,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 
-from pretty_gpx.common.data.overpass_processing import Surface_Polygons
+from pretty_gpx.common.data.overpass_processing import SurfacePolygons
 from pretty_gpx.common.utils.profile import Profiling
 
 

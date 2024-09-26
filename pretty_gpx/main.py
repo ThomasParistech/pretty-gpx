@@ -38,7 +38,7 @@ from pretty_gpx.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
 class UiManager:
     """Manage the UI elements and the Poster cache."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__cache: PosterImageCaches | None = None
 
     async def _on_upload(self, contents: list[bytes] | list[str], msg: str) -> None:
@@ -48,7 +48,7 @@ class UiManager:
                                                contents, PAPER_SIZES[safe(paper_size_mode_toggle.value)])
         await on_click_update()()
 
-    async def on_multi_upload(self, e: events.MultiUploadEventArguments):
+    async def on_multi_upload(self, e: events.MultiUploadEventArguments) -> None:
         """Sort the uploaded files by name and process them to update the Poster cache."""
         sorted_indices = index_natsorted(e.names)
         names = [e.names[i] for i in sorted_indices]
@@ -172,7 +172,7 @@ with ui.row():
                 """Update the plot with the low resolution PosterDrawingData."""
                 _update_done_callback(ui_manager.low_res_cache, poster_drawing_data)
 
-            def on_click_update() -> Callable:
+            def on_click_update() -> Callable[[], Awaitable[None]]:
                 """Return an async function that updates the poster with the current settings."""
                 return on_click_slow_action_in_other_thread('Updating', update_low_res, update_done_callback_low_res)
 
@@ -191,7 +191,7 @@ with ui.row():
             DARK_MODE_TEXT = "🌙"
             LIGHT_MODE_TEXT = "☀️"
 
-            def on_dark_mode_switch_change(e: events.ValueChangeEventArguments):
+            def on_dark_mode_switch_change(e: events.ValueChangeEventArguments) -> None:
                 """Switch between dark and light mode."""
                 dark_mode = e.value
                 dark_mode_switch.text = DARK_MODE_TEXT if dark_mode else LIGHT_MODE_TEXT
@@ -217,7 +217,7 @@ with ui.row():
                     with open(tmp_svg, "rb") as svg_file:
                         return svg_file.read()
 
-            def download_done_callback(svg_bytes: bytes):
+            def download_done_callback(svg_bytes: bytes) -> None:
                 """Download the SVG file."""
                 ui.download(svg_bytes, f'poster_{sanitize_filename(str(title_button.value).replace(" ", "_"))}.svg')
                 logger.info("Poster Downloaded")
@@ -240,7 +240,7 @@ with ui.dialog() as exit_dialog, ui.card():
         ui.button('Cancel', on_click=exit_dialog.close)
 
 
-async def confirm_exit():
+async def confirm_exit() -> None:
     """Display a confirmation dialog before exiting."""
     await exit_dialog
 

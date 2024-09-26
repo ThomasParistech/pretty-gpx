@@ -39,6 +39,6 @@ def suffix_filename(filepath: str, suffix: str) -> str:
     return f"{base}{suffix}{ext}"
 
 
-def are_close(ref: float, var: float, *, eps: float = 1e-3):
+def are_close(ref: float, var: float, *, eps: float = 1e-3) -> bool:
     """Get if the two floats are closer than the input epsilon."""
     return abs(var-ref) < eps

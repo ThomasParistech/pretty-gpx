@@ -29,7 +29,7 @@ line-length=120
 cache-dir = "~/.cache/ruff"
 
 exclude = [
-	"data"
+
 ]
 
 [lint.isort]

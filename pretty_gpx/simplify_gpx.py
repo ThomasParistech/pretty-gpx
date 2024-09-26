@@ -7,7 +7,7 @@ from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.utils import suffix_filename
 
 
-def main(input: str, max_distance_m: float = 5.0):
+def main(input: str, max_distance_m: float = 5.0) -> None:
     """Simplify GPX file using the Ramer-Douglas-Peucker algorithm."""
     g = load_gpxpy(input)
 
