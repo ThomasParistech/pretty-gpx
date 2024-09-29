@@ -48,6 +48,7 @@ class TextData(BaseDrawingData):
     fontsize: float
     fontproperties: FontProperties
     ha: str
+    va: str
 
     def _plot(self, ax: Axes, color: str) -> None:
         """Plot the annotation."""
