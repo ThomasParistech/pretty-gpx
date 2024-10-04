@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from pretty_gpx.common.data.overpass_processing import get_ways_coordinates_from_results
 from pretty_gpx.common.data.overpass_request import ListLonLat
-from pretty_gpx.common.data.overpass_request import overpass_query
+from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
 from pretty_gpx.common.utils.pickle_io import read_pickle
@@ -34,13 +34,25 @@ HIGHWAY_TAGS_PER_CITY_ROAD_TYPE = {
     CityRoadType.ACCESS_ROAD: ["unclassified", "service"]
 }
 
+QUERY_NAME_PER_CITY_ROAD_TYPE = {
+    CityRoadType.HIGHWAY: "highway",
+    CityRoadType.SECONDARY_ROAD: "secondary_roads",
+    CityRoadType.STREET: "street",
+    CityRoadType.ACCESS_ROAD: "access_roads"
+}
+
+assert HIGHWAY_TAGS_PER_CITY_ROAD_TYPE.keys() == QUERY_NAME_PER_CITY_ROAD_TYPE.keys()
+
 CityRoads = dict[CityRoadType, list[ListLonLat]]
 
 
-def download_city_roads(bounds: GpxBounds) -> CityRoads:
+@profile
+def prepare_download_city_roads(query: OverpassQuery,
+                                bounds: GpxBounds) -> None:
     """Download roads map from OpenStreetMap.
 
     Args:
+        query: OverpassQuery class that merge all queries into a single one
         bounds: GPX bounds
 
     Returns:
@@ -49,20 +61,30 @@ def download_city_roads(bounds: GpxBounds) -> CityRoads:
     cache_pkl = ROADS_CACHE.get_path(bounds)
 
     if os.path.isfile(cache_pkl):
-        roads: CityRoads = read_pickle(cache_pkl)
+        query.add_cached_result(ROADS_CACHE.name, cache_file=cache_pkl)
     else:
-        with Profiling.Scope("Download City Roads"):
-            roads = {city_road_type: _query_roads(bounds, city_road_type)
-                     for city_road_type in tqdm(CityRoadType)}
-        write_pickle(cache_pkl, roads)
-
-    return roads
-
+        for city_road_type in tqdm(CityRoadType):
+            highway_tags_str = "|".join(HIGHWAY_TAGS_PER_CITY_ROAD_TYPE[city_road_type])
+            query.add_overpass_query(QUERY_NAME_PER_CITY_ROAD_TYPE[city_road_type],
+                                     [f"way['highway'~'({highway_tags_str})']"],
+                                     bounds,
+                                     include_way_nodes=True,
+                                     add_relative_margin=None)
 
 @profile
-def _query_roads(bounds: GpxBounds, city_road_type: CityRoadType) -> list[ListLonLat]:
+def process_city_roads(query: OverpassQuery,
+                       bounds: GpxBounds) -> dict[CityRoadType,list[ListLonLat]]:
     """Query the overpass API to get the roads of a city."""
-    highway_tags_str = "|".join(HIGHWAY_TAGS_PER_CITY_ROAD_TYPE[city_road_type])
-    result = overpass_query([f"way['highway'~'({highway_tags_str})']"], bounds, include_way_nodes=True,
-                            add_relative_margin=None)
-    return get_ways_coordinates_from_results(result)
+    if query.is_cached(ROADS_CACHE.name):
+        cache_file = query.get_cache_file(ROADS_CACHE.name)
+        roads = read_pickle(cache_file)
+    else:
+        with Profiling.Scope("Process City Roads"):
+            roads = dict()
+            for city_road_type,query_name in QUERY_NAME_PER_CITY_ROAD_TYPE.items():
+                result = query.get_query_result(query_name)
+                roads[city_road_type] = get_ways_coordinates_from_results(result)
+        cache_pkl = ROADS_CACHE.get_path(bounds)
+        write_pickle(cache_pkl, roads)
+        query.add_cached_result(ROADS_CACHE.name, cache_file=cache_pkl)
+    return roads
