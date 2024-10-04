@@ -38,7 +38,8 @@ def allocate_text(fig: Figure,
                   max_distance: float = 0.2,
                   margin: float = 0.008,
                   nbr_candidates: int = 300,
-                  ha: str = 'center') -> tuple[list[TextData], list[PlotData]]:
+                  ha: str = 'center',
+                  va: str = 'center') -> tuple[list[TextData], list[PlotData]]:
     """Allocate text-boxes in imshow plot while avoiding overlap with other annotations."""
     base_fig.setup(fig, ax)
 
@@ -78,6 +79,7 @@ def allocate_text(fig: Figure,
                                                     avoid_label_lines_overlap=True,
                                                     avoid_crossing_label_lines=True,
                                                     ha=ha,
+                                                    va=va,
                                                     fontproperties=fontproperties)
 
     list_text_data: list[TextData] = []
@@ -88,7 +90,7 @@ def allocate_text(fig: Figure,
         assert_len(text, 3)
         text_x, text_y, _ = text
         list_text_data.append(TextData(x=text_x, y=text_y, s=scatters.list_text_s[i],
-                                       fontsize=fontsize, fontproperties=fontproperties, ha=ha))
+                                       fontsize=fontsize, fontproperties=fontproperties, ha=ha, va=va))
 
         assert line is not None
         assert_len(line, 3)

@@ -232,7 +232,7 @@ def init_and_populate_drawing_figure(gpx_data: AugmentedGpxData,
 
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
                      s="", fontsize=drawing_size_params.title_fontsize,
-                     fontproperties=drawing_style_params.pretty_font, ha="center")
+                     fontproperties=drawing_style_params.pretty_font, ha="center", va="center")
 
     return MountainDrawingFigure(paper_size=paper_fig.paper_size,
                                  latlon_aspect_ratio=paper_fig.latlon_aspect_ratio,
@@ -334,7 +334,7 @@ def get_elevation_drawings(layout: MountainVerticalLayout,
 
     stats = TextData(x=b.lon_center, y=0.5 * (y_bot + b.lat_min),
                      s="", fontsize=drawing_size_params.stats_fontsize,
-                     fontproperties=drawing_style_params.pretty_font, ha="center")
+                     fontproperties=drawing_style_params.pretty_font, ha="center", va="center")
 
     return scatter_data, elevation_data, stats
 

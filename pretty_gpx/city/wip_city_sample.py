@@ -25,6 +25,7 @@ from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.utils.paths import FONTS_DIR
 from pretty_gpx.common.utils.paths import RUNNING_DIR
 from pretty_gpx.common.utils.profile import Profiling
+from pretty_gpx.common.utils.utils import format_timedelta
 from pretty_gpx.common.utils.utils import mm_to_point
 
 
@@ -67,12 +68,20 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
                      s="Marathon de Paris", fontsize=mm_to_point(20.0),
                      fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
-                     ha="center")
-    stats_text = f"{gpx_track.list_cumul_dist_km[-1]:.2f} km - {int(gpx_track.uphill_m)} m D+"
+                     ha="center",
+                     va="center")
+    
+    if gpx_track.duration_s is not None:
+        stats_text = f"{gpx_track.list_cumul_dist_km[-1]:.2f} km - {int(gpx_track.uphill_m)} m D+"
+        stats_text += f"\n{format_timedelta(gpx_track.duration_s)}"
+    else:
+        stats_text = f"{gpx_track.list_cumul_dist_km[-1]:.2f} km - {int(gpx_track.uphill_m)} m D+"
+
     stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * layout.stats_relative_h,
-                     s=stats_text, fontsize=mm_to_point(18.5),
-                     fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
-                     ha="center")
+                    s=stats_text, fontsize=mm_to_point(18.5),
+                    fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
+                    ha="center",
+                    va="center")
     point_data.append(ScatterData(x=[gpx_track.list_lon[0]], y=[gpx_track.list_lat[0]],
                                   marker="o", markersize=mm_to_point(3.5)))
     point_data.append(ScatterData(x=[gpx_track.list_lon[-1]], y=[gpx_track.list_lat[-1]],
