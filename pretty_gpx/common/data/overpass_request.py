@@ -144,17 +144,18 @@ class OverpassQuery:
                 if hasattr(e_type, "lower") and e_type.lower() == "count":
                     if len(element_i) > 0:
                         result_i.expand(Result(elements=element_i))
-                        self.query_unprocessed_results[array_ordered_list[i]] = result_i
-                        i += 1
-                        result_i = Result(elements=None,
-                                        api=Overpass())
-                        element_i = []
+                    self.query_unprocessed_results[array_ordered_list[i]] = result_i
+                    i += 1
+                    result_i = Result(elements=None,
+                                      api=Overpass())
+                    element_i = []
                 else:
                     for elem_cls in [Node, Way, Relation, Area]:
                         if hasattr(e_type, "lower") and e_type.lower() == elem_cls._type_value:
                             element_i.append(elem_cls.from_json(element, result=result_i))
             if len(element_i) > 0:
                 result_i.expand(Result(elements=element_i))
+            if i < len(array_ordered_list):
                 self.query_unprocessed_results[array_ordered_list[i]] = result_i
 
     def is_cached(self,
