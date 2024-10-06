@@ -2,9 +2,12 @@
 """Rivers."""
 import os
 
+import numpy as np
+
 from pretty_gpx.common.data.overpass_processing import create_patch_collection_from_polygons
 from pretty_gpx.common.data.overpass_processing import get_polygons_from_closed_ways
 from pretty_gpx.common.data.overpass_processing import get_polygons_from_relations
+from pretty_gpx.common.data.overpass_processing import get_rivers_polygons_from_lines
 from pretty_gpx.common.data.overpass_processing import SurfacePolygons
 from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
@@ -14,16 +17,16 @@ from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
+from pretty_gpx.common.utils.utils import EARTH_RADIUS_M
 
 RIVERS_CACHE = GpxDataCacheHandler(name='rivers', extension='.pkl')
 
 RIVERS_WAYS_ARRAY_NAME = "rivers_ways"
 RIVERS_RELATIONS_ARRAY_NAME = "rivers_relations"
+RIVERS_LINE_WAYS_ARRAY_NAME = "rivers_line_ways"
 
-
-RIVERS_WAYS_ARRAY_NAME = "rivers_ways"
-RIVERS_RELATIONS_ARRAY_NAME = "rivers_relations"
-
+RIVER_LINE_WIDTH_M = 8
+RIVER_LINE_WIDTH = np.rad2deg(RIVER_LINE_WIDTH_M/EARTH_RADIUS_M)
 
 @profile
 def prepare_download_city_rivers(query: OverpassQuery,
@@ -34,16 +37,29 @@ def prepare_download_city_rivers(query: OverpassQuery,
     if os.path.isfile(cache_pkl):
         query.add_cached_result(RIVERS_CACHE.name, cache_file=cache_pkl)
     else:
+        natural_water_l = ["basin","reservoir","canal","stream_pool","lagoon","oxbow","river","lake"]
+        join_character = '|'
         query.add_overpass_query(array_name=RIVERS_RELATIONS_ARRAY_NAME,
-                                 query_elements=['relation["natural"="water"]["water" = "river"]'],
+                                 query_elements = [ 'relation["natural"="water"]'
+                                                   f'["water"~"({join_character.join(natural_water_l)})"]',
+                                                    'relation["natural"="wetland"]["wetland" = "tidal"]',
+                                                    'relation["natural"="bay"]'],
                                  bounds=bounds,
                                  include_way_nodes=True,
-                                 return_geometry=True) 
+                                 return_geometry=True)
         query.add_overpass_query(array_name=RIVERS_WAYS_ARRAY_NAME,
-                                 query_elements=['way["natural"="water"]["water" = "river"]'],
+                                 query_elements=['way["natural"="water"]["water"~'
+                                                 f'"({join_character.join(natural_water_l)})"]',
+                                                  'way["natural"="wetland"]["wetland" = "tidal"]',
+                                                  'way["natural"="bay"]'],
                                  bounds=bounds,
                                  include_way_nodes=True,
-                                 return_geometry=True) 
+                                 return_geometry=True)
+        query.add_overpass_query(array_name=RIVERS_LINE_WAYS_ARRAY_NAME,
+                                 query_elements=['way["waterway"~"(river|fairway|flowline|stream|canal)"]'],
+                                 bounds=bounds,
+                                 include_way_nodes=True,
+                                 return_geometry=False) 
 
 
 
@@ -58,11 +74,16 @@ def process_city_rivers(query: OverpassQuery,
         with Profiling.Scope("Process Rivers"):
             rivers_relation_results = query.get_query_result(RIVERS_RELATIONS_ARRAY_NAME)
             rivers_way_results = query.get_query_result(RIVERS_WAYS_ARRAY_NAME)
+            rivers_line_results = query.get_query_result(RIVERS_LINE_WAYS_ARRAY_NAME)
             rivers_relations = get_polygons_from_relations(results=rivers_relation_results)
             rivers_ways = get_polygons_from_closed_ways(rivers_way_results.ways)
-            logger.info(f"Found {len(rivers_relations)} polygons for rivers "
-                        f"with relations and {len(rivers_ways)} with ways")
             rivers = rivers_relations + rivers_ways
+            rivers_lines_polygons = get_rivers_polygons_from_lines(api_result=rivers_line_results,
+                                                                   width=RIVER_LINE_WIDTH)
+            rivers = rivers_lines_polygons + rivers
+            logger.info(f"Found {len(rivers_relations)} polygons for rivers "
+                        f"with relations and {len(rivers_ways)} with ways and"
+                        f" {len(rivers_lines_polygons)} created with river main line")
             rivers_patches = create_patch_collection_from_polygons(rivers)
         cache_pkl = RIVERS_CACHE.get_path(bounds)
         write_pickle(cache_pkl, rivers_patches)
