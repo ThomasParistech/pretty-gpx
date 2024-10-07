@@ -6,11 +6,14 @@ from dataclasses import dataclass
 import numpy as np
 import overpy
 from matplotlib.patches import Polygon
+from shapely import LineString
+from shapely import MultiPolygon as ShapelyMultiPolygon
 from shapely import Point as ShapelyPoint
 from shapely import Polygon as ShapelyPolygon
 
 from pretty_gpx.common.data.overpass_request import ListLonLat
 from pretty_gpx.common.utils.logger import logger
+from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import are_close
 
 
@@ -32,6 +35,35 @@ def get_ways_coordinates_from_results(api_result: overpy.Result) -> list[ListLon
     return ways_coords
 
 
+
+@profile
+def get_rivers_polygons_from_lines( api_result: overpy.Result,
+                                    width: float) -> list[ShapelyPolygon]:
+    """Get the rivers center's line into a polygon with a fixed width corresponding to small rivers."""
+    ways_coords = []
+    for way in api_result.ways:
+        if len(way.nodes) <= 2:
+            continue
+        ways_coords.extend([[(float(node.lon), float(node.lat)) for node in way.nodes 
+                             if node.lat is not None and node.lon is not None]])
+        new_polygons = []
+    for segment in ways_coords:
+        line = LineString(segment)
+        # Transforms the line into a polygon with 
+        # a buffer around the line with half the width
+        buffered = line.buffer(width/2.0)
+        if isinstance(buffered, ShapelyPolygon):
+            #TODO: Check that multipolygons are not useful and can be skiped
+            new_polygons.append(buffered)
+        elif isinstance(buffered, ShapelyMultiPolygon) and len(buffered) > 0:
+            for i in range(len(buffered)):
+                polygon = buffered[i]
+                new_polygons.append(polygon)
+    return new_polygons
+
+
+
+@profile
 def get_polygons_from_closed_ways(ways_l: list[overpy.Way]) -> list[ShapelyPolygon]:
     """Sometimes ways instead of relations are used to describe an area (mainly for rivers)."""
     river_way_polygon = []
@@ -48,6 +80,7 @@ def get_polygons_from_closed_ways(ways_l: list[overpy.Way]) -> list[ShapelyPolyg
     return river_way_polygon
 
 
+@profile
 def get_polygons_from_relations(results: overpy.Result) -> list[ShapelyPolygon]:
     """Get the shapely polygons from the results with all the relations obtained with the Overpass API."""
     polygon_l = []
