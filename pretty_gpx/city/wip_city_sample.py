@@ -9,9 +9,9 @@ from pretty_gpx.city.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.city.city_vertical_layout import CityVerticalLayout
 from pretty_gpx.city.data.rivers import prepare_download_city_rivers
 from pretty_gpx.city.data.rivers import process_city_rivers
-from pretty_gpx.city.data.roads import CityRoadType
 from pretty_gpx.city.data.roads import prepare_download_city_roads
 from pretty_gpx.city.data.roads import process_city_roads
+from pretty_gpx.city.drawing.linewidth import CityLinewidthParams
 from pretty_gpx.city.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.city.drawing.theme_colors import LIGHT_COLOR_THEMES
 from pretty_gpx.city.drawing.theme_colors import ThemeColors
@@ -25,6 +25,7 @@ from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
+from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.paths import FONTS_DIR
 from pretty_gpx.common.utils.paths import RUNNING_DIR
 from pretty_gpx.common.utils.profile import Profiling
@@ -44,6 +45,11 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     paper = PAPER_SIZES['A4']
     layout = CityVerticalLayout()
     roads_bounds, base_plotter = layout.get_download_bounds_and_paper_figure(gpx_track, paper)
+
+    caracteristic_distance_m = (roads_bounds.dx_m**2 + roads_bounds.dy_m**2)**0.5
+    logger.info(f"Domain diagonal is {caracteristic_distance_m/1000.:.1f}km")
+    city_linewidth = CityLinewidthParams.default(paper_size=paper,
+                                                 diagonal_distance_m=caracteristic_distance_m)
 
 
     total_query = OverpassQuery()
@@ -70,14 +76,6 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
                                  bounds=roads_bounds)
 
 
-    linewidth_priority = {
-        CityRoadType.HIGHWAY: 1.0,
-        CityRoadType.SECONDARY_ROAD: 0.5,
-        CityRoadType.STREET: 0.25,
-        CityRoadType.ACCESS_ROAD: 0.1
-    }
-
-
     track_data: list[BaseDrawingData] = []
     road_data: list[BaseDrawingData] = []
     point_data: list[BaseDrawingData] = []
@@ -85,10 +83,10 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
 
     rivers_data.append(PolygonCollectionData(polygons=rivers))
 
-    track_data.append(PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=2.0))
+    track_data.append(PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=city_linewidth.linewidth_track))
 
     for priority, way in roads.items():
-        road_data.append(LineCollectionData(way, linewidth=linewidth_priority[priority], zorder=1))
+        road_data.append(LineCollectionData(way, linewidth=city_linewidth.linewidth_priority[priority], zorder=1))
 
     b = base_plotter.gpx_bounds
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,

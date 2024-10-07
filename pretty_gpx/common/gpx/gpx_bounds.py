@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from pretty_gpx.common.utils.utils import EARTH_RADIUS_M
+
 
 @dataclass
 class GpxBounds:
@@ -36,6 +38,11 @@ class GpxBounds:
                                      dlon=self.dlon*(1. + rel_margin),
                                      dlat=self.dlat*(1. + rel_margin))
 
+    def is_in_bounds(self, lon: float, lat: float) -> bool:
+        """Returns if a point is in the bounds or not."""
+        return self.lat_min < lat and lat < self.lat_max and self.lon_min < lon and lon < self.lon_max
+
+
     @property
     def lon_center(self) -> float:
         """Longitude center."""
@@ -55,3 +62,13 @@ class GpxBounds:
     def dlat(self) -> float:
         """Latitude span."""
         return self.lat_max - self.lat_min
+
+    @property
+    def dy_m(self) -> float:
+        """Latitude span converted in meters."""
+        return EARTH_RADIUS_M*np.radians(self.lat_max - self.lat_min)
+
+    @property
+    def dx_m(self) -> float:
+        """Longitude span converted in meters."""
+        return EARTH_RADIUS_M*np.radians(self.lon_max - self.lon_min)
