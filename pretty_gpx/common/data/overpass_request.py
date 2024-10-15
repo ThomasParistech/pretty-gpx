@@ -116,25 +116,26 @@ class OverpassQuery:
                                             urllib.parse.urlencode({'data': query}).encode('utf-8'))
             agent = 'Pretty-gpx/ (https://github.com/ThomasParistech/pretty-gpx)'
 
-        if not isinstance(request, urllib.request.Request):
-            request = urllib.request.Request(request)
-        request.headers['User-Agent'] = agent
-        try:
-            response = urllib.request.urlopen(request)
-        except urllib.request.HTTPError as err:
-            msg = 'The requested data could not be downloaded. ' + str(err)
-            logger.exception(msg)
-            raise Exception(msg, err)
-        except Exception as err:
-            msg = "The requested data could not be downloaded. Please check whether your internet connection."
-            logger.exception(msg)
-            raise Exception(msg, err)
-        encoding = response.info().get_content_charset('utf-8')
-        resp = response.read().decode(encoding)
+            if not isinstance(request, urllib.request.Request):
+                request = urllib.request.Request(request)
+            request.headers['User-Agent'] = agent
+            try:
+                response = urllib.request.urlopen(request)
+            except urllib.request.HTTPError as err:
+                msg = 'The requested data could not be downloaded. ' + str(err)
+                logger.exception(msg)
+                raise Exception(msg, err)
+            except Exception as err:
+                msg = "The requested data could not be downloaded. Please check whether your internet connection."
+                logger.exception(msg)
+                raise Exception(msg, err)
+            encoding = response.info().get_content_charset('utf-8')
+            resp = response.read().decode(encoding)
 
-        data = ujson.loads(resp)
+        with Profiling.Scope("Loading data into JSON"):
+            data = ujson.loads(resp)
 
-        logger.info("Loading and start processing data")
+        logger.info("Loading overpass data into overpy")
         with Profiling.Scope("Loading overpass data into overpy"):
             elem_cls: Area | Node | Relation | Way
             result_i = Result(elements=None,
