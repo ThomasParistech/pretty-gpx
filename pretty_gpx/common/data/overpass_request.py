@@ -19,6 +19,7 @@ from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
+from pretty_gpx.common.utils.utils import convert_bytes
 
 DEBUG_OVERPASS_QUERY = False
 
@@ -39,7 +40,9 @@ class OverpassQuery:
                            query_elements: list[str],
                            bounds: GpxBounds | GpxTrack,
                            include_way_nodes: bool = False,
+                           include_relation_members_nodes: bool = False,
                            return_geometry: bool = False,
+                           return_center_only: bool = False,
                            add_relative_margin: float | None = None) -> None:
         """Add a query to the list so that all queries can be launch simultaneously."""
         if isinstance(bounds, GpxTrack):
@@ -53,12 +56,19 @@ class OverpassQuery:
 
         query_body = "\n".join([f"{element}{bounds_str};" for element in query_elements])
 
-        if return_geometry:
+        if return_center_only:
+            out_param = "center"
+        elif return_geometry:
             out_param = "geom"
         else:
             out_param = ""
 
-        if include_way_nodes:
+        if include_relation_members_nodes:
+            # If include_relation_members_nodes and include_way_nodes as 
+            # the double reccursion is stronger than the simple, there is 
+            # no problem
+            recursion_param = f"(.{array_name};>>;)->.{array_name};\n"
+        elif include_way_nodes:
             recursion_param = f"(.{array_name};>;)->.{array_name};\n"
         else:
             recursion_param = ""
@@ -132,7 +142,8 @@ class OverpassQuery:
             encoding = response.info().get_content_charset('utf-8')
             resp = response.read().decode(encoding)
 
-        with Profiling.Scope("Loading data into JSON"):
+        logger.info("Loading data")
+        with Profiling.Scope("Loading response"):
             data = ujson.loads(resp)
 
         logger.info("Loading overpass data into overpy")
@@ -147,6 +158,7 @@ class OverpassQuery:
                 if hasattr(e_type, "lower") and e_type.lower() == "count":
                     if len(element_i) > 0:
                         result_i.expand(Result(elements=element_i))
+                    # Even if it is empty we should add the data
                     self.query_unprocessed_results[array_ordered_list[i]] = result_i
                     i += 1
                     result_i = Result(elements=None,

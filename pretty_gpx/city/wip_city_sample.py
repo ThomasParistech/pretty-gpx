@@ -7,6 +7,8 @@ from matplotlib.font_manager import FontProperties
 
 from pretty_gpx.city.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.city.city_vertical_layout import CityVerticalLayout
+from pretty_gpx.city.data.forests import prepare_download_city_forests
+from pretty_gpx.city.data.forests import process_city_forests
 from pretty_gpx.city.data.rivers import prepare_download_city_rivers
 from pretty_gpx.city.data.rivers import process_city_rivers
 from pretty_gpx.city.data.roads import prepare_download_city_roads
@@ -35,12 +37,7 @@ from pretty_gpx.common.utils.utils import mm_to_point
 
 def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     """Plot a GPX track on a city map."""
-    if theme_colors.dark_mode:
-        background_color = theme_colors.background_color
-        road_color = "black"
-    else:
-        background_color = theme_colors.background_color
-        road_color = "white"
+    road_color = "black" if theme_colors.dark_mode else "white"
 
     paper = PAPER_SIZES['A4']
     layout = CityVerticalLayout()
@@ -56,13 +53,11 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
 
     # Add the queries to the overpass_query class to run all queries at once
 
-    prepare_download_city_roads(query=total_query,
-                                bounds=roads_bounds)
+    for prepare_func in [prepare_download_city_roads,
+                         prepare_download_city_rivers,
+                         prepare_download_city_forests]:
 
-
-    prepare_download_city_rivers(query=total_query,
-                                 bounds=roads_bounds)
-
+        prepare_func(query=total_query, bounds=roads_bounds)
 
     # Merge and run all queries
     total_query.launch_queries()
@@ -75,31 +70,31 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     rivers = process_city_rivers(query=total_query,
                                  bounds=roads_bounds)
 
+    forests,farmland = process_city_forests(query=total_query,
+                                            bounds=roads_bounds)
+    forests.interior_polygons = []
 
-    track_data: list[BaseDrawingData] = []
+    track_data: list[BaseDrawingData] = [PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=2.0)]
     road_data: list[BaseDrawingData] = []
     point_data: list[BaseDrawingData] = []
-    rivers_data: list[PolygonCollectionData] = []
-
-    rivers_data.append(PolygonCollectionData(polygons=rivers))
-
-    track_data.append(PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=city_linewidth.linewidth_track))
+    rivers_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=rivers)]
+    forests_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=forests)]
+    farmland_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=farmland)]
 
     for priority, way in roads.items():
         road_data.append(LineCollectionData(way, linewidth=city_linewidth.linewidth_priority[priority], zorder=1))
 
     b = base_plotter.gpx_bounds
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
-                     s="Marathon de Paris", fontsize=mm_to_point(20.0),
+                     s="Route des 4 chateaux", fontsize=mm_to_point(20.0),
                      fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
                      ha="center",
                      va="center")
     
+    stats_text = f"{gpx_track.list_cumul_dist_km[-1]:.2f} km - {int(gpx_track.uphill_m)} m D+"
+
     if gpx_track.duration_s is not None:
-        stats_text = f"{gpx_track.list_cumul_dist_km[-1]:.2f} km - {int(gpx_track.uphill_m)} m D+"
         stats_text += f"\n{format_timedelta(gpx_track.duration_s)}"
-    else:
-        stats_text = f"{gpx_track.list_cumul_dist_km[-1]:.2f} km - {int(gpx_track.uphill_m)} m D+"
 
     stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * layout.stats_relative_h,
                     s=stats_text, fontsize=mm_to_point(18.5),
@@ -123,6 +118,8 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
                                 road_data=road_data,
                                 point_data=point_data,
                                 rivers_data=rivers_data,
+                                forests_data=forests_data,
+                                farmland_data=farmland_data,
                                 title=title,
                                 stats=stats)
 
@@ -130,17 +127,19 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
 
     plotter.draw(fig=fig,
                  ax=ax,
-                 background_color=background_color,
+                 background_color=theme_colors.background_color,
                  road_color=road_color,
                  track_color=theme_colors.track_color,
                  point_color=theme_colors.point_color,
-                 rivers_color=theme_colors.rivers_color)
+                 rivers_color=theme_colors.rivers_color,
+                 forets_color=theme_colors.forests_color,
+                 farmland_color=theme_colors.farmland_color)
 
     plt.show()
 
 
 if __name__ == "__main__":
-    gpx_track = GpxTrack.load(os.path.join(RUNNING_DIR, "marathon_paris.gpx"))
+    gpx_track = GpxTrack.load(os.path.join(RUNNING_DIR, "route_4_chateaux.gpx"))
     for theme in list(DARK_COLOR_THEMES.values())+list(LIGHT_COLOR_THEMES.values()):
         plot(gpx_track, theme)
     Profiling.export_events()

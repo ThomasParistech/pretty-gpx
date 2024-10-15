@@ -29,6 +29,8 @@ class CityDrawingFigure(BaseDrawingFigure):
     road_data: list[BaseDrawingData]
     point_data: list[BaseDrawingData]
     rivers_data: list[PolygonCollectionData]
+    forests_data: list[PolygonCollectionData]
+    farmland_data: list[PolygonCollectionData]
 
     title: TextData
     stats: TextData
@@ -40,7 +42,9 @@ class CityDrawingFigure(BaseDrawingFigure):
              road_color: str,
              track_color: str,
              point_color: str,
-             rivers_color: str
+             rivers_color: str,
+             forets_color: str,
+             farmland_color: str
              ) -> None:
         """Plot the background image and the annotations on top of it."""
         self.setup(fig, ax)
@@ -48,6 +52,12 @@ class CityDrawingFigure(BaseDrawingFigure):
 
         for surface_data in self.rivers_data:
             surface_data.plot(ax, rivers_color, background_color)
+
+        for surface_data in self.farmland_data:
+            surface_data.plot(ax, farmland_color, background_color)
+
+        for surface_data in self.forests_data:
+            surface_data.plot(ax, forets_color, farmland_color)
 
         for data in self.road_data:
             data.plot(ax, road_color)
