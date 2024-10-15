@@ -49,7 +49,9 @@ def prepare_download_city_railways(query: OverpassQuery,
 @profile
 def process_city_railways(query: OverpassQuery,
                           bounds: GpxBounds,
-                          latlon_aspect_ratio: float) -> tuple[list[ListLonLat],list[ListLonLat]]:
+                          latlon_aspect_ratio: float,
+                          sleepers_distance: float,
+                          sleepers_length: float) -> tuple[list[ListLonLat],list[ListLonLat]]:
     """Query the overpass API to get the roads of a city."""
     if query.is_cached(RAILWAYS_CACHE.name):
         cache_file = query.get_cache_file(RAILWAYS_CACHE.name)
@@ -60,17 +62,12 @@ def process_city_railways(query: OverpassQuery,
             railways = get_ways_coordinates_from_results(result)
             railways = merge_ways(railways,eps=1e-6)
             sleepers = []
-            # To calculate the size of the sleeper and the distance between sleepers
-            # We need to have a caracteristic length in the picture
-            caracteristic_length = (bounds.dx_m**2 + bounds.dy_m**2)**0.5
-            sleeper_length = caracteristic_length*1.25e-6
-            sleeper_distance = sleeper_length*50
             with Profiling.Scope("Generate sleepers"):
                 for railway in railways:
                     sleepers += generate_evenly_spaced_sleepers(railway,
                                                                 lat_lon_aspect_ratio=latlon_aspect_ratio,
-                                                                sleeper_distance=sleeper_distance,
-                                                                sleeper_length=sleeper_length)
+                                                                sleeper_distance=sleepers_distance,
+                                                                sleeper_length=sleepers_length)
         cache_pkl = RAILWAYS_CACHE.get_path(bounds)
         write_pickle(cache_pkl, (railways, sleepers))
         query.add_cached_result(RAILWAYS_CACHE.name, cache_file=cache_pkl)

@@ -18,6 +18,7 @@ class ThemeColors:
     sleepers_color: str
     forests_color: str
     farmland_color: str
+    runways_color: str
 
 DARK_COLOR_THEMES: dict[str, ThemeColors] = {
     "⬛🟩🟨": ThemeColors(dark_mode=True,
@@ -28,6 +29,7 @@ DARK_COLOR_THEMES: dict[str, ThemeColors] = {
                             railways_color="#8C8C8C",
                             sleepers_color="#999999",
                             forests_color="#3b6b7f",
+                            runways_color="#8C8C8C",
                             farmland_color="#305866"),
     "⬛🟥⬜": ThemeColors(dark_mode=True,
                             background_color="#393e41",
@@ -37,6 +39,7 @@ DARK_COLOR_THEMES: dict[str, ThemeColors] = {
                             railways_color="#8C8C8C",
                             sleepers_color="#999999",
                             forests_color="#4f595d",
+                            runways_color="#8C8C8C",
                             farmland_color="#424649"),
     "⬛🟦⬜": ThemeColors(dark_mode=True,
                             background_color="#4a598c",
@@ -46,6 +49,7 @@ DARK_COLOR_THEMES: dict[str, ThemeColors] = {
                             railways_color="#8C8C8C",
                             sleepers_color="#999999",
                             forests_color="#5c6a9b",
+                            runways_color="#8C8C8C",
                             farmland_color="#525d89"),
     "🟦🟪🟨": ThemeColors(dark_mode=True,
                             background_color="#34447d",
@@ -55,6 +59,7 @@ DARK_COLOR_THEMES: dict[str, ThemeColors] = {
                             railways_color="#8C8C8C",
                             sleepers_color="#999999",
                             forests_color="#4f5d91",
+                            runways_color="#8C8C8C",
                             farmland_color="#414c84")
 
 }
@@ -68,6 +73,7 @@ LIGHT_COLOR_THEMES: dict[str, ThemeColors] = {
                             railways_color="#737373",
                             sleepers_color="#666666",
                             forests_color="#b39335",
+                            runways_color="#737373",
                             farmland_color="#b9b359"),
     "⬜🟥⬛": ThemeColors(dark_mode=False,
                             background_color="#bfdbf7",
@@ -77,6 +83,7 @@ LIGHT_COLOR_THEMES: dict[str, ThemeColors] = {
                             railways_color="#737373",
                             sleepers_color="#666666",
                             forests_color="#94b0d4",
+                            runways_color="#737373",
                             farmland_color="#a6b8c1"),
     "⬜🟦⬛": ThemeColors(dark_mode=False,
                             background_color="#cadcfc",
@@ -86,6 +93,7 @@ LIGHT_COLOR_THEMES: dict[str, ThemeColors] = {
                             railways_color="#737373",
                             sleepers_color="#666666",
                             forests_color="#9bb0db",
+                            runways_color="#737373",
                             farmland_color="#b2c3e1"),
     "🟨🟥⬛": ThemeColors(dark_mode=False,
                             background_color="#eaaa33",
@@ -95,6 +103,7 @@ LIGHT_COLOR_THEMES: dict[str, ThemeColors] = {
                             railways_color="#737373",
                             sleepers_color="#666666",
                             forests_color="#b4882c",
+                            runways_color="#737373",
                             farmland_color="#c18d1a")
 }
 

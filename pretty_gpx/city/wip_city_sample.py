@@ -63,7 +63,8 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     for prepare_func in [prepare_download_city_roads,
                          prepare_download_city_rivers,
                          prepare_download_city_railways,
-                         prepare_download_city_forests]:
+                         prepare_download_city_forests,
+                         prepare_download_airports_data]:
 
         prepare_func(query=total_query, bounds=roads_bounds)
 
@@ -88,25 +89,45 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
                                                sleepers_distance=city_linewidth.sleepers_distance,
                                                sleepers_length=city_linewidth.sleepers_length)
 
+    airports_roads, airports_centers = process_airports_data(query=total_query,
+                                                             bounds=roads_bounds)
+
+
     track_data: list[BaseDrawingData] = [PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=2.0)]
     road_data: list[BaseDrawingData] = []
     point_data: list[BaseDrawingData] = []
     rivers_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=rivers)]
     forests_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=forests)]
     farmland_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=farmland)]
-    railways_data: list[BaseDrawingData] = []
-    sleepers_data: list[BaseDrawingData] = []
-
-
-    railways_data.append(LineCollectionData(railways, linewidth=city_linewidth.linewidth_rails))
-    sleepers_data.append(LineCollectionData(sleepers, linewidth=city_linewidth.linewidth_sleepers))
+    railways_data: list[BaseDrawingData] = [LineCollectionData(railways,
+                                                               linewidth=city_linewidth.linewidth_rails)]
+    sleepers_data: list[BaseDrawingData] = [LineCollectionData(sleepers,
+                                                               linewidth=city_linewidth.linewidth_sleepers)]
+    airports_data: list[BaseDrawingData] = []
+    airports_location: list[BaseDrawingData] = []
 
     for priority, way in roads.items():
         road_data.append(LineCollectionData(way, linewidth=city_linewidth.linewidth_priority[priority], zorder=1))
 
+    for aeroway_type, aeroway in airports_roads.items():
+        airports_data.append(LineCollectionData(aeroway,
+                                                linewidth=city_linewidth.linewidth_airports[aeroway_type], zorder=1))
+
+    for center in airports_centers:
+        airports_location.append(ScatterData(x=[center[0]], y=[center[1]],
+                                 marker=marker_from_svg(AIRPORT_ICON_PATH), markersize=mm_to_point(4)))
+
+    for aeroway_type, aeroway in airports_roads.items():
+        airports_data.append(LineCollectionData(aeroway,
+                                                linewidth=city_linewidth.linewidth_airports[aeroway_type], zorder=1))
+
+    for center in airports_centers:
+        airports_location.append(ScatterData(x=[center[0]], y=[center[1]],
+                                 marker=marker_from_svg(AIRPORT_ICON_PATH), markersize=mm_to_point(4)))
+
     b = base_plotter.gpx_bounds
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
-                     s="Route des 4 chateaux", fontsize=mm_to_point(20.0),
+                     s="20km de Genève", fontsize=mm_to_point(20.0),
                      fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
                      ha="center",
                      va="center")
@@ -115,8 +136,6 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
 
     if gpx_track.duration_s is not None:
         stats_text += f"\n{format_timedelta(gpx_track.duration_s)}"
-    else:
-        stats_text = f"{gpx_track.list_cumul_dist_km[-1]:.2f} km - {int(gpx_track.uphill_m)} m D+"
 
     stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * layout.stats_relative_h,
                     s=stats_text, fontsize=mm_to_point(18.5),
@@ -144,6 +163,8 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
                                 farmland_data=farmland_data,
                                 railways_data=railways_data,
                                 sleepers_data=sleepers_data,
+                                airports_data=airports_data,
+                                airports_location=airports_location,
                                 title=title,
                                 stats=stats)
 
@@ -159,7 +180,8 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
                  forets_color=theme_colors.forests_color,
                  farmland_color=theme_colors.farmland_color,
                  sleepers_color=theme_colors.sleepers_color,
-                 railways_color=theme_colors.railways_color)
+                 railways_color=theme_colors.railways_color,
+                 runways_color=theme_colors.runways_color)
 
     plt.show()
 
