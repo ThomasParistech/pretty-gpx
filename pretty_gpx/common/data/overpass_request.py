@@ -131,10 +131,6 @@ class OverpassQuery:
             request.headers['User-Agent'] = agent
             try:
                 response = urllib.request.urlopen(request)
-            except urllib.request.HTTPError as err:
-                msg = 'The requested data could not be downloaded. ' + str(err)
-                logger.exception(msg)
-                raise Exception(msg, err)
             except Exception as err:
                 msg = "The requested data could not be downloaded. Please check whether your internet connection."
                 logger.exception(msg)
@@ -154,7 +150,7 @@ class OverpassQuery:
         with Profiling.Scope("Loading overpass data into overpy"):
             elem_cls: Area | Node | Relation | Way
             result_i = Result(elements=None,
-                            api=Overpass())
+                              api=Overpass())
             element_i: list[Area | Node | Relation | Way] = []
             i = 0
             for element in data.get("elements", []):
