@@ -139,12 +139,16 @@ class OverpassQuery:
                 msg = "The requested data could not be downloaded. Please check whether your internet connection."
                 logger.exception(msg)
                 raise Exception(msg, err)
+
+        with Profiling.Scope("Loading data into JSON"):
+            content_bytes = response.read()
+            logger.info(f"Downloaded {convert_bytes(len(content_bytes))}")
             encoding = response.info().get_content_charset('utf-8')
-            resp = response.read().decode(encoding)
+            content_str = content_bytes.decode(encoding)
 
         logger.info("Loading data")
         with Profiling.Scope("Loading response"):
-            data = ujson.loads(resp)
+            data = ujson.loads(content_str)
 
         logger.info("Loading overpass data into overpy")
         with Profiling.Scope("Loading overpass data into overpy"):
