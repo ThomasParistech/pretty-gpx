@@ -15,6 +15,10 @@ class GpxBounds:
     lat_min: float
     lat_max: float
 
+    def __str__(self) -> str:
+        """Return a string representation of GpxBounds."""
+        return f"Lon [{self.lon_min}, {self.lon_max}] and Lat [{self.lat_min},{self.lat_max}]"
+
     @staticmethod
     def from_list(*, list_lon: list[float], list_lat: list[float]) -> 'GpxBounds':
         """Init GpxBounds from list of latitudes and longitudes."""
@@ -42,7 +46,6 @@ class GpxBounds:
         """Returns if a point is in the bounds or not."""
         return self.lat_min < lat and lat < self.lat_max and self.lon_min < lon and lon < self.lon_max
 
-
     @property
     def lon_center(self) -> float:
         """Longitude center."""
@@ -64,11 +67,16 @@ class GpxBounds:
         return self.lat_max - self.lat_min
 
     @property
+    def latlon_aspect_ratio(self) -> float:
+        """Aspect ratio of the lat/lon map."""
+        return 1.0/np.cos(np.deg2rad(self.lat_center))
+
+    @property
     def dy_m(self) -> float:
         """Latitude span converted in meters."""
-        return EARTH_RADIUS_M*np.radians(self.lat_max - self.lat_min)
+        return EARTH_RADIUS_M * np.deg2rad(self.dlat)
 
     @property
     def dx_m(self) -> float:
         """Longitude span converted in meters."""
-        return EARTH_RADIUS_M*np.radians(self.lon_max - self.lon_min)
+        return EARTH_RADIUS_M * np.deg2rad(self.dlon) / self.latlon_aspect_ratio

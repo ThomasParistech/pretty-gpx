@@ -43,8 +43,7 @@ class OverpassQuery:
                            add_relative_margin: float | None = None) -> None:
         """Add a query to the list so that all queries can be launch simultaneously."""
         if isinstance(bounds, GpxTrack):
-            bounds = GpxBounds.from_list(list_lon=bounds.list_lon,
-                                        list_lat=bounds.list_lat)
+            bounds = bounds.get_bounds()
 
         if add_relative_margin is not None:
             bounds = bounds.add_relative_margin(add_relative_margin)
@@ -195,8 +194,7 @@ def overpass_query(query_elements: list[str],
     # See https://wiki.openstreetmap.org/wiki/Tag:tourism=alpine_hut
     api = Overpass(max_retry_count=max_retry_count)
     if isinstance(bounds, GpxTrack):
-        bounds = GpxBounds.from_list(list_lon=bounds.list_lon,
-                                     list_lat=bounds.list_lat)
+        bounds = bounds.get_bounds()
 
     if add_relative_margin is not None:
         bounds = bounds.add_relative_margin(add_relative_margin)

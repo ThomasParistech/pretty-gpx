@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from dataclasses import fields
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
@@ -100,10 +99,10 @@ class BaseVerticalLayout:
         tight_h_mm = track_h_mm * (1. - 2*self._get_track_margin())
 
         # Analyze the GPX track
-        bounds = GpxBounds.from_list(list_lon=gpx_track.list_lon, list_lat=gpx_track.list_lat)
+        bounds = gpx_track.get_bounds()
 
         # Aspect ratio of the lat/lon map
-        latlon_aspect_ratio = 1.0/np.cos(np.deg2rad(bounds.lat_center))
+        latlon_aspect_ratio = bounds.latlon_aspect_ratio
 
         # Tight fit
         lat_deg_per_mm = max(
