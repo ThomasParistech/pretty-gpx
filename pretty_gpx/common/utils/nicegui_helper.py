@@ -14,8 +14,8 @@ from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.profile import ProfilingEvent
 
 
-class UiModal:
-    """Context Manager for a modal dialog."""
+class UiWaitingModal:
+    """Context Manager for a waiting modal dialog."""
 
     def __init__(self, label: str) -> None:
         self.label = label
@@ -54,7 +54,7 @@ def on_click_slow_action_in_other_thread(label: str,
         the result
     """
     async def on_click() -> None:
-        with UiModal(label), Profiling.Scope("Modal"):
+        with UiWaitingModal(label), Profiling.Scope("Modal"):
             res = await run_io_bound(slow_func)
 
             if done_callback is not None:

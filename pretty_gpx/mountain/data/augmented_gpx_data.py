@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Map Data."""
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -12,6 +13,10 @@ from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.gpx.gpx_track import local_m_to_deg
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
+
+
+class GpxBoundsTooLargeError(Exception):
+    """Raised when the GPX area is too large to download elevation map."""
 
 
 @dataclass
@@ -65,7 +70,17 @@ class AugmentedGpxData:
         """Create an AugmentedGpxData instance from an ordered list of daily GPX files."""
         list_gpx_path = cast_to_list_gpx_path(list_gpx_path)
 
-        gpx_track, huts_ids, huts_names = find_huts_between_daily_tracks(list_gpx_path)
+        gpx_track, huts_ids = load_and_merge_tracks(list_gpx_path)
+
+        bounds = gpx_track.get_bounds()
+        area_squared_side_km = np.sqrt(bounds.dx_m*bounds.dy_m)*1e-3
+
+        if area_squared_side_km > 100:
+            raise GpxBoundsTooLargeError(
+                f"GPX area is too large to download elevation map. "
+                f"Got an area equivalent to a square of {math.ceil(area_squared_side_km)}km side.")
+
+        huts_names = find_huts_between_daily_tracks(gpx_track, huts_ids)
 
         is_closed = gpx_track.is_closed(loose_ths_m)
         passes_ids, mountain_passes = get_close_mountain_passes(gpx_track, strict_ths_m)
@@ -183,19 +198,13 @@ def get_place_name(lon: float, lat: float) -> str:
     raise RuntimeError(f"Place Not found at {lat:.3f}, {lon:.3f}. Got {address}")
 
 
-@profile
-def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
-                                   max_dist_m: float = 300) -> tuple[GpxTrack,
-                                                                     list[int],
-                                                                     list[MountainHut]]:
-    """Merge ordered GPX tracks into a single one and find huts between them."""
-    # Load GPX tracks
+def load_and_merge_tracks(list_gpx_path: list[str] | list[bytes]) -> tuple[GpxTrack, list[int]]:
+    """Load and merge ordered GPX tracks into a single one."""
     list_gpx_track = [GpxTrack.load(path) for path in list_gpx_path]
 
     if len(list_gpx_track) == 1:
-        return list_gpx_track[0], [], []
+        return list_gpx_track[0], []
 
-    # Assert consecutive tracks
     for i in range(len(list_gpx_track) - 1):
         crt_track = list_gpx_track[i]
         next_track = list_gpx_track[i+1]
@@ -210,9 +219,17 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
         if distance > local_m_to_deg(500):
             logger.warning("Warning: GPX tracks are not perfectly consecutive")
 
-    # Merge GPX tracks
     full_gpx_track = GpxTrack.merge(list_gpx_track=list_gpx_track)
+    huts_ids = np.cumsum([len(gpx.list_lon) for gpx in list_gpx_track[:-1]]).tolist()
 
+    return full_gpx_track, huts_ids
+
+
+@profile
+def find_huts_between_daily_tracks(full_gpx_track: GpxTrack,
+                                   huts_ids: list[int],
+                                   max_dist_m: float = 300) -> list[MountainHut]:
+    """Merge ordered GPX tracks into a single one and find huts between them."""
     # Request the huts
     result = overpass_query(["nwr['tourism'='alpine_hut']",
                              "nwr['tourism'='wilderness_hut']",
@@ -238,7 +255,6 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
 
     # Estimate the huts locations
     max_dist_deg = local_m_to_deg(max_dist_m)
-    huts_ids = np.cumsum([len(gpx.list_lon) for gpx in list_gpx_track[:-1]]).tolist()
 
     huts: list[MountainHut] = []
     candidates_lat_lon_np = np.array([[h.lat, h.lon] for h in candidate_huts])
@@ -256,4 +272,4 @@ def find_huts_between_daily_tracks(list_gpx_path: list[str] | list[bytes],
             huts.append(MountainHut(name=name, lat=hut_lat, lon=hut_lon))
 
     logger.info(f"Huts: {', '.join([h.name if h.name is not None else '?' for h in huts if h.name])}")
-    return full_gpx_track, huts_ids, huts
+    return huts

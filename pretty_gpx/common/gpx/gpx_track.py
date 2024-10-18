@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gpxpy.gpx import GPXTrackPoint
 
+from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_io import load_gpxpy
 from pretty_gpx.common.utils.asserts import assert_close
 from pretty_gpx.common.utils.asserts import assert_not_empty
@@ -35,6 +36,11 @@ class GpxTrack:
 
     def __post_init__(self) -> None:
         assert_same_len((self.list_lon, self.list_lat, self.list_ele_m, self.list_cumul_dist_km))
+
+    def get_bounds(self) -> GpxBounds:
+        """Get the bounds of the track."""
+        return GpxBounds.from_list(list_lon=self.list_lon,
+                                   list_lat=self.list_lat)
 
     @staticmethod
     def load(gpx_path: str | bytes) -> 'GpxTrack':
@@ -69,7 +75,7 @@ class GpxTrack:
                     + f"Distance={gpx_track.list_cumul_dist_km[-1]:.1f}km, "
                     + f"Uphill={gpx_track.uphill_m:.0f}m "
                     + "and "
-                    + "Duration=???" if gpx_track.duration_s is None else f"Duration={gpx_track.duration_s:.0f}s")
+                    + ("Duration=???" if gpx_track.duration_s is None else f"Duration={gpx_track.duration_s:.0f}s"))
 
         return gpx_track
 
