@@ -82,9 +82,9 @@ def points_are_close(p1: tuple[float, float], p2: tuple[float, float], eps: floa
 
 def convert_bytes(size_bytes: int) -> str:
     """Convert bytes to the most appropriate unit (KB, MB, or GB)."""
-    if size_bytes < 1024 ** 2:
-        return f"{size_bytes / 1024:.2f} KB"
-    elif size_bytes < 1024 ** 3:
-        return f"{size_bytes / (1024 ** 2):.2f} MB"
+    if size_bytes < 1000 ** 2:
+        return f"{size_bytes / 1000:.2f} KB"
+    elif size_bytes < 1000 ** 3:
+        return f"{size_bytes / (1000 ** 2):.2f} MB"
     else:
-        return f"{size_bytes / (1024 ** 3):.2f} GB"
+        return f"{size_bytes / (1000 ** 3):.2f} GB"
