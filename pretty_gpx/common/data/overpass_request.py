@@ -108,6 +108,7 @@ class OverpassQuery:
         if len(self.query_dict.keys()) == 0:
             return None
 
+        logger.info("Downloading data from OSM API")
         query,array_ordered_list = self.merge_queries()
         with Profiling.Scope("Download overpass data"):
             endpoint='http://overpass-api.de/api/'
@@ -131,8 +132,10 @@ class OverpassQuery:
             encoding = response.info().get_content_charset('utf-8')
             resp = response.read().decode(encoding)
 
+        with Profiling.Scope("Loading data into JSON"):
             data = ujson.loads(resp)
 
+        logger.info("Loading overpass data into overpy")
         with Profiling.Scope("Loading overpass data into overpy"):
             elem_cls: Area | Node | Relation | Way
             result_i = Result(elements=None,

@@ -73,3 +73,8 @@ def format_timedelta(total_seconds: float | int) -> str:
 
     # Join the parts with commas
     return ''.join(parts) if parts else '0s'
+
+
+def points_are_close(p1: tuple[float, float], p2: tuple[float, float], eps: float = 1e-5) -> bool:
+    """Get if points are closed with a tolerance epsilon."""
+    return are_close(p1[0], p2[0], eps=eps) and are_close(p1[1], p2[1], eps=eps)
