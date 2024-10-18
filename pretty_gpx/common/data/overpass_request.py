@@ -29,10 +29,9 @@ ListLonLat = list[tuple[float, float]]
 @dataclass
 class OverpassQuery:
     """Class to store all queries needed, to launch them and to split the result."""
-    query_dict: dict[str,str] = field(default_factory=dict)
-    query_unprocessed_results: dict[str,Result] = field(default_factory=dict)
-    query_cached_results: dict[str,str] = field(default_factory=dict)
-
+    query_dict: dict[str, str] = field(default_factory=dict)
+    query_unprocessed_results: dict[str, Result] = field(default_factory=dict)
+    query_cached_results: dict[str, str] = field(default_factory=dict)
 
     def add_overpass_query(self,
                            array_name: str,
@@ -67,10 +66,9 @@ class OverpassQuery:
 )->.{array_name};
 {recursion_param}
 .{array_name} out skel {out_param};"""
-        
+
         self.query_dict[array_name] = query
         logger.info(f"A query {array_name} has been added to the total query")
-
 
     def add_cached_result(self,
                           array_name: str,
@@ -78,15 +76,14 @@ class OverpassQuery:
         """Add the cache file in a dict to be able to use it when processing results."""
         self.query_cached_results[array_name] = cache_file
 
-
     @profile
     def merge_queries(self,
-                      timeout_s: int=300,
-                      maxsize_b: float=1e9) -> tuple[str,list[str]]:
+                      timeout_s: int = 300,
+                      maxsize_b: float = 1e9) -> tuple[str, list[str]]:
         """Merge all queries in a single one."""
         full_query: str = ""
         array_ordered_list: list[str] = []
-        for array_name,query in self.query_dict.items():
+        for array_name, query in self.query_dict.items():
             array_ordered_list.append(array_name)
             full_query = f"{full_query}\n{query}\n.{array_name} out count;\n\n"
         if full_query != "":
@@ -95,12 +92,11 @@ class OverpassQuery:
             logger.warning("Cache and query are empty and launch_queries has been called")
         return full_query, array_ordered_list
 
-
     @profile
     def launch_queries(self) -> None:
         # The code that query the request is inspired from https://github.com/mocnik-science/osm-python-tools
         # in the OSMPythonTools/internal/cacheObject.py file
-        # Then we split the result into the multiple results and then process it as it is done with 
+        # Then we split the result into the multiple results and then process it as it is done with
         # overpy.Result. The second part of the code of this function used to process the results
         # comes from overpy.Overpass.from_json function and has been adapted to this situation with multiple results
         """Merge all queries into a single one, launch the query, get the results and process them."""
@@ -108,11 +104,11 @@ class OverpassQuery:
             return None
 
         logger.info("Downloading data from OSM API")
-        query,array_ordered_list = self.merge_queries()
+        query, array_ordered_list = self.merge_queries()
         with Profiling.Scope("Download overpass data"):
-            endpoint='http://overpass-api.de/api/'
+            endpoint = 'http://overpass-api.de/api/'
             request = urllib.request.Request(endpoint + 'interpreter',
-                                            urllib.parse.urlencode({'data': query}).encode('utf-8'))
+                                             urllib.parse.urlencode({'data': query}).encode('utf-8'))
             agent = 'Pretty-gpx/ (https://github.com/ThomasParistech/pretty-gpx)'
 
             if not isinstance(request, urllib.request.Request):
@@ -138,7 +134,7 @@ class OverpassQuery:
         with Profiling.Scope("Loading overpass data into overpy"):
             elem_cls: Area | Node | Relation | Way
             result_i = Result(elements=None,
-                            api=Overpass())
+                              api=Overpass())
             element_i: list[Area | Node | Relation | Way] = []
             i = 0
             for element in data.get("elements", []):
@@ -165,19 +161,17 @@ class OverpassQuery:
         """Returns if the array has a cache file."""
         return array_name in self.query_cached_results
 
-
     def get_cache_file(self,
                        array_name: str) -> str:
         """Get the cache file path."""
         return self.query_cached_results[array_name]
-
 
     def get_query_result(self,
                          array_name: str) -> Result:
         """Get the query result (overpy.Result)."""
         if array_name not in self.query_unprocessed_results:
             raise KeyError(f"The specified array name ({array_name})"
-                            "has not been added to the query/not been resolved")
+                           "has not been added to the query/not been resolved")
         return self.query_unprocessed_results[array_name]
 
 

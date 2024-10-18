@@ -53,6 +53,7 @@ class PosterImageCaches:
                  paper_size: PaperSize) -> 'PosterImageCaches':
         """Create a PosterImageCaches from a GPX file."""
         # Extract GPX data and retrieve close mountain passes/huts
+
         gpx_data = AugmentedGpxData.from_path(list_gpx_path)
         return PosterImageCaches.from_augmented_gpx_data(gpx_data, paper_size)
 
@@ -97,6 +98,7 @@ class PosterImageCache:
         """Create a PosterImageCache from a GPX file."""
         # Download the elevation map at the correct layout
         img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper)
+
         elevation = download_elevation_map(img_bounds)
 
         # Rescale the elevation map to the target DPI
