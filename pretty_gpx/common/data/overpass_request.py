@@ -19,6 +19,7 @@ from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
+from pretty_gpx.common.utils.utils import convert_bytes
 
 DEBUG_OVERPASS_QUERY = False
 
@@ -39,7 +40,9 @@ class OverpassQuery:
                            query_elements: list[str],
                            bounds: GpxBounds | GpxTrack,
                            include_way_nodes: bool = False,
+                           include_relation_members_nodes: bool = False,
                            return_geometry: bool = False,
+                           return_center_only: bool = False,
                            add_relative_margin: float | None = None) -> None:
         """Add a query to the list so that all queries can be launch simultaneously."""
         if isinstance(bounds, GpxTrack):
@@ -53,12 +56,19 @@ class OverpassQuery:
 
         query_body = "\n".join([f"{element}{bounds_str};" for element in query_elements])
 
-        if return_geometry:
+        if return_center_only:
+            out_param = "center"
+        elif return_geometry:
             out_param = "geom"
         else:
             out_param = ""
 
-        if include_way_nodes:
+        if include_relation_members_nodes:
+            # If include_relation_members_nodes and include_way_nodes as 
+            # the double reccursion is stronger than the simple, there is 
+            # no problem
+            recursion_param = f"(.{array_name};>>;)->.{array_name};\n"
+        elif include_way_nodes:
             recursion_param = f"(.{array_name};>;)->.{array_name};\n"
         else:
             recursion_param = ""
@@ -121,25 +131,26 @@ class OverpassQuery:
             request.headers['User-Agent'] = agent
             try:
                 response = urllib.request.urlopen(request)
-            except urllib.request.HTTPError as err:
-                msg = 'The requested data could not be downloaded. ' + str(err)
-                logger.exception(msg)
-                raise Exception(msg, err)
             except Exception as err:
                 msg = "The requested data could not be downloaded. Please check whether your internet connection."
                 logger.exception(msg)
                 raise Exception(msg, err)
-            encoding = response.info().get_content_charset('utf-8')
-            resp = response.read().decode(encoding)
 
         with Profiling.Scope("Loading data into JSON"):
-            data = ujson.loads(resp)
+            content_bytes = response.read()
+            logger.info(f"Downloaded {convert_bytes(len(content_bytes))}")
+            encoding = response.info().get_content_charset('utf-8')
+            content_str = content_bytes.decode(encoding)
+
+        logger.info("Loading data")
+        with Profiling.Scope("Loading response"):
+            data = ujson.loads(content_str)
 
         logger.info("Loading overpass data into overpy")
         with Profiling.Scope("Loading overpass data into overpy"):
             elem_cls: Area | Node | Relation | Way
             result_i = Result(elements=None,
-                            api=Overpass())
+                              api=Overpass())
             element_i: list[Area | Node | Relation | Way] = []
             i = 0
             for element in data.get("elements", []):
@@ -147,6 +158,7 @@ class OverpassQuery:
                 if hasattr(e_type, "lower") and e_type.lower() == "count":
                     if len(element_i) > 0:
                         result_i.expand(Result(elements=element_i))
+                    # Even if it is empty we should add the data
                     self.query_unprocessed_results[array_ordered_list[i]] = result_i
                     i += 1
                     result_i = Result(elements=None,
