@@ -10,6 +10,7 @@ from dem_stitcher import stitch_dem
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
 from pretty_gpx.common.utils.asserts import assert_close
+from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import Profiling
 
 ELEVATION_CACHE = GpxDataCacheHandler(name='elevation', extension='.tif')
@@ -19,7 +20,10 @@ def download_elevation_map(bounds: GpxBounds) -> np.ndarray:
     """Download elevation map from Copernicus DEM."""
     cache_tif = ELEVATION_CACHE.get_path(bounds)
 
-    if not os.path.isfile(cache_tif):
+    if os.path.isfile(cache_tif):
+        logger.info(f"Load elevation map from cache for {bounds}")
+    else:
+        logger.info(f"Download elevation map for {bounds}")
         with Profiling.Scope("Download elevation map"):
             elevation, p = stitch_dem([bounds.lon_min, bounds.lat_min, bounds.lon_max, bounds.lat_max],
                                       dem_name='glo_30',  # Global Copernicus 30 meter resolution DEM
