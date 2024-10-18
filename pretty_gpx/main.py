@@ -11,6 +11,7 @@ from nicegui import app
 from nicegui import events
 from nicegui import ui
 from nicegui.elements.upload import Upload
+from nicegui.run import SubprocessException
 from pathvalidate import sanitize_filename
 
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
@@ -19,7 +20,7 @@ from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.nicegui_helper import on_click_slow_action_in_other_thread
 from pretty_gpx.common.utils.nicegui_helper import run_cpu_bound
 from pretty_gpx.common.utils.nicegui_helper import shutdown_app_and_close_tab
-from pretty_gpx.common.utils.nicegui_helper import UiModal
+from pretty_gpx.common.utils.nicegui_helper import UiWaitingModal
 from pretty_gpx.common.utils.paths import HIKING_DIR
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import profile_parallel
@@ -43,9 +44,17 @@ class UiManager:
 
     async def _on_upload(self, contents: list[bytes] | list[str], msg: str) -> None:
         """Pocess the files asynchronously to update the Poster cache."""
-        with UiModal(msg):
-            self.__cache = await run_cpu_bound(process_files,
-                                               contents, PAPER_SIZES[safe(paper_size_mode_toggle.value)])
+        with UiWaitingModal(msg):
+            try:
+                self.__cache = await run_cpu_bound(process_files,
+                                                   contents, PAPER_SIZES[safe(paper_size_mode_toggle.value)])
+            except SubprocessException as e:
+                logger.error(f"Error while {msg}: {e}")
+                logger.warning("Skip processing uploaded files")
+                ui.notify(f'Error while {msg}:\n{e.original_message}',
+                          type='negative', multi_line=True, timeout=0, close_button='OK')
+                return
+
         await on_click_update()()
 
     async def on_multi_upload(self, e: events.MultiUploadEventArguments) -> None:
@@ -73,7 +82,7 @@ class UiManager:
     async def on_paper_size_change(self) -> None:
         """Change the paper size and update the poster."""
         new_paper_size_name = str(safe(paper_size_mode_toggle.value))
-        with UiModal(f"Creating {new_paper_size_name} Poster"):
+        with UiWaitingModal(f"Creating {new_paper_size_name} Poster"):
             self.__cache = await run_cpu_bound(change_paper_size, copy.deepcopy(safe(self.__cache).gpx_data),
                                                PAPER_SIZES[new_paper_size_name])
         await on_click_update()()
