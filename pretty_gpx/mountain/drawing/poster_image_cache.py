@@ -93,7 +93,7 @@ class PosterImageCache:
     @staticmethod
     def from_gpx_data(gpx_data: AugmentedGpxData,
                       paper: PaperSize,
-                      layout: MountainVerticalLayout = MountainVerticalLayout(),
+                      layout: MountainVerticalLayout = MountainVerticalLayout.default(),
                       dpi: float = HIGH_RES_DPI) -> 'PosterImageCache':
         """Create a PosterImageCache from a GPX file."""
         # Download the elevation map at the correct layout
