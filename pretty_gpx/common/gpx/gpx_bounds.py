@@ -17,7 +17,7 @@ class GpxBounds:
 
     def __str__(self) -> str:
         """Return a string representation of GpxBounds."""
-        return f"Lon [{self.lon_min}, {self.lon_max}] and Lat [{self.lat_min},{self.lat_max}]"
+        return f"Lon [{self.lon_min:.2f}, {self.lon_max:.2f}] and Lat [{self.lat_min:.2f},{self.lat_max:.2f}]"
 
     @staticmethod
     def from_list(*, list_lon: list[float], list_lat: list[float]) -> 'GpxBounds':
