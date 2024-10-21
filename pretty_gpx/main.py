@@ -38,100 +38,183 @@ from pretty_gpx.mountain.drawing.poster_image_cache import W_DISPLAY_PIX
 from pretty_gpx.mountain.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
 
+from matplotlib.axes import Axes
+
+from typing import Dict, Any,Optional
+
 class UiMode(Enum):
     MOUNTAIN = auto()
 
 class UiManager:
-    """Manage the UI elements and the Poster cache."""
+    def __init__(self):
+        self.__cache: Dict[UiMode, Optional[PosterImageCaches]] = {mode: None for mode in UiMode}
+        self.ui_elements: Dict[UiMode, Dict[str, Any]] = {mode: {} for mode in UiMode}
+        self.plots: Dict[UiMode, ui.pyplot] = {mode: ui.pyplot()  for mode in UiMode}
+        self.axes: Dict[UiMode, Axes] = {mode: self.plots[mode].fig.add_subplot() for mode in UiMode}
+        self.init_ui_elements()
 
-    def __init__(self) -> None:
-        self.__cache: dict[UiMode, PosterImageCaches | None] = {
-            UiMode.MOUNTAIN: None,
-        }
+    def init_ui_elements(self):
+        for mode in UiMode:
+            self.ui_elements[mode] = {
+                'title_button': ui.input(label='Title', value=f"Title ({mode.name})"),
+                'uphill_button': ui.input(label='D+ (m)', value=""),
+                'dist_km_button': ui.input(label='Distance (km)', value=""),
+                'azimuth_toggle': ui.toggle(list(AZIMUTHS.keys()), value=list(AZIMUTHS.keys())[0]),
+                'dark_mode_switch': ui.switch("🌙", value=True),
+                'theme_toggle': ui.toggle(list(DARK_COLOR_THEMES.keys()), value=list(DARK_COLOR_THEMES.keys())[0]),
+                'paper_size_toggle': ui.toggle(list(PAPER_SIZES.keys()), value=list(PAPER_SIZES.keys())[0]),
+                'upload': ui.upload(label=f"Drag & drop your GPX file(s) here for {mode.name} and press upload", multiple=True),
+                'download_button': ui.button('Download', on_click=lambda m=mode: self.on_click_download(m)),
+            }
+            self.setup_event_handlers(mode)
 
-    async def _on_upload(self, contents: list[bytes] | list[str], msg: str, mode: UiMode) -> None:
-        """Pocess the files asynchronously to update the Poster cache."""
-        with UiWaitingModal(msg):
-            try:
-                self.__cache[mode] = await run_cpu_bound(process_files,
-                                                         contents, PAPER_SIZES[safe(paper_size_mode_toggle.value)], mode)
-            except SubprocessException as e:
-                logger.error(f"Error while {msg}: {e}")
-                logger.warning("Skip processing uploaded files")
-                ui.notify(f'Error while {msg}:\n{e.original_message}',
-                          type='negative', multi_line=True, timeout=0, close_button='OK')
-                return
+    def setup_event_handlers(self, mode: UiMode):
+        self.ui_elements[mode]['title_button'].on('keydown.enter', lambda: self.on_click_update(mode))
+        self.ui_elements[mode]['uphill_button'].on('keydown.enter', lambda: self.on_click_update(mode))
+        self.ui_elements[mode]['dist_km_button'].on('keydown.enter', lambda: self.on_click_update(mode))
+        self.ui_elements[mode]['azimuth_toggle'].on('change', lambda: self.on_click_update(mode))
+        self.ui_elements[mode]['dark_mode_switch'].on('change', lambda e: self.on_dark_mode_switch_change(e, mode))
+        self.ui_elements[mode]['theme_toggle'].on('change', lambda: self.on_click_update(mode))
+        self.ui_elements[mode]['paper_size_toggle'].on('change', lambda: self.on_paper_size_change(mode))
+        self.ui_elements[mode]['upload'].on('upload', lambda e: self.on_multi_upload(e, mode))
 
-        await on_click_update(mode)()
+    def setup_plot(self, mode: UiMode):
+        with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
+            with ui.pyplot(close=False) as self.plots[mode]:
+                self.axes[mode] = self.plots[mode].fig.add_subplot()
+                if self.axes[mode] is not None:
+                    self.axes[mode].axis('off')
+
 
     async def on_multi_upload(self, e: events.MultiUploadEventArguments, mode: UiMode) -> None:
-        """Sort the uploaded files by name and process them to update the Poster cache."""
         sorted_indices = index_natsorted(e.names)
         names = [e.names[i] for i in sorted_indices]
         contents = [e.contents[i].read() for i in sorted_indices]
         assert isinstance(e.sender, Upload)
         e.sender.reset()
 
-        if len(contents) == 1:
-            msg = f"Processing {names[0]}"
-        else:
-            msg = f'Processing a {len(names)}-days track ({", ".join(names)})'
-
+        msg = f"Processing {names[0]}" if len(contents) == 1 else f'Processing a {len(names)}-days track ({", ".join(names)})'
         await self._on_upload(contents, msg, mode)
 
-    async def on_click_load_example(self) -> None:
-        """Load the example GPX files."""
-        contents = [os.path.join(HIKING_DIR, "vanoise1.gpx"),
-                    os.path.join(HIKING_DIR, "vanoise2.gpx"),
-                    os.path.join(HIKING_DIR, "vanoise3.gpx")]
-        await self._on_upload(contents, f"Generate a {len(contents)}-days example poster", UiMode.MOUNTAIN)
+    async def _on_upload(self, contents: list[bytes] | list[str], msg: str, mode: UiMode) -> None:
+        with UiWaitingModal(msg):
+            try:
+                self.__cache[mode] = await run_cpu_bound(process_files, contents, PAPER_SIZES[safe(self.ui_elements[mode]['paper_size_toggle'].value)], mode)
+            except SubprocessException as e:
+                logger.error(f"Error while {msg}: {e}")
+                logger.warning("Skip processing uploaded files")
+                ui.notify(f'Error while {msg}:\n{e.original_message}', type='negative', multi_line=True, timeout=0, close_button='OK')
+                return
+
+        await self.on_click_update(mode)()
 
     async def on_paper_size_change(self, mode: UiMode) -> None:
-        """Change the paper size and update the poster."""
-        new_paper_size_name = str(safe(paper_size_mode_toggle.value))
+        new_paper_size_name = str(safe(self.ui_elements[mode]['paper_size_toggle'].value))
         with UiWaitingModal(f"Creating {new_paper_size_name} Poster"):
             self.__cache[mode] = await run_cpu_bound(change_paper_size, copy.deepcopy(safe(self.__cache[mode]).gpx_data),
                                                      PAPER_SIZES[new_paper_size_name], mode)
-        await on_click_update(mode)()
-
+        await self.on_click_update(mode)()
 
     def high_res_cache(self, mode: UiMode) -> PosterImageCache:
-        """Return the high resolution Poster cache."""
         return safe(self.__cache[mode]).high_res
 
-
     def low_res_cache(self, mode: UiMode) -> PosterImageCache:
-        """Return the low resolution Poster cache."""
         return safe(self.__cache[mode]).low_res
 
+    def _update(self, c: PosterImageCache, mode: UiMode) -> PosterDrawingData:
+        dark_mode = bool(safe(self.ui_elements[mode]['dark_mode_switch'].value))
+        color_themes = DARK_COLOR_THEMES if dark_mode else LIGHT_COLOR_THEMES
+        return c.update_drawing_data(
+            azimuth=AZIMUTHS[safe(self.ui_elements[mode]['azimuth_toggle'].value)],
+            theme_colors=color_themes[safe(self.ui_elements[mode]['theme_toggle'].value)],
+            title_txt=self.ui_elements[mode]['title_button'].value,
+            uphill_m=self.ui_elements[mode]['uphill_button'].value,
+            dist_km=self.ui_elements[mode]['dist_km_button'].value
+        )
 
-ui_manager = UiManager()
+    @profile_parallel
+    def update_high_res(self, mode: UiMode) -> PosterDrawingData:
+        return self._update(self.high_res_cache(mode), mode)
 
+    @profile_parallel
+    def update_low_res(self, mode: UiMode) -> PosterDrawingData:
+        return self._update(self.low_res_cache(mode), mode)
+
+    def update_done_callback(self, poster_drawing_data: PosterDrawingData, mode: UiMode, is_high_res: bool) -> None:
+        if isinstance(poster_drawing_data, PosterDrawingData):
+            cache = self.high_res_cache(mode) if is_high_res else self.low_res_cache(mode)
+            with Profiling.Scope("Pyplot Context"):
+                if self.plots[mode] and self.axes[mode]:
+                    cache.draw(self.plots[mode].fig, self.axes[mode], poster_drawing_data)
+            if self.plots[mode] is not None:
+                ui.update(self.plots[mode])
+        else:
+            raise ValueError
+
+    def on_click_update(self, mode: UiMode) -> Callable[[], Awaitable[None]]:
+        return on_click_slow_action_in_other_thread(
+            'Updating',
+            lambda: self.update_low_res(mode),
+            lambda data: self.update_done_callback(data, mode, False)
+        )
+
+
+    def on_dark_mode_switch_change(self, e: events.ValueChangeEventArguments, mode: UiMode) -> None:
+        dark_mode = e.value
+        self.ui_elements[mode]['dark_mode_switch'].text = "🌙" if dark_mode else "☀️"
+        theme_options = list(DARK_COLOR_THEMES.keys()) if dark_mode else list(LIGHT_COLOR_THEMES.keys())
+        self.ui_elements[mode]['theme_toggle'].options = theme_options
+        self.ui_elements[mode]['theme_toggle'].value = theme_options[0]
+        self.ui_elements[mode]['theme_toggle'].update()
+
+    @profile_parallel
+    def download(self, mode: UiMode) -> bytes:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with Profiling.Scope("Matplotlib Save SVG"):
+                tmp_svg = os.path.join(tmp_dir, "tmp.svg")
+                if self.plots[mode] and self.plots[mode].fig:
+                    self.plots[mode].fig.savefig(tmp_svg, dpi=self.high_res_cache(mode).dpi)
+                else:
+                    raise ValueError("Plot or figure is not initialized")
+            with open(tmp_svg, "rb") as svg_file:
+                return svg_file.read()
+
+    def download_done_callback(self, svg_bytes: bytes, mode: UiMode) -> None:
+        ui.download(svg_bytes, f'poster_{mode.name}_{sanitize_filename(str(self.ui_elements[mode]["title_button"].value).replace(" ", "_"))}.svg')
+        logger.info(f"Poster Downloaded for {mode.name}")
+
+    async def on_click_download(self, mode: UiMode) -> None:
+        dpi = self.high_res_cache(mode).dpi
+        await on_click_slow_action_in_other_thread(f'Rendering at High Resolution ({dpi} dpi)',
+                                                   lambda: self.update_high_res(mode),
+                                                   lambda data: self.update_done_callback(data, mode, True))()
+        await on_click_slow_action_in_other_thread(f'Exporting SVG ({dpi} dpi)',
+                                                   lambda: self.download(mode),
+                                                   lambda svg_bytes: self.download_done_callback(svg_bytes, mode))()
 
 @profile_parallel
 def process_files(list_b: list[bytes] | list[str], new_paper_size: PaperSize, mode: UiMode) -> PosterImageCaches:
-    """Process the uploaded files and return the PosterImageCaches."""
     if mode == UiMode.MOUNTAIN:
         return PosterImageCaches.from_gpx(list_b, new_paper_size)
+    elif mode == UiMode.CITY:
+        # Implement city-specific processing here
+        raise NotImplementedError("City mode not yet implemented")
     else:
-        raise ValueError
-
+        raise ValueError(f"Unsupported mode: {mode}")
 
 @profile_parallel
 def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize, mode: UiMode) -> PosterImageCaches:
-    """Return the PosterImageCaches with the new paper size."""
     if mode == UiMode.MOUNTAIN:
         return PosterImageCaches.from_augmented_gpx_data(gpx_data, new_paper_size)
+    elif mode == UiMode.CITY:
+        # Implement city-specific paper size change here
+        raise NotImplementedError("City mode not yet implemented")
     else:
-        raise ValueError
+        raise ValueError(f"Unsupported mode: {mode}")
 
+ui_manager = UiManager()
 
-with ui.row():
-    with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
-        with ui.pyplot(close=False) as plot:
-            ax = plot.fig.add_subplot()
-            ax.axis('off')
-
+def create_ui():
     with ui.column(align_items="center"):
         ui.chat_message(
             ['Welcome 😀\nCreate a custom poster from\n'
@@ -144,142 +227,50 @@ with ui.row():
              '(N.B. the map below is a Low-Resolution preview.)']
         ).props('bg-color=blue-2')
 
-        ui.upload(label="Drag & drop your GPX file(s) here and press upload",
-                  multiple=True,
-                  on_multi_upload=ui_manager.on_multi_upload
-                  ).props('accept=.gpx'
-                          ).on('rejected', lambda: ui.notify('Please provide a GPX file')
-                               ).classes('max-w-full')
+    create_mode_ui(UiMode.MOUNTAIN)
 
-        with ui.card():
-            paper_size_mode_toggle = ui.toggle(list(PAPER_SIZES.keys()), value=list(PAPER_SIZES.keys())[0],
-                                               on_change=ui_manager.on_paper_size_change)
+    with ui.dialog() as exit_dialog, ui.card():
+        ui.label('Confirm exit?')
+        with ui.row():
+            ui.button('Yes', on_click=lambda: shutdown_app_and_close_tab(), color='red-9')
+            ui.button('Cancel', on_click=exit_dialog.close)
 
-        # Update options
-        with ui.card():
-            def _update(c: PosterImageCache) -> PosterDrawingData:
-                """Asynchronously update the PosterDrawingData with the current settings."""
-                dark_mode = bool(safe(dark_mode_switch_mountain.value))
+    async def confirm_exit() -> None:
+        await exit_dialog
 
-                color_themes = (DARK_COLOR_THEMES if dark_mode else LIGHT_COLOR_THEMES)
-                return c.update_drawing_data(azimuth=AZIMUTHS[safe(azimuth_toggle.value)],
-                                             theme_colors=color_themes[safe(theme_toggle_mountain.value)],
-                                             title_txt=title_button_mountain.value,
-                                             uphill_m=uphill_button_mountain.value,
-                                             dist_km=dist_km_button_mountain.value)
+    exit_button = ui.button('Exit',
+                            on_click=confirm_exit,
+                            color='red-9',
+                            icon='logout').style('position: fixed; top: 10px; right: 10px;')
 
-            def _update_done_callback(c: PosterImageCache, poster_drawing_data: PosterDrawingData) -> None:
-                """Synchronously update the plot with the PosterDrawingData (Matplotlib must run in the main thread)."""
-                with Profiling.Scope("Pyplot Context"), plot:
-                    c.draw(plot.fig, ax, poster_drawing_data)
-                ui.update(plot)
+def create_mode_ui(mode: UiMode):
+    with ui.column(align_items="center"):
+        with ui.card().classes('w-full'):
+            ui.label(f"{mode.name} Mode").classes('text-h6')
+            ui_manager.ui_elements[mode]['upload'].props('accept=.gpx').on('rejected', lambda: ui.notify('Please provide a GPX file'))
+            ui_manager.ui_elements[mode]['paper_size_toggle']
+            ui_manager.ui_elements[mode]['title_button']
+            ui_manager.ui_elements[mode]['uphill_button']
+            ui_manager.ui_elements[mode]['dist_km_button']
+            ui_manager.ui_elements[mode]['azimuth_toggle']
+            ui_manager.ui_elements[mode]['dark_mode_switch']
+            ui_manager.ui_elements[mode]['theme_toggle']
+            ui_manager.ui_elements[mode]['download_button']
 
-            @profile_parallel
-            def update_high_res(mode: UiMode) -> PosterDrawingData:
-                """Update the PosterDrawingData with the current settings, at the high resolution."""
-                return _update(ui_manager.high_res_cache(mode))
-
-            @profile_parallel
-            def update_low_res(mode: UiMode) -> PosterDrawingData:
-                """Update the PosterDrawingData with the current settings, at the low resolution."""
-                return _update(ui_manager.low_res_cache(mode))
-
-            @profile
-            def update_done_callback_high_res(poster_drawing_data: PosterDrawingData) -> None:
-                """Update the plot with the high resolution PosterDrawingData."""
-                if isinstance(poster_drawing_data, PosterDrawingData):
-                    _update_done_callback(ui_manager.high_res_cache(UiMode.MOUNTAIN), poster_drawing_data)
-                else:
-                    raise ValueError
-
-            @profile
-            def update_done_callback_low_res(poster_drawing_data: PosterDrawingData) -> None:
-                """Update the plot with the low resolution PosterDrawingData."""
-                if isinstance(poster_drawing_data, PosterDrawingData):
-                    _update_done_callback(ui_manager.low_res_cache(UiMode.MOUNTAIN), poster_drawing_data)
-                else:
-                    raise ValueError
-
-            def on_click_update(mode: UiMode) -> Callable[[], Awaitable[None]]:
-                """Return an async function that updates the poster with the current settings."""
-                return on_click_slow_action_in_other_thread('Updating', lambda: update_low_res(mode), update_done_callback_low_res)
-
-            with ui.input(label='Title', value="Title").on('keydown.enter', on_click_update(UiMode.MOUNTAIN)) as title_button_mountain:
-                ui.tooltip("Press Enter to update title")
-
-            with ui.input(label='D+ (m)', value="").on('keydown.enter', on_click_update(UiMode.MOUNTAIN)) as uphill_button_mountain:
-                ui.tooltip("Press Enter to override elevation from GPX")
-
-            with ui.input(label='Distance (km)', value="").on('keydown.enter', on_click_update(UiMode.MOUNTAIN)) as dist_km_button_mountain:
-                ui.tooltip("Press Enter to override distance from GPX")
-
-            azimuth_toggle = ui.toggle(list(AZIMUTHS.keys()), value=list(AZIMUTHS.keys())[0],
-                                       on_change=on_click_update(UiMode.MOUNTAIN))
-
-            DARK_MODE_TEXT = "🌙"
-            LIGHT_MODE_TEXT = "☀️"
-
-            def on_dark_mode_switch_change(e: events.ValueChangeEventArguments) -> None:
-                """Switch between dark and light mode."""
-                dark_mode_mountain = e.value
-                dark_mode_switch_mountain.text = DARK_MODE_TEXT if dark_mode_mountain else LIGHT_MODE_TEXT
-                theme_toggle_mountain.options = list(DARK_COLOR_THEMES.keys()) if dark_mode_mountain else list(LIGHT_COLOR_THEMES.keys())
-                theme_toggle_mountain.value = theme_toggle_mountain.options[0]
-                theme_toggle_mountain.update()
-
-            dark_mode_switch_mountain = ui.switch(DARK_MODE_TEXT, value=True,
-                                         on_change=on_dark_mode_switch_change)
-
-            theme_toggle_mountain = ui.toggle(list(DARK_COLOR_THEMES.keys()), value=list(DARK_COLOR_THEMES.keys())[0],
-                                     on_change=on_click_update(UiMode.MOUNTAIN))
-
-            # Download button
-
-            @profile_parallel
-            def download() -> bytes:
-                """Save the high resolution poster as SVG and return the bytes."""
-                with tempfile.TemporaryDirectory() as tmp_dir:
-                    with Profiling.Scope("Matplotlib Save SVG"):
-                        tmp_svg = os.path.join(tmp_dir, "tmp.svg")
-                        plot.fig.savefig(tmp_svg, dpi=ui_manager.high_res_cache.dpi)
-                    with open(tmp_svg, "rb") as svg_file:
-                        return svg_file.read()
-
-            def download_done_callback(svg_bytes: bytes) -> None:
-                """Download the SVG file."""
-                ui.download(svg_bytes, f'poster_{sanitize_filename(str(title_button_mountain.value).replace(" ", "_"))}.svg')
-                logger.info("Poster Downloaded")
-
-            async def on_click_download() -> None:
-                """Asynchronously render the high resolution poster and download it as SVG."""
-                dpi = ui_manager.high_res_cache.dpi
-                await on_click_slow_action_in_other_thread(f'Rendering at High Resolution ({dpi} dpi)',
-                                                           update_high_res, update_done_callback_high_res)()
-                await on_click_slow_action_in_other_thread(f'Exporting SVG ({dpi} dpi)',
-                                                           download, download_done_callback)()
-
-            download_button = ui.button('Download', on_click=on_click_download)
+        ui_manager.setup_plot(mode)
+        with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
+            ui_manager.plots[mode]
 
 
-with ui.dialog() as exit_dialog, ui.card():
-    ui.label('Confirm exit?')
-    with ui.row():
-        ui.button('Yes', on_click=lambda: shutdown_app_and_close_tab(), color='red-9')
-        ui.button('Cancel', on_click=exit_dialog.close)
+create_ui()
 
+async def load_example():
+    contents = [os.path.join(HIKING_DIR, f"vanoise{i}.gpx") for i in range(1, 4)]
+    await ui_manager._on_upload(contents, f"Generate a {len(contents)}-days example poster", UiMode.MOUNTAIN)
 
-async def confirm_exit() -> None:
-    """Display a confirmation dialog before exiting."""
-    await exit_dialog
-
-
-exit_button = ui.button('Exit',
-                        on_click=confirm_exit,
-                        color='red-9',
-                        icon='logout').style('position: fixed; top: 10px; right: 10px;')
-
-app.on_startup(ui_manager.on_click_load_example)
+app.on_startup(load_example)
 app.on_shutdown(lambda: Profiling.export_events())
+
 
 ui.run(title='Pretty GPX',
        favicon="✨",
