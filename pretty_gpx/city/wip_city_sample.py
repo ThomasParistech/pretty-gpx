@@ -21,10 +21,10 @@ from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import LineCollectionData
 from pretty_gpx.common.drawing.drawing_data import PlotData
-from pretty_gpx.common.drawing.drawing_data import PolyFillData
 from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
 from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
+from pretty_gpx.common.drawing.elevation_stats_section import ElevationStatsSection
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.utils.logger import logger
@@ -40,14 +40,13 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     road_color = "black" if theme_colors.dark_mode else "white"
 
     paper = PAPER_SIZES['A4']
-    layout = CityVerticalLayout()
+    layout = CityVerticalLayout.default()
     roads_bounds, base_plotter = layout.get_download_bounds_and_paper_figure(gpx_track, paper)
 
     caracteristic_distance_m = (roads_bounds.dx_m**2 + roads_bounds.dy_m**2)**0.5
     logger.info(f"Domain diagonal is {caracteristic_distance_m/1000.:.1f}km")
     city_linewidth = CityLinewidthParams.default(paper_size=paper,
                                                  diagonal_distance_m=caracteristic_distance_m)
-
 
     total_query = OverpassQuery()
 
@@ -62,7 +61,6 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     # Merge and run all queries
     total_query.launch_queries()
 
-
     # Retrieve the data
     roads = process_city_roads(query=total_query,
                                bounds=roads_bounds)
@@ -70,8 +68,8 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     rivers = process_city_rivers(query=total_query,
                                  bounds=roads_bounds)
 
-    forests,farmland = process_city_forests(query=total_query,
-                                            bounds=roads_bounds)
+    forests, farmland = process_city_forests(query=total_query,
+                                             bounds=roads_bounds)
     forests.interior_polygons = []
 
     track_data: list[BaseDrawingData] = [PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=2.0)]
@@ -90,25 +88,24 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
                      fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
                      ha="center",
                      va="center")
-    
+
     stats_text = f"{gpx_track.list_cumul_dist_km[-1]:.2f} km - {int(gpx_track.uphill_m)} m D+"
 
     if gpx_track.duration_s is not None:
         stats_text += f"\n{format_timedelta(gpx_track.duration_s)}"
 
-    stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * layout.stats_relative_h,
-                    s=stats_text, fontsize=mm_to_point(18.5),
-                    fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
-                    ha="center",
-                    va="center")
     point_data.append(ScatterData(x=[gpx_track.list_lon[0]], y=[gpx_track.list_lat[0]],
                                   marker="o", markersize=mm_to_point(3.5)))
     point_data.append(ScatterData(x=[gpx_track.list_lon[-1]], y=[gpx_track.list_lat[-1]],
                                   marker="s", markersize=mm_to_point(3.5)))
 
-    h_top_stats = b.lat_min + b.dlat * layout.stats_relative_h
-    track_data.append(PolyFillData(x=[b.lon_min, b.lon_max, b.lon_max, b.lon_min],
-                                   y=[h_top_stats, h_top_stats, b.lat_min, b.lat_min]))
+    ele = ElevationStatsSection(layout, base_plotter, gpx_track)
+    track_data.append(ele.fill_poly)
+    stats = TextData(x=ele.section_center_lon_x, y=ele.section_center_lat_y,
+                     s=stats_text, fontsize=mm_to_point(18.5),
+                     fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
+                     ha="center",
+                     va="center")
 
     plotter = CityDrawingFigure(paper_size=base_plotter.paper_size,
                                 latlon_aspect_ratio=base_plotter.latlon_aspect_ratio,

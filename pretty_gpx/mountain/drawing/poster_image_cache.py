@@ -13,9 +13,11 @@ from pretty_gpx.common.drawing.drawing_data import PlotData
 from pretty_gpx.common.drawing.drawing_data import PolyFillData
 from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
+from pretty_gpx.common.drawing.elevation_stats_section import ElevationStatsSection
 from pretty_gpx.common.drawing.text_allocation import allocate_text
 from pretty_gpx.common.drawing.text_allocation import AnnotatedScatterDataCollection
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
+from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
@@ -201,9 +203,8 @@ def init_and_populate_drawing_figure(gpx_data: AugmentedGpxData,
     draw_start = gpx_data.start_name is not None
     draw_end = draw_start if gpx_data.is_closed else gpx_data.end_name is not None
     ele_scatter, ele_fill_poly, stats = get_elevation_drawings(layout=layout,
-                                                               b=b,
-                                                               list_ele=gpx_data.track.list_ele_m,
-                                                               list_cum_d=gpx_data.track.list_cumul_dist_km,
+                                                               paper_fig=paper_fig,
+                                                               track=gpx_data.track,
                                                                passes_ids=gpx_data.passes_ids,
                                                                huts_ids=gpx_data.hut_ids,
                                                                draw_start=draw_start,
@@ -287,9 +288,8 @@ def init_annotated_scatter_collection(gpx_data: AugmentedGpxData,
 
 
 def get_elevation_drawings(layout: MountainVerticalLayout,
-                           b: GpxBounds,
-                           list_ele: list[float],
-                           list_cum_d: list[float],
+                           paper_fig: BaseDrawingFigure,
+                           track: GpxTrack,
                            passes_ids: list[int],
                            huts_ids: list[int],
                            draw_start: bool,
@@ -300,18 +300,12 @@ def get_elevation_drawings(layout: MountainVerticalLayout,
                                                                                     TextData]:
     """Create the plot elements for the elevation profile."""
     # Elevation Profile
-    y_up = b.lat_min + b.dlat * (layout.stats_relative_h + layout.elevation_relative_h)
-    y_bot = b.lat_min + b.dlat * layout.stats_relative_h
-
-    elevation_poly_x = b.lon_min + b.dlon*np.array(list_cum_d)/list_cum_d[-1]
-
-    hmin, hmax = np.min(list_ele), np.max(list_ele)
-    elevation_poly_y = y_bot + (np.array(list_ele) - hmin) * (y_up-y_bot) / (hmax-hmin)
+    ele = ElevationStatsSection(layout, paper_fig, track)
 
     # Mountain Passes and Huts
     scatter_data = [
-        ScatterData(x=[elevation_poly_x[closest_idx] for closest_idx in ids],
-                    y=[elevation_poly_y[closest_idx] for closest_idx in ids],
+        ScatterData(x=[ele.get_profile_lon_x(closest_idx) for closest_idx in ids],
+                    y=[ele.get_profile_lat_y(closest_idx) for closest_idx in ids],
                     marker=marker, markersize=markersize)
         for ids, marker, markersize in [(passes_ids, drawing_style_params.peak_marker,
                                          drawing_size_params.peak_markersize),
@@ -321,24 +315,20 @@ def get_elevation_drawings(layout: MountainVerticalLayout,
 
     # Start and End
     if draw_start:
-        scatter_data.append(ScatterData(x=[elevation_poly_x[0]], y=[elevation_poly_y[0]],
+        scatter_data.append(ScatterData(x=[ele.get_profile_lon_x(0)], y=[ele.get_profile_lat_y(0)],
                                         marker=drawing_style_params.start_marker,
                                         markersize=drawing_size_params.start_markersize))
     if draw_end:
-        scatter_data.append(ScatterData(x=[elevation_poly_x[-1]], y=[elevation_poly_y[-1]],
+        scatter_data.append(ScatterData(x=[ele.get_profile_lon_x(-1)], y=[ele.get_profile_lat_y(-1)],
                                         marker=drawing_style_params.end_marker,
                                         markersize=drawing_size_params.end_markersize))
 
-    # Complete the polygon for the elevation profile
-    elevation_poly_x = np.hstack((b.lon_min, b.lon_min, elevation_poly_x, b.lon_max, b.lon_max))
-    elevation_poly_y = np.hstack((b.lat_min, y_bot, elevation_poly_y, y_bot, b.lat_min))
-    elevation_data = PolyFillData(x=elevation_poly_x.tolist(), y=elevation_poly_y.tolist())
-
-    stats = TextData(x=b.lon_center, y=0.5 * (y_bot + b.lat_min),
+    # Text
+    stats = TextData(x=ele.section_center_lon_x, y=ele.section_center_lat_y,
                      s="", fontsize=drawing_size_params.stats_fontsize,
                      fontproperties=drawing_style_params.pretty_font, ha="center", va="center")
 
-    return scatter_data, elevation_data, stats
+    return scatter_data, ele.fill_poly, stats
 
 
 def rescale_elevation_to_dpi(elevation_map: np.ndarray,
