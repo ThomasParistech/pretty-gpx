@@ -1,4 +1,7 @@
 git
+gdal-bin
+libgdal-dev
+build-essential
 libgl1
 libglib2.0-0
 tk

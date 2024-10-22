@@ -5,7 +5,7 @@ gpxpy==1.6.2
 mypy==1.5.1
 mypy-protobuf==3.4.0
 natsort==8.4.0
-nicegui==1.4.36
+nicegui==2.4.0
 numpy==1.26.0
 opencv-contrib-python==4.9.0.80
 opencv-python==4.9.0.80
