@@ -51,39 +51,35 @@ class UiManager:
         self.ui_elements: Dict[UiMode, Dict[str, Any]] = {mode: {} for mode in UiMode}
         self.plots: Dict[UiMode, ui.pyplot] = {mode: ui.pyplot()  for mode in UiMode}
         self.axes: Dict[UiMode, Axes] = {mode: self.plots[mode].fig.add_subplot() for mode in UiMode}
-        self.init_ui_elements()
 
-    def init_ui_elements(self):
-        for mode in UiMode:
-            self.ui_elements[mode] = {
-                'title_button': ui.input(label='Title', value=f"Title ({mode.name})"),
-                'uphill_button': ui.input(label='D+ (m)', value=""),
-                'dist_km_button': ui.input(label='Distance (km)', value=""),
-                'azimuth_toggle': ui.toggle(list(AZIMUTHS.keys()), value=list(AZIMUTHS.keys())[0]),
-                'dark_mode_switch': ui.switch("🌙", value=True),
-                'theme_toggle': ui.toggle(list(DARK_COLOR_THEMES.keys()), value=list(DARK_COLOR_THEMES.keys())[0]),
-                'paper_size_toggle': ui.toggle(list(PAPER_SIZES.keys()), value=list(PAPER_SIZES.keys())[0]),
-                'upload': ui.upload(label=f"Drag & drop your GPX file(s) here for {mode.name} and press upload", multiple=True),
-                'download_button': ui.button('Download', on_click=lambda m=mode: self.on_click_download(m)),
-            }
-            self.setup_event_handlers(mode)
+    def create_ui_elements(self, mode: UiMode) -> Dict[str, Any]:
+        """Create UI elements for a specific mode when needed"""
+        elements = {
+            'title_button': ui.input(label='Title', value=f"Title"),
+            'uphill_button': ui.input(label='D+ (m)', value=""),
+            'dist_km_button': ui.input(label='Distance (km)', value=""),
+            'azimuth_toggle': ui.toggle(list(AZIMUTHS.keys()), value=list(AZIMUTHS.keys())[0]),
+            'dark_mode_switch': ui.switch("🌙", value=True),
+            'theme_toggle': ui.toggle(list(DARK_COLOR_THEMES.keys()), value=list(DARK_COLOR_THEMES.keys())[0]),
+            'paper_size_toggle': ui.toggle(list(PAPER_SIZES.keys()), value=list(PAPER_SIZES.keys())[0]),
+            'upload': ui.upload(label=f"Drag & drop your GPX file(s) here for {mode.name} and press upload", multiple=True),
+            'download_button': ui.button('Download', on_click=lambda m=mode: self.on_click_download(m)),
+        }
+        
+        self.setup_event_handlers(elements, mode)
+        self.ui_elements[mode] = elements
+        return elements
 
-    def setup_event_handlers(self, mode: UiMode):
-        self.ui_elements[mode]['title_button'].on('keydown.enter', lambda: self.on_click_update(mode))
-        self.ui_elements[mode]['uphill_button'].on('keydown.enter', lambda: self.on_click_update(mode))
-        self.ui_elements[mode]['dist_km_button'].on('keydown.enter', lambda: self.on_click_update(mode))
-        self.ui_elements[mode]['azimuth_toggle'].on('change', lambda: self.on_click_update(mode))
-        self.ui_elements[mode]['dark_mode_switch'].on('change', lambda e: self.on_dark_mode_switch_change(e, mode))
-        self.ui_elements[mode]['theme_toggle'].on('change', lambda: self.on_click_update(mode))
-        self.ui_elements[mode]['paper_size_toggle'].on('change', lambda: self.on_paper_size_change(mode))
-        self.ui_elements[mode]['upload'].on('upload', lambda e: self.on_multi_upload(e, mode))
-
-    def setup_plot(self, mode: UiMode):
-        with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
-            with ui.pyplot(close=False) as self.plots[mode]:
-                self.axes[mode] = self.plots[mode].fig.add_subplot()
-                if self.axes[mode] is not None:
-                    self.axes[mode].axis('off')
+    def setup_event_handlers(self, elements: Dict[str, Any], mode: UiMode):
+        """Set up event handlers for the UI elements"""
+        elements['title_button'].on('keydown.enter', lambda: self.on_click_update(mode))
+        elements['uphill_button'].on('keydown.enter', lambda: self.on_click_update(mode))
+        elements['dist_km_button'].on('keydown.enter', lambda: self.on_click_update(mode))
+        elements['azimuth_toggle'].on('change', lambda: self.on_click_update(mode))
+        elements['dark_mode_switch'].on('change', lambda e: self.on_dark_mode_switch_change(e, mode))
+        elements['theme_toggle'].on('change', lambda: self.on_click_update(mode))
+        elements['paper_size_toggle'].on('change', lambda: self.on_paper_size_change(mode))
+        elements['upload'].on('upload', lambda e: self.on_multi_upload(e, mode))
 
 
     async def on_multi_upload(self, e: events.MultiUploadEventArguments, mode: UiMode) -> None:
@@ -214,20 +210,54 @@ def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize, mod
 
 ui_manager = UiManager()
 
-def create_ui():
-    with ui.column(align_items="center"):
-        ui.chat_message(
-            ['Welcome 😀\nCreate a custom poster from\n'
-             'your cycling/hiking GPX file! 🚵 🥾',
-             'For multi-day trips, upload all consecutive\n'
-             'GPX tracks together.\n'
-             '(Make sure filenames are in alphabetical order)',
-             'Customize your poster below and download\n'
-             'the High-Resolution SVG file when ready.\n'
-             '(N.B. the map below is a Low-Resolution preview.)']
-        ).props('bg-color=blue-2')
+def create_mode_ui(ui_manager: UiManager, mode: UiMode):
+    """Create the UI for a specific mode"""
+    with ui.row():
+        with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
+            with ui.pyplot(close=False) as ui_manager.plots[mode]:
+                ui_manager.axes[mode] = ui_manager.plots[mode].fig.add_subplot()
+                if ui_manager.axes[mode] is not None:
+                    ui_manager.axes[mode].axis('off')
+        
+        with ui.column(align_items="center"):
+            ui.chat_message(
+                ['Welcome 😀\nCreate a custom poster from\n'
+                'your cycling/hiking GPX file! 🚵 🥾',
+                'For multi-day trips, upload all consecutive\n'
+                'GPX tracks together.\n'
+                '(Make sure filenames are in alphabetical order)',
+                'Customize your poster below and download\n'
+                'the High-Resolution SVG file when ready.\n'
+                '(N.B. the map below is a Low-Resolution preview.)']
+            ).props('bg-color=blue-2')
+            ui.label(f"{mode.name} Mode").classes('text-h6')
+            
+            # Create UI elements within their proper container context
+            elements = ui_manager.create_ui_elements(mode)
+            elements['upload'].props('accept=.gpx').on('rejected', lambda: ui.notify('Please provide a GPX file'))
 
-    create_mode_ui(UiMode.MOUNTAIN)
+            with ui.card():
+                elements['paper_size_toggle']
+                elements['title_button']
+                elements['uphill_button']
+                elements['dist_km_button']
+                elements['azimuth_toggle']
+                elements['dark_mode_switch']
+                elements['theme_toggle']
+                elements['download_button']
+
+def create_ui(ui_manager: UiManager):
+    # Create tabs container
+    with ui.tabs().classes('w-full') as tabs:
+        # Create tab buttons for each mode
+        mode_tabs = {mode: ui.tab(mode.name) for mode in UiMode}
+    
+    # Create tab panels container
+    with ui.tab_panels(tabs, value=mode_tabs[UiMode.MOUNTAIN]).classes('w-full'):
+        # Create content for each mode tab
+        for mode in UiMode:
+            with ui.tab_panel(mode_tabs[mode]):
+                create_mode_ui(ui_manager, mode)
 
     with ui.dialog() as exit_dialog, ui.card():
         ui.label('Confirm exit?')
@@ -243,26 +273,8 @@ def create_ui():
                             color='red-9',
                             icon='logout').style('position: fixed; top: 10px; right: 10px;')
 
-def create_mode_ui(mode: UiMode):
-    with ui.column(align_items="center"):
-        with ui.card().classes('w-full'):
-            ui.label(f"{mode.name} Mode").classes('text-h6')
-            ui_manager.ui_elements[mode]['upload'].props('accept=.gpx').on('rejected', lambda: ui.notify('Please provide a GPX file'))
-            ui_manager.ui_elements[mode]['paper_size_toggle']
-            ui_manager.ui_elements[mode]['title_button']
-            ui_manager.ui_elements[mode]['uphill_button']
-            ui_manager.ui_elements[mode]['dist_km_button']
-            ui_manager.ui_elements[mode]['azimuth_toggle']
-            ui_manager.ui_elements[mode]['dark_mode_switch']
-            ui_manager.ui_elements[mode]['theme_toggle']
-            ui_manager.ui_elements[mode]['download_button']
-
-        ui_manager.setup_plot(mode)
-        with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
-            ui_manager.plots[mode]
-
-
-create_ui()
+ui_manager = UiManager()
+create_ui(ui_manager)
 
 async def load_example():
     contents = [os.path.join(HIKING_DIR, f"vanoise{i}.gpx") for i in range(1, 4)]
