@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for pretty-gpx on 2024-09-10T19:57:33+02:00
+# fly.toml app configuration file generated for pretty-gpx on 2024-10-22
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -7,14 +7,18 @@ app = 'pretty-gpx'
 primary_region = 'cdg'
 
 [build]
+dockerfile=".devcontainer/Dockerfile"
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = true
   auto_start_machines = true
   min_machines_running = 0
   processes = ['app']
+
+[processes]
+app = "python3 pretty_gpx/main.py"
 
 [[vm]]
   memory = '3gb'
