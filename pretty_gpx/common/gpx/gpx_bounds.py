@@ -80,3 +80,9 @@ class GpxBounds:
     def dx_m(self) -> float:
         """Longitude span converted in meters."""
         return EARTH_RADIUS_M * np.deg2rad(self.dlon) / self.latlon_aspect_ratio
+
+    @property
+    def diagonal_m(self) -> float:
+        """The diagonal of the bounds in meters."""
+        return (self.dx_m**2 + self.dy_m**2)**0.5
+    
