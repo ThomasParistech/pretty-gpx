@@ -10,10 +10,14 @@ from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.drawing_data import PolyFillData
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.layout.elevation_vertical_layout import ElevationVerticalLayout
+from pretty_gpx.common.utils.asserts import assert_same_len
 
 
 def downsample(x: np.ndarray, y: np.ndarray, n: int) -> tuple[np.ndarray, np.ndarray]:
     """Downsample the signla Y evaluate at X to N points, applying a simple moving average smoothing beforehand."""
+    assert_same_len([x, y], msg="Downsampling arrays should be the same length")
+    if len(x) <= n:
+        return x, y 
     smoothed_y = uniform_filter1d(y, size=len(x) // n, mode="nearest")
     interpolator = interp1d(x, smoothed_y, kind='linear')
 
