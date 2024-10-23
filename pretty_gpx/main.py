@@ -260,7 +260,7 @@ with ui.page_sticky(position='top-right', x_offset=10, y_offset=10):
               color='red-9',
               icon='logout').props('fab')
 
-# app.on_startup(ui_manager.on_click_load_example)
+app.on_startup(ui_manager.on_click_load_example)
 app.on_shutdown(lambda: Profiling.export_events())
 
 ui.run(title='Pretty GPX',
