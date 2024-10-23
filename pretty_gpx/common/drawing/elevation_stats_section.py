@@ -14,6 +14,9 @@ from pretty_gpx.common.layout.elevation_vertical_layout import ElevationVertical
 
 def downsample(x: np.ndarray, y: np.ndarray, n: int) -> tuple[np.ndarray, np.ndarray]:
     """Downsample the signla Y evaluate at X to N points, applying a simple moving average smoothing beforehand."""
+    if len(x) <= n:
+        assert len(x) == len(y)
+        return x, y 
     smoothed_y = uniform_filter1d(y, size=len(x) // n, mode="nearest")
     interpolator = interp1d(x, smoothed_y, kind='linear')
 
