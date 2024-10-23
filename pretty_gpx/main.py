@@ -28,10 +28,10 @@ from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import safe
 from pretty_gpx.rendering_modes.mountain.data.augmented_gpx_data import AugmentedGpxData
 from pretty_gpx.rendering_modes.mountain.drawing.hillshading import AZIMUTHS
-from pretty_gpx.rendering_modes.mountain.drawing.poster_image_cache import PosterDrawingData
-from pretty_gpx.rendering_modes.mountain.drawing.poster_image_cache import PosterImageCache
-from pretty_gpx.rendering_modes.mountain.drawing.poster_image_cache import PosterImageCaches
-from pretty_gpx.rendering_modes.mountain.drawing.poster_image_cache import W_DISPLAY_PIX
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_poster_image_cache import MountainPosterDrawingData
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_poster_image_cache import MountainPosterImageCache
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_poster_image_cache import MountainPosterImageCaches
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_poster_image_cache import W_DISPLAY_PIX
 from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
 from pretty_gpx.ui.style import BOX_SHADOW_STYLE
@@ -41,7 +41,7 @@ class UiManager:
     """Manage the UI elements and the Poster cache."""
 
     def __init__(self) -> None:
-        self.__cache: PosterImageCaches | None = None
+        self.__cache: MountainPosterImageCaches | None = None
 
     async def _on_upload(self, contents: list[bytes] | list[str], msg: str) -> None:
         """Pocess the files asynchronously to update the Poster cache."""
@@ -89,12 +89,12 @@ class UiManager:
         await on_click_update()()
 
     @property
-    def high_res_cache(self) -> PosterImageCache:
+    def high_res_cache(self) -> MountainPosterImageCache:
         """Return the high resolution Poster cache."""
         return safe(self.__cache).high_res
 
     @property
-    def low_res_cache(self) -> PosterImageCache:
+    def low_res_cache(self) -> MountainPosterImageCache:
         """Return the low resolution Poster cache."""
         return safe(self.__cache).low_res
 
@@ -103,15 +103,15 @@ ui_manager = UiManager()
 
 
 @profile_parallel
-def process_files(list_b: list[bytes] | list[str], new_paper_size: PaperSize) -> PosterImageCaches:
-    """Process the uploaded files and return the PosterImageCaches."""
-    return PosterImageCaches.from_gpx(list_b, new_paper_size)
+def process_files(list_b: list[bytes] | list[str], new_paper_size: PaperSize) -> MountainPosterImageCaches:
+    """Process the uploaded files and return the MountainPosterImageCaches."""
+    return MountainPosterImageCaches.from_gpx(list_b, new_paper_size)
 
 
 @profile_parallel
-def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize) -> PosterImageCaches:
-    """Return the PosterImageCaches with the new paper size."""
-    return PosterImageCaches.from_augmented_gpx_data(gpx_data, new_paper_size)
+def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize) -> MountainPosterImageCaches:
+    """Return the MountainPosterImageCaches with the new paper size."""
+    return MountainPosterImageCaches.from_augmented_gpx_data(gpx_data, new_paper_size)
 
 
 with ui.row():
@@ -145,8 +145,8 @@ with ui.row():
 
         # Update options
         with ui.card():
-            def _update(c: PosterImageCache) -> PosterDrawingData:
-                """Asynchronously update the PosterDrawingData with the current settings."""
+            def _update(c: MountainPosterImageCache) -> MountainPosterDrawingData:
+                """Asynchronously update the MountainPosterDrawingData with the current settings."""
                 dark_mode = bool(safe(dark_mode_switch.value))
 
                 color_themes = (DARK_COLOR_THEMES if dark_mode else LIGHT_COLOR_THEMES)
@@ -156,30 +156,34 @@ with ui.row():
                                              uphill_m=uphill_button.value,
                                              dist_km=dist_km_button.value)
 
-            def _update_done_callback(c: PosterImageCache, poster_drawing_data: PosterDrawingData) -> None:
-                """Synchronously update the plot with the PosterDrawingData (Matplotlib must run in the main thread)."""
+            def _update_done_callback(c: MountainPosterImageCache,
+                                      poster_drawing_data: MountainPosterDrawingData) -> None:
+                """Synchronously update the plot with the MountainPosterDrawingData.
+                
+                (Matplotlib must run in the main thread).
+                """
                 with Profiling.Scope("Pyplot Context"), plot:
                     c.draw(plot.fig, ax, poster_drawing_data)
                 ui.update(plot)
 
             @profile_parallel
-            def update_high_res() -> PosterDrawingData:
-                """Update the PosterDrawingData with the current settings, at the high resolution."""
+            def update_high_res() -> MountainPosterDrawingData:
+                """Update the MountainPosterDrawingData with the current settings, at the high resolution."""
                 return _update(ui_manager.high_res_cache)
 
             @profile_parallel
-            def update_low_res() -> PosterDrawingData:
-                """Update the PosterDrawingData with the current settings, at the low resolution."""
+            def update_low_res() -> MountainPosterDrawingData:
+                """Update the MountainPosterDrawingData with the current settings, at the low resolution."""
                 return _update(ui_manager.low_res_cache)
 
             @profile
-            def update_done_callback_high_res(poster_drawing_data: PosterDrawingData) -> None:
-                """Update the plot with the high resolution PosterDrawingData."""
+            def update_done_callback_high_res(poster_drawing_data: MountainPosterDrawingData) -> None:
+                """Update the plot with the high resolution MountainPosterDrawingData."""
                 _update_done_callback(ui_manager.high_res_cache, poster_drawing_data)
 
             @profile
-            def update_done_callback_low_res(poster_drawing_data: PosterDrawingData) -> None:
-                """Update the plot with the low resolution PosterDrawingData."""
+            def update_done_callback_low_res(poster_drawing_data: MountainPosterDrawingData) -> None:
+                """Update the plot with the low resolution MountainPosterDrawingData."""
                 _update_done_callback(ui_manager.low_res_cache, poster_drawing_data)
 
             def on_click_update() -> Callable[[], Awaitable[None]]:

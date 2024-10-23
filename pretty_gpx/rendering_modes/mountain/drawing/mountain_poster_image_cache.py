@@ -40,10 +40,10 @@ HIGH_RES_DPI = 400  # DPI of the final poster
 
 
 @dataclass
-class PosterImageCaches:
-    """Low and High resolution PosterImageCache."""
-    low_res: 'PosterImageCache'
-    high_res: 'PosterImageCache'
+class MountainPosterImageCaches:
+    """Low and High resolution MountainPosterImageCache."""
+    low_res: 'MountainPosterImageCache'
+    high_res: 'MountainPosterImageCache'
 
     gpx_data: AugmentedGpxData
 
@@ -52,24 +52,24 @@ class PosterImageCaches:
 
     @staticmethod
     def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes],
-                 paper_size: PaperSize) -> 'PosterImageCaches':
-        """Create a PosterImageCaches from a GPX file."""
+                 paper_size: PaperSize) -> 'MountainPosterImageCaches':
+        """Create a MountainPosterImageCaches from a GPX file."""
         # Extract GPX data and retrieve close mountain passes/huts
 
         gpx_data = AugmentedGpxData.from_path(list_gpx_path)
-        return PosterImageCaches.from_augmented_gpx_data(gpx_data, paper_size)
+        return MountainPosterImageCaches.from_augmented_gpx_data(gpx_data, paper_size)
 
     @staticmethod
     def from_augmented_gpx_data(gpx_data: AugmentedGpxData,
-                                paper_size: PaperSize) -> 'PosterImageCaches':
-        """Create a PosterImageCaches from a GPX file."""
-        high_res = PosterImageCache.from_gpx_data(gpx_data, dpi=HIGH_RES_DPI, paper=paper_size)
+                                paper_size: PaperSize) -> 'MountainPosterImageCaches':
+        """Create a MountainPosterImageCaches from a GPX file."""
+        high_res = MountainPosterImageCache.from_gpx_data(gpx_data, dpi=HIGH_RES_DPI, paper=paper_size)
         low_res = high_res.change_dpi(WORKING_DPI)
-        return PosterImageCaches(low_res=low_res, high_res=high_res, gpx_data=gpx_data)
+        return MountainPosterImageCaches(low_res=low_res, high_res=high_res, gpx_data=gpx_data)
 
 
 @dataclass
-class PosterDrawingData:
+class MountainPosterDrawingData:
     """Drawing data for the poster."""
     img: np.ndarray
     theme_colors: ThemeColors
@@ -78,7 +78,7 @@ class PosterDrawingData:
 
 
 @dataclass
-class PosterImageCache:
+class MountainPosterImageCache:
     """Class leveraging cache to avoid reprocessing GPX when chaning color them, title, sun azimuth..."""
 
     elevation_map: np.ndarray
@@ -96,8 +96,8 @@ class PosterImageCache:
     def from_gpx_data(gpx_data: AugmentedGpxData,
                       paper: PaperSize,
                       layout: MountainVerticalLayout = MountainVerticalLayout.default(),
-                      dpi: float = HIGH_RES_DPI) -> 'PosterImageCache':
-        """Create a PosterImageCache from a GPX file."""
+                      dpi: float = HIGH_RES_DPI) -> 'MountainPosterImageCache':
+        """Create a MountainPosterImageCache from a GPX file."""
         # Download the elevation map at the correct layout
         img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper)
 
@@ -114,7 +114,7 @@ class PosterImageCache:
                                                    drawing_style_params)
 
         logger.info("Successful GPX Processing")
-        return PosterImageCache(elevation_map=elevation,
+        return MountainPosterImageCache(elevation_map=elevation,
                                 elevation_shading=CachedHillShading(elevation),
                                 stats_dist_km=gpx_data.dist_km,
                                 stats_uphill_m=gpx_data.uphill_m,
@@ -122,10 +122,10 @@ class PosterImageCache:
                                 dpi=dpi)
 
     @profile
-    def change_dpi(self, dpi: float) -> 'PosterImageCache':
+    def change_dpi(self, dpi: float) -> 'MountainPosterImageCache':
         """Scale the elevation map to a new DPI."""
         new_ele_map = rescale_elevation_to_dpi(self.elevation_map, self.plotter.img_gpx_bounds, self.plotter, dpi)
-        return PosterImageCache(elevation_map=new_ele_map,
+        return MountainPosterImageCache(elevation_map=new_ele_map,
                                 elevation_shading=CachedHillShading(new_ele_map),
                                 stats_dist_km=self.stats_dist_km,
                                 stats_uphill_m=self.stats_uphill_m,
@@ -137,7 +137,7 @@ class PosterImageCache:
                             theme_colors: ThemeColors,
                             title_txt: str,
                             uphill_m: str,
-                            dist_km: str) -> PosterDrawingData:
+                            dist_km: str) -> MountainPosterDrawingData:
         """Update the drawing data (can run in a separate thread)."""
         grey_hillshade = self.elevation_shading.render_grey(azimuth)[..., None]
         background_color_rgb = hex_to_rgb(theme_colors.background_color)
@@ -151,10 +151,10 @@ class PosterImageCache:
         uphill_m_int = int(uphill_m if uphill_m != '' else self.stats_uphill_m)
         stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
 
-        return PosterDrawingData(img, theme_colors, title_txt=title_txt, stats_text=stats_text)
+        return MountainPosterDrawingData(img, theme_colors, title_txt=title_txt, stats_text=stats_text)
 
     @profile
-    def draw(self, fig: Figure, ax: Axes, poster_drawing_data: PosterDrawingData) -> None:
+    def draw(self, fig: Figure, ax: Axes, poster_drawing_data: MountainPosterDrawingData) -> None:
         """Draw the updated drawing data (Must run in the main thread because of matplotlib backend)."""
         self.plotter.draw(fig, ax,
                           poster_drawing_data.img,
