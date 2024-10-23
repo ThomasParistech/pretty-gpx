@@ -16,3 +16,11 @@ class CityVerticalLayout(ElevationVerticalLayout):
                                   map_relative_h=0.65,
                                   elevation_relative_h=0.05,
                                   stats_relative_h=0.12)
+
+    @staticmethod
+    def two_lines_stats() -> 'CityVerticalLayout':
+        """Return the default City Vertical Layout with a bigger stat height to have 2 lines."""
+        return CityVerticalLayout(title_relative_h=0.18,
+                                  map_relative_h=0.57,
+                                  elevation_relative_h=0.05,
+                                  stats_relative_h=0.20)

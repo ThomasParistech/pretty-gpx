@@ -38,7 +38,10 @@ from pretty_gpx.rendering_modes.city.drawing.theme_colors import ThemeColors
 def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     """Plot a GPX track on a city map."""
     paper = PAPER_SIZES['A4']
-    layout = CityVerticalLayout.default()
+    if gpx_track.duration_s is not None:
+        layout = CityVerticalLayout.two_lines_stats()
+    else:
+        layout = CityVerticalLayout.default()
     roads_bounds, base_plotter = layout.get_download_bounds_and_paper_figure(gpx_track, paper)
 
     caracteristic_distance_m = (roads_bounds.dx_m**2 + roads_bounds.dy_m**2)**0.5
