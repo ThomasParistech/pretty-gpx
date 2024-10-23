@@ -33,7 +33,7 @@ from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import LIGHT_COLOR
 from pretty_gpx.ui.utils.run import on_click_slow_action_in_other_thread
 from pretty_gpx.ui.utils.run import run_cpu_bound
 from pretty_gpx.ui.utils.run import UiWaitingModal
-from pretty_gpx.ui.utils.shutdown import shutdown_app_and_close_tab
+from pretty_gpx.ui.utils.shutdown import add_exit_button
 from pretty_gpx.ui.utils.style import BOX_SHADOW_STYLE
 
 
@@ -219,8 +219,6 @@ with ui.row():
             theme_toggle = ui.toggle(list(DARK_COLOR_THEMES.keys()), value=list(DARK_COLOR_THEMES.keys())[0],
                                      on_change=on_click_update())
 
-            # Download button
-
             @profile_parallel
             def download() -> bytes:
                 """Save the high resolution poster as SVG and return the bytes."""
@@ -244,26 +242,11 @@ with ui.row():
                 await on_click_slow_action_in_other_thread(f'Exporting SVG ({dpi} dpi)',
                                                            download, download_done_callback)()
 
-            download_button = ui.button('Download', on_click=on_click_download)
+            ui.button('Download', on_click=on_click_download)
 
 
-with ui.dialog() as exit_dialog, ui.card():
-    ui.label('Confirm exit?')
-    with ui.row():
-        ui.button('Yes', on_click=lambda: shutdown_app_and_close_tab(), color='red-9')
-        ui.button('Cancel', on_click=exit_dialog.close)
+add_exit_button()
 
-
-async def confirm_exit() -> None:
-    """Display a confirmation dialog before exiting."""
-    await exit_dialog
-
-
-with ui.page_sticky(position='top-right', x_offset=10, y_offset=10):
-    ui.button('Exit',
-              on_click=confirm_exit,
-              color='red-9',
-              icon='logout').props('fab')
 
 app.on_startup(ui_manager.on_click_load_example)
 app.on_shutdown(lambda: Profiling.export_events())
