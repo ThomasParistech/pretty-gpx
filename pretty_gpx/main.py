@@ -114,7 +114,7 @@ def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize) -> 
     return MountainPosterImageCaches.from_augmented_gpx_data(gpx_data, new_paper_size)
 
 
-with ui.row():
+with ui.row().style("height: 100vh; width: 100%; justify-content: center; align-items: center; gap: 20px;"):
     with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style(f'{BOX_SHADOW_STYLE};'):
         with ui.pyplot(close=False) as plot:
             ax = plot.fig.add_subplot()

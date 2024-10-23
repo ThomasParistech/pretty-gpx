@@ -8,4 +8,6 @@ from pretty_gpx.ui.pages.homepage import create_homepage
 create_homepage()
 create_rendering_pages()
 
-ui.run(reload=False, port=12345)
+ui.run(title='Pretty GPX',
+       favicon="✨", port=12345,
+       reload=False)
