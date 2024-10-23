@@ -1,38 +1,15 @@
 #!/usr/bin/python3
-"""NiceGUI  Helper."""
+"""NiceGUI Run."""
 from collections.abc import Awaitable
 from collections.abc import Callable
-from types import TracebackType
 from typing import ParamSpec
 from typing import TypeVar
 
-from nicegui import app
 from nicegui import run
-from nicegui import ui
 
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.profile import ProfilingEvent
-
-
-class UiWaitingModal:
-    """Context Manager for a waiting modal dialog."""
-
-    def __init__(self, label: str) -> None:
-        self.label = label
-
-    def __enter__(self) -> None:
-        self.dialog = ui.dialog().props('persistent')
-        self.dialog.open()
-        with self.dialog, ui.card(), ui.row().classes('w-full items-center'):
-            ui.label(self.label)
-            ui.spinner(size='lg')
-
-    def __exit__(self,
-                 exc_type: type[BaseException] | None,
-                 exc_val: BaseException | None,
-                 exc_tb: TracebackType | None) -> None:
-        self.dialog.close()
-
+from pretty_gpx.ui.utils.modal import UiWaitingModal
 
 P = ParamSpec('P')
 R = TypeVar('R')
@@ -61,12 +38,6 @@ def on_click_slow_action_in_other_thread(label: str,
                 done_callback(res)
 
     return on_click
-
-
-def shutdown_app_and_close_tab() -> None:
-    """Shutdown the app and close the tab."""
-    ui.run_javascript("window.close();")
-    app.shutdown()
 
 
 async def run_cpu_bound(func: Callable[P, tuple[R, list[ProfilingEvent]]],

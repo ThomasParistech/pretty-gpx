@@ -2,10 +2,10 @@
 """UI Homepage."""
 from nicegui import ui
 
-from pretty_gpx.ui.header import add_header
-from pretty_gpx.ui.rendering_pages import RENDERING_PAGES
-from pretty_gpx.ui.style import add_ui_hover_highlight_style
-from pretty_gpx.ui.style import BOX_SHADOW_STYLE
+from pretty_gpx.ui.pages import RENDERING_PAGES
+from pretty_gpx.ui.pages.header import add_header
+from pretty_gpx.ui.utils.style import add_ui_hover_highlight_style
+from pretty_gpx.ui.utils.style import BOX_SHADOW_STYLE
 
 
 def homepage() -> None:

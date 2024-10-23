@@ -17,10 +17,6 @@ from pathvalidate import sanitize_filename
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
-from pretty_gpx.common.utils.nicegui_helper import on_click_slow_action_in_other_thread
-from pretty_gpx.common.utils.nicegui_helper import run_cpu_bound
-from pretty_gpx.common.utils.nicegui_helper import shutdown_app_and_close_tab
-from pretty_gpx.common.utils.nicegui_helper import UiWaitingModal
 from pretty_gpx.common.utils.paths import HIKING_DIR
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import profile_parallel
@@ -34,7 +30,11 @@ from pretty_gpx.rendering_modes.mountain.drawing.mountain_poster_image_cache imp
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_poster_image_cache import W_DISPLAY_PIX
 from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
-from pretty_gpx.ui.style import BOX_SHADOW_STYLE
+from pretty_gpx.ui.utils.run import on_click_slow_action_in_other_thread
+from pretty_gpx.ui.utils.run import run_cpu_bound
+from pretty_gpx.ui.utils.run import UiWaitingModal
+from pretty_gpx.ui.utils.shutdown import shutdown_app_and_close_tab
+from pretty_gpx.ui.utils.style import BOX_SHADOW_STYLE
 
 
 class UiManager:
@@ -269,5 +269,5 @@ app.on_startup(ui_manager.on_click_load_example)
 app.on_shutdown(lambda: Profiling.export_events())
 
 ui.run(title='Pretty GPX',
-       favicon="✨",
+       favicon="✨", port=123,
        reload=False)

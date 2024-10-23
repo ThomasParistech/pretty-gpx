@@ -6,7 +6,7 @@ from functools import wraps
 from nicegui import ui
 
 from pretty_gpx.common.utils.asserts import assert_isfile
-from pretty_gpx.ui.rendering_pages import RENDERING_PAGES
+from pretty_gpx.ui.pages import RENDERING_PAGES
 
 
 def create_rendering_pages() -> None:
