@@ -29,7 +29,7 @@ from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_ri
 from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
 from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
 from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
-from pretty_gpx.rendering_modes.city.drawing.linewidth import CityLinewidthParams
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityLinewidthParams
 from pretty_gpx.rendering_modes.city.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.rendering_modes.city.drawing.theme_colors import LIGHT_COLOR_THEMES
 from pretty_gpx.rendering_modes.city.drawing.theme_colors import ThemeColors
@@ -37,8 +37,6 @@ from pretty_gpx.rendering_modes.city.drawing.theme_colors import ThemeColors
 
 def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     """Plot a GPX track on a city map."""
-    road_color = "black" if theme_colors.dark_mode else "white"
-
     paper = PAPER_SIZES['A4']
     layout = CityVerticalLayout.default()
     roads_bounds, base_plotter = layout.get_download_bounds_and_paper_figure(gpx_track, paper)
@@ -124,13 +122,7 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
 
     plotter.draw(fig=fig,
                  ax=ax,
-                 background_color=theme_colors.background_color,
-                 road_color=road_color,
-                 track_color=theme_colors.track_color,
-                 point_color=theme_colors.point_color,
-                 rivers_color=theme_colors.rivers_color,
-                 forets_color=theme_colors.forests_color,
-                 farmland_color=theme_colors.farmland_color)
+                 theme_colors=theme_colors)
 
     plt.show()
 

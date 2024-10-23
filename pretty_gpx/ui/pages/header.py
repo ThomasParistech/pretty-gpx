@@ -6,14 +6,13 @@ from functools import wraps
 from nicegui import ui
 
 from pretty_gpx.common.utils.asserts import assert_isfile
-from pretty_gpx.rendering_modes import RENDERING_MODES
-from pretty_gpx.rendering_modes import RenderingMode
+from pretty_gpx.ui.pages import RENDERING_PAGES
 
 
 def create_rendering_pages() -> None:
     """Create Rendering Pages."""
-    for mode in RENDERING_MODES:
-        ui.page(get_page_path(mode))(add_header(mode.ui_page, mode.name))
+    for mode in RENDERING_PAGES:
+        ui.page(mode.page_path)(add_header(mode.ui_page, mode.name))
 
 
 def add_header(body: Callable[[], None], mode_name: str | None) -> Callable[[], None]:
@@ -33,21 +32,16 @@ def add_header(body: Callable[[], None], mode_name: str | None) -> Callable[[], 
             # Right Section
             icon_shape = "w-8 h-8"
             with ui.row().classes('items-center'):
-                for mode in RENDERING_MODES:
+                for mode in RENDERING_PAGES:
                     if mode.name == mode_name:
                         svg_to_html(mode.icon_svg).classes(f"{icon_shape} fill-black")
                     else:
-                        with ui.link(target=get_page_path(mode)).classes('mx-2'):
+                        with ui.link(target=mode.page_path).classes('mx-2'):
                             ui.tooltip(mode.name.capitalize()).classes('text-lg')
                             svg_to_html(mode.icon_svg).classes(f"{icon_shape} fill-white")
         body()
 
     return wrapper
-
-
-def get_page_path(mode: RenderingMode) -> str:
-    """Get Page Path of a given rendering mode."""
-    return f'/{mode.name.lower()}/'
 
 
 def svg_to_html(svg_path: str) -> ui.html:
