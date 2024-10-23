@@ -45,7 +45,7 @@ class RenderingPage:
         mode = mode_page.__name__[:-len("_page")]
         assert "_" not in mode, "Mode name must not contain underscores"
 
-        mode_dir = os.path.join(MAIN_DIR, "pretty_gpx", "ui", "rendering_pages", mode)
+        mode_dir = os.path.join(MAIN_DIR, "pretty_gpx", "ui", "pages", mode)
         assert_eq(os.path.abspath(inspect.getfile(mode_page)), os.path.join(mode_dir, PAGE_PY),
                   msg=f"Page function of '{mode}' mode must be in the 'ui' subdirectory")
 
