@@ -5,18 +5,6 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 
-from pretty_gpx.city.city_drawing_figure import CityDrawingFigure
-from pretty_gpx.city.city_vertical_layout import CityVerticalLayout
-from pretty_gpx.city.data.forests import prepare_download_city_forests
-from pretty_gpx.city.data.forests import process_city_forests
-from pretty_gpx.city.data.rivers import prepare_download_city_rivers
-from pretty_gpx.city.data.rivers import process_city_rivers
-from pretty_gpx.city.data.roads import prepare_download_city_roads
-from pretty_gpx.city.data.roads import process_city_roads
-from pretty_gpx.city.drawing.linewidth import CityLinewidthParams
-from pretty_gpx.city.drawing.theme_colors import DARK_COLOR_THEMES
-from pretty_gpx.city.drawing.theme_colors import LIGHT_COLOR_THEMES
-from pretty_gpx.city.drawing.theme_colors import ThemeColors
 from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import LineCollectionData
@@ -33,6 +21,18 @@ from pretty_gpx.common.utils.paths import RUNNING_DIR
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import format_timedelta
 from pretty_gpx.common.utils.utils import mm_to_point
+from pretty_gpx.rendering_modes.city.city_drawing_figure import CityDrawingFigure
+from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
+from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_forests
+from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
+from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_rivers
+from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
+from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
+from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
+from pretty_gpx.rendering_modes.city.drawing.linewidth import CityLinewidthParams
+from pretty_gpx.rendering_modes.city.drawing.theme_colors import DARK_COLOR_THEMES
+from pretty_gpx.rendering_modes.city.drawing.theme_colors import LIGHT_COLOR_THEMES
+from pretty_gpx.rendering_modes.city.drawing.theme_colors import ThemeColors
 
 
 def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:

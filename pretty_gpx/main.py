@@ -26,14 +26,15 @@ from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import profile_parallel
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import safe
-from pretty_gpx.mountain.data.augmented_gpx_data import AugmentedGpxData
-from pretty_gpx.mountain.drawing.hillshading import AZIMUTHS
-from pretty_gpx.mountain.drawing.poster_image_cache import PosterDrawingData
-from pretty_gpx.mountain.drawing.poster_image_cache import PosterImageCache
-from pretty_gpx.mountain.drawing.poster_image_cache import PosterImageCaches
-from pretty_gpx.mountain.drawing.poster_image_cache import W_DISPLAY_PIX
-from pretty_gpx.mountain.drawing.theme_colors import DARK_COLOR_THEMES
-from pretty_gpx.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
+from pretty_gpx.rendering_modes.mountain.data.augmented_gpx_data import AugmentedGpxData
+from pretty_gpx.rendering_modes.mountain.drawing.hillshading import AZIMUTHS
+from pretty_gpx.rendering_modes.mountain.drawing.poster_image_cache import PosterDrawingData
+from pretty_gpx.rendering_modes.mountain.drawing.poster_image_cache import PosterImageCache
+from pretty_gpx.rendering_modes.mountain.drawing.poster_image_cache import PosterImageCaches
+from pretty_gpx.rendering_modes.mountain.drawing.poster_image_cache import W_DISPLAY_PIX
+from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import DARK_COLOR_THEMES
+from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
+from pretty_gpx.ui.style import BOX_SHADOW_STYLE
 
 
 class UiManager:
@@ -114,7 +115,7 @@ def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize) -> 
 
 
 with ui.row():
-    with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
+    with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style(f'{BOX_SHADOW_STYLE};'):
         with ui.pyplot(close=False) as plot:
             ax = plot.fig.add_subplot()
             ax.axis('off')
@@ -254,10 +255,11 @@ async def confirm_exit() -> None:
     await exit_dialog
 
 
-exit_button = ui.button('Exit',
-                        on_click=confirm_exit,
-                        color='red-9',
-                        icon='logout').style('position: fixed; top: 10px; right: 10px;')
+with ui.page_sticky(position='top-right', x_offset=10, y_offset=10):
+    ui.button('Exit',
+              on_click=confirm_exit,
+              color='red-9',
+              icon='logout').props('fab')
 
 app.on_startup(ui_manager.on_click_load_example)
 app.on_shutdown(lambda: Profiling.export_events())
