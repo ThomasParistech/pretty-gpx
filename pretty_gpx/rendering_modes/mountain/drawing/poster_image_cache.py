@@ -22,16 +22,16 @@ from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import mm_to_inch
-from pretty_gpx.mountain.data.augmented_gpx_data import AugmentedGpxData
-from pretty_gpx.mountain.data.elevation_map import download_elevation_map
-from pretty_gpx.mountain.data.elevation_map import rescale_elevation
-from pretty_gpx.mountain.drawing.hillshading import CachedHillShading
-from pretty_gpx.mountain.drawing.mountain_drawing_figure import MountainDrawingFigure
-from pretty_gpx.mountain.drawing.mountain_drawing_params import MountainDrawingSizeParams
-from pretty_gpx.mountain.drawing.mountain_drawing_params import MountainDrawingStyleParams
-from pretty_gpx.mountain.drawing.theme_colors import hex_to_rgb
-from pretty_gpx.mountain.drawing.theme_colors import ThemeColors
-from pretty_gpx.mountain.mountain_vertical_layout import MountainVerticalLayout
+from pretty_gpx.rendering_modes.mountain.data.augmented_gpx_data import AugmentedGpxData
+from pretty_gpx.rendering_modes.mountain.data.elevation_map import download_elevation_map
+from pretty_gpx.rendering_modes.mountain.data.elevation_map import rescale_elevation
+from pretty_gpx.rendering_modes.mountain.drawing.hillshading import CachedHillShading
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_figure import MountainDrawingFigure
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_params import MountainDrawingSizeParams
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_params import MountainDrawingStyleParams
+from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import hex_to_rgb
+from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import ThemeColors
+from pretty_gpx.rendering_modes.mountain.mountain_vertical_layout import MountainVerticalLayout
 
 W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
 

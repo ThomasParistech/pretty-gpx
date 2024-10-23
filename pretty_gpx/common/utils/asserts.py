@@ -4,6 +4,7 @@
 import os
 from collections.abc import Iterable
 from collections.abc import Sized
+from typing import Any
 from typing import Final
 
 import numpy as np
@@ -31,13 +32,25 @@ def assert_isfile(path: str, *, ext: str | None = None, msg: str = "") -> None:
         assert path.endswith(ext), m+f"File doesn't have the expected '{ext}' extension: {path}"
 
 
+def assert_isdir(path: str, *, msg: str = "") -> None:
+    """Assert path corresponds to an existing directory."""
+    m = _clean_msg(msg)
+
+    if not os.path.isdir(path):
+        error_msg = m+f"Folder doesn't exist: {path}"
+        ext = os.path.splitext(path)[-1][1:].upper()  # Remove heading dot
+        if ext != "":
+            error_msg += f"\nThis path looks like a {ext} file instead of a directory"
+        raise AssertionError(error_msg)
+
+
 def assert_close(val1: Number, val2: Number, *, eps: float, msg: str = "") -> None:
     """Assert difference between two floats is smaller than a threshold."""
     m = _clean_msg(msg)
     assert np.abs(val1-val2) < eps, m+f" Expect difference to be smaller than {eps}. Got {np.abs(val1-val2)}"
 
 
-def assert_eq(val1: Number, val2: Number, *, msg: str = "") -> None:
+def assert_eq(val1: Any, val2: Any, *, msg: str = "") -> None:
     """Assert equality between two  values."""
     m = _clean_msg(msg)
     assert val1 == val2, m+f" {val1 =} and {val2 =} are not equal"
@@ -104,3 +117,28 @@ def assert_not_empty(seq: Sized, *, msg: str = "") -> None:
     """Assert Sized element is not empty."""
     m = _clean_msg(msg)
     assert len(seq) != 0, m+"Got empty sequence."
+
+
+def assert_same_keys(a: dict[Any, Any] | Iterable[Any],
+                     b: dict[Any, Any] | Iterable[Any],
+                     *, sorted: bool = False, msg: str = "") -> None:
+    """Assert dictionaries have the same keys."""
+    m = _clean_msg(msg)
+
+    if isinstance(a, dict):
+        a = a.keys()
+    if isinstance(b, dict):
+        b = b.keys()
+
+    set_a = set(a)
+    set_b = set(b)
+
+    unknown_names = list(set_a - set_b)
+    missing_names = list(set_b - set_a)
+
+    assert len(unknown_names) == len(missing_names) == 0, m+"Different keys.\n" \
+        f"Keys in A but not in B: [{','.join(map(str, unknown_names))}]\n" \
+        f"Keys in B but not in A: [{','.join(map(str, missing_names))}]"
+
+    if sorted:
+        assert_eq(list(a), list(b))

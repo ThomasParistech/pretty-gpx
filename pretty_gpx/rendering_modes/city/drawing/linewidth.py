@@ -3,13 +3,14 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from pretty_gpx.city.data.roads import CityRoadType
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
+from pretty_gpx.rendering_modes.city.data.roads import CityRoadType
 
 # Diagonal of the case used to set the reference value
 REF_DIAGONAL_DISTANCE_M: float = 39298
 REF_PAPER_SIZE: PaperSize = PAPER_SIZES["A4"]
+
 
 @dataclass(kw_only=True)
 class CityLinewidthParams:
@@ -20,7 +21,6 @@ class CityLinewidthParams:
 
     linewidth_priority: dict[CityRoadType, float]
     linewidth_track: float
-
 
     def change_paper_size(self, new_paper_size: PaperSize) -> 'CityLinewidthParams':
         """Scale parameters to new paper size."""
@@ -54,7 +54,7 @@ class CityLinewidthParams:
         }
 
         # Set a maximum track linewidth to avoid masking data
-        max_track_linewidth = (linewidth_priority[CityRoadType.SECONDARY_ROAD]+
+        max_track_linewidth = (linewidth_priority[CityRoadType.SECONDARY_ROAD] +
                                linewidth_priority[CityRoadType.SECONDARY_ROAD])/2.0
         linewidth_track = min(2.0 * scale, max_track_linewidth)
 
