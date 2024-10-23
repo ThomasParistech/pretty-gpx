@@ -43,7 +43,7 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     layout = CityVerticalLayout.default()
     roads_bounds, base_plotter = layout.get_download_bounds_and_paper_figure(gpx_track, paper)
 
-    caracteristic_distance_m = (roads_bounds.dx_m**2 + roads_bounds.dy_m**2)**0.5
+    caracteristic_distance_m = roads_bounds.diagonal_m
     logger.info(f"Domain diagonal is {caracteristic_distance_m/1000.:.1f}km")
     city_linewidth = CityLinewidthParams.default(paper_size=paper,
                                                  diagonal_distance_m=caracteristic_distance_m)

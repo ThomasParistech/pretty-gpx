@@ -50,14 +50,14 @@ class CityDrawingFigure(BaseDrawingFigure):
         self.setup(fig, ax)
         self.adjust_display_width(fig, self.w_display_pix)
 
-        for surface_data in self.rivers_data:
-            surface_data.plot(ax, rivers_color, background_color)
-
         for surface_data in self.farmland_data:
             surface_data.plot(ax, farmland_color, background_color)
 
         for surface_data in self.forests_data:
             surface_data.plot(ax, forets_color, farmland_color)
+
+        for surface_data in self.rivers_data:
+            surface_data.plot(ax, rivers_color, background_color)
 
         for data in self.road_data:
             data.plot(ax, road_color)

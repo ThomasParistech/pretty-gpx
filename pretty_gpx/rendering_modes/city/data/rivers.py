@@ -37,7 +37,8 @@ def prepare_download_city_rivers(query: OverpassQuery,
     if os.path.isfile(cache_pkl):
         query.add_cached_result(RIVERS_CACHE.name, cache_file=cache_pkl)
     else:
-        natural_water_l = ["basin","reservoir","canal","stream_pool","lagoon","oxbow","river","lake"]
+        min_len = bounds.diagonal_m*0.01
+        natural_water_l = ["reservoir","canal","stream_pool","lagoon","oxbow","river","lake","pond"]
         join_character = '|'
         query.add_overpass_query(array_name=RIVERS_RELATIONS_ARRAY_NAME,
                                  query_elements = [ 'relation["natural"="water"]'
@@ -51,13 +52,15 @@ def prepare_download_city_rivers(query: OverpassQuery,
         query.add_overpass_query(array_name=RIVERS_WAYS_ARRAY_NAME,
                                  query_elements=['way["natural"="water"]["water"~'
                                                  f'"({join_character.join(natural_water_l)})"]',
+                                                 f'way["natural"="water"][!"water"](if: length() > {min_len})',
                                                   'way["natural"="wetland"]["wetland" = "tidal"]',
                                                   'way["natural"="bay"]'],
                                  bounds=bounds,
                                  include_way_nodes=True,
                                  return_geometry=True)
         query.add_overpass_query(array_name=RIVERS_LINE_WAYS_ARRAY_NAME,
-                                 query_elements=['way["waterway"~"(river|fairway|flowline|stream|canal)"]'],
+                                 query_elements=['way["waterway"~"(river|fairway|flowline|stream|canal)"]'
+                                                 '["tunnel"!~".*"]'],
                                  bounds=bounds,
                                  include_way_nodes=True,
                                  return_geometry=False) 
