@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """Mountain UI."""
-
 from nicegui import ui
 
 
