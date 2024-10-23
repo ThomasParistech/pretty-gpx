@@ -34,6 +34,7 @@ from pretty_gpx.rendering_modes.mountain.drawing.poster_image_cache import Poste
 from pretty_gpx.rendering_modes.mountain.drawing.poster_image_cache import W_DISPLAY_PIX
 from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import DARK_COLOR_THEMES
 from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
+from pretty_gpx.ui.style import BOX_SHADOW_STYLE
 
 
 class UiManager:
@@ -114,7 +115,7 @@ def change_paper_size(gpx_data: AugmentedGpxData, new_paper_size: PaperSize) -> 
 
 
 with ui.row():
-    with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style('box-shadow: 0 0 20px 10px rgba(0, 0, 0, 0.2);'):
+    with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style(f'{BOX_SHADOW_STYLE};'):
         with ui.pyplot(close=False) as plot:
             ax = plot.fig.add_subplot()
             ax.axis('off')
