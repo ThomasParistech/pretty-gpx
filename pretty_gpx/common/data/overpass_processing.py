@@ -9,6 +9,7 @@ from typing import TypeVar
 import numpy as np
 from matplotlib.patches import Polygon
 from overpy import Relation
+from overpy import RelationNode
 from overpy import RelationRelation
 from overpy import RelationWay
 from overpy import RelationWayGeometryValue
@@ -214,9 +215,11 @@ def get_members_from_relation(relation: Relation) -> tuple[list[list[RelationWay
                     inner_geometry_l.append(member.geometry)
                 else:
                     raise ValueError(f"Unexpected member role in a relation {member.role} not in ['inner','outer']")
+            elif type(member) == RelationNode:
+                continue
             else:
                 raise TypeError(
-                    f"Unexpected member type {type(member)} not in [RelationWay, RelationRelation]")
+                    f"Unexpected member type {type(member)} not in [RelationWay, RelationRelation, RelationNode]")
     return outer_geometry_l, inner_geometry_l
 
 
