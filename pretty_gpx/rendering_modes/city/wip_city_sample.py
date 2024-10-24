@@ -83,9 +83,10 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
     for priority, way in roads.items():
         road_data.append(LineCollectionData(way, linewidth=city_linewidth.linewidth_priority[priority], zorder=1))
 
+    title_txt = "Route des 4 chateaux"
     b = base_plotter.gpx_bounds
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
-                     s="Route des 4 chateaux", fontsize=mm_to_point(20.0),
+                     s=title_txt, fontsize=mm_to_point(20.0),
                      fontproperties=FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
                      ha="center",
                      va="center")
@@ -125,7 +126,9 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
 
     plotter.draw(fig=fig,
                  ax=ax,
-                 theme_colors=theme_colors)
+                 theme_colors=theme_colors,
+                 stats_txt=stats_text,
+                 title_txt=title_txt)
 
     plt.show()
 
