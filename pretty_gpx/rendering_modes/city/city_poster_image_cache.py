@@ -2,35 +2,11 @@
 """Poster Image Cache."""
 from dataclasses import dataclass
 
-import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
-from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
-from pretty_gpx.common.drawing.drawing_data import PlotData
-from pretty_gpx.common.drawing.drawing_data import PolyFillData
-from pretty_gpx.common.drawing.drawing_data import ScatterData
-from pretty_gpx.common.drawing.drawing_data import TextData
-from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.common.layout.paper_size import PaperSize
-from pretty_gpx.common.utils.logger import logger
-from pretty_gpx.common.utils.profile import profile
-from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_forests
-from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
-from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_rivers
-from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
-from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
-from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
-from pretty_gpx.rendering_modes.city.data.augmented_gpx_data import CityAugmentedGpxData
-from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
-from pretty_gpx.rendering_modes.city.city_drawing_figure import CityDrawingFigure
-from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityLinewidthParams
-from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityDrawingStyleParams
-from pretty_gpx.rendering_modes.city.drawing.theme_colors import ThemeColors
-from pretty_gpx.rendering_modes.city.drawing.theme_colors import hex_to_rgb
 from pretty_gpx.common.data.overpass_request import OverpassQuery
+from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import LineCollectionData
 from pretty_gpx.common.drawing.drawing_data import PlotData
@@ -38,11 +14,24 @@ from pretty_gpx.common.drawing.drawing_data import PolyFillData
 from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
 from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
+from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
+from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
-from pretty_gpx.common.utils.profile import Profiling
+from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import format_timedelta
 from pretty_gpx.common.utils.utils import mm_to_point
-
+from pretty_gpx.rendering_modes.city.city_drawing_figure import CityDrawingFigure
+from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
+from pretty_gpx.rendering_modes.city.data.augmented_gpx_data import CityAugmentedGpxData
+from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_forests
+from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
+from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_rivers
+from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
+from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
+from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityDrawingStyleParams
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityLinewidthParams
+from pretty_gpx.rendering_modes.city.drawing.theme_colors import ThemeColors
 
 W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
 
@@ -126,9 +115,13 @@ class CityPosterImageCache:
     @staticmethod
     def from_gpx_data(gpx_data: CityAugmentedGpxData,
                       paper: PaperSize,
-                      layout: CityVerticalLayout = CityVerticalLayout.default(),
                       dpi: float = HIGH_RES_DPI) -> 'CityPosterImageCache':
         """Create a CityPosterImageCache from a GPX file."""
+        if gpx_data.duration_s is not None:
+            layout = CityVerticalLayout.two_lines_stats()
+        else:
+            layout = CityVerticalLayout.default()
+
         # Download the elevation map at the correct layout
         img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper)
 
@@ -190,7 +183,6 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
                                      drawing_style_params: CityDrawingStyleParams
                                      ) -> CityDrawingFigure:
     """Set up and populate the DrawingFigure for the poster."""
-
     gpx_track = gpx_data.track
 
     caracteristic_distance_m = city_bounds.diagonal_m

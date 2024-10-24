@@ -3,17 +3,12 @@
 from dataclasses import dataclass
 
 import numpy as np
-from geopy.geocoders import Nominatim
-from geopy.location import Location
 
-from pretty_gpx.common.data.overpass_request import overpass_query
 from pretty_gpx.common.gpx.gpx_io import cast_to_list_gpx_path
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.gpx.gpx_track import local_m_to_deg
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
-
-
 
 
 @dataclass
