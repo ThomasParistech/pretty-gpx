@@ -35,61 +35,6 @@ from pretty_gpx.rendering_modes.city.drawing.theme_colors import ThemeColors
 
 W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
 
-WORKING_DPI = 50  # DPI of the poster's preview
-HIGH_RES_DPI = 400  # DPI of the final poster
-
-
-@dataclass
-class CityPosterImageCaches:
-    """Low and High resolution CityPosterImageCache."""
-    low_res: 'CityPosterImageCache'
-    high_res: 'CityPosterImageCache'
-
-    gpx_data: CityAugmentedGpxData
-
-    def __post_init__(self) -> None:
-        assert self.low_res.dpi < self.high_res.dpi
-
-    @staticmethod
-    def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes],
-                 paper_size: PaperSize) -> 'CityPosterImageCaches':
-        """Create a CityPosterImageCaches from a GPX file."""
-        # Extract GPX data and retrieve close mountain passes/huts
-        gpx_data = CityAugmentedGpxData.from_path(list_gpx_path)
-        return CityPosterImageCaches.from_augmented_gpx_data(gpx_data, paper_size)
-
-
-    @staticmethod
-    def from_gpx_data(gpx_data: CityAugmentedGpxData,
-                      paper: PaperSize,
-                      layout: CityVerticalLayout = CityVerticalLayout.default(),
-                      dpi: float = HIGH_RES_DPI) -> 'CityPosterImageCache':
-        """Create a MountainPosterImageCache from a GPX file."""
-        # Download the elevation map at the correct layout
-        img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper)
-
-        # Use default drawing params
-        drawing_size_params = CityLinewidthParams.default(paper, img_bounds.diagonal_m)
-        drawing_style_params = CityDrawingStyleParams()
-
-        plotter = init_and_populate_drawing_figure(gpx_data, paper_fig, img_bounds, layout, drawing_size_params,
-                                                   drawing_style_params)
-
-        logger.info("Successful GPX Processing")
-        return CityPosterImageCache(stats_dist_km=gpx_data.dist_km,
-                                    stats_uphill_m=gpx_data.uphill_m,
-                                    stats_duration_s=gpx_data.duration_s,
-                                    plotter=plotter,
-                                    dpi=dpi)
-
-    @staticmethod
-    def from_augmented_gpx_data(gpx_data: CityAugmentedGpxData,
-                                paper_size: PaperSize) -> 'CityPosterImageCaches':
-        """Create a CityPosterImageCaches from a GPX file."""
-        high_res = CityPosterImageCache.from_gpx_data(gpx_data, dpi=HIGH_RES_DPI, paper=paper_size)
-        low_res = high_res.change_dpi(WORKING_DPI)
-        return CityPosterImageCaches(low_res=low_res, high_res=high_res, gpx_data=gpx_data)
-
 
 @dataclass
 class CityPosterDrawingData:
@@ -108,14 +53,13 @@ class CityPosterImageCache:
     stats_duration_s: float | None
 
     plotter: CityDrawingFigure
+    gpx_data: CityAugmentedGpxData
 
-    dpi: float
 
     @profile
     @staticmethod
     def from_gpx_data(gpx_data: CityAugmentedGpxData,
-                      paper: PaperSize,
-                      dpi: float = HIGH_RES_DPI) -> 'CityPosterImageCache':
+                      paper: PaperSize) -> 'CityPosterImageCache':
         """Create a CityPosterImageCache from a GPX file."""
         if gpx_data.duration_s is not None:
             layout = CityVerticalLayout.two_lines_stats()
@@ -137,16 +81,8 @@ class CityPosterImageCache:
                                     stats_uphill_m=gpx_data.uphill_m,
                                     stats_duration_s=gpx_data.duration_s,
                                     plotter=plotter,
-                                    dpi=dpi)
+                                    gpx_data=gpx_data)
 
-    @profile
-    def change_dpi(self, dpi: float) -> 'CityPosterImageCache':
-        """Scale the elevation map to a new DPI."""
-        return CityPosterImageCache(stats_dist_km=self.stats_dist_km,
-                                    stats_uphill_m=self.stats_uphill_m,
-                                    stats_duration_s=self.stats_duration_s,
-                                    plotter=self.plotter,
-                                    dpi=dpi)
 
     def update_drawing_data(self,
                             theme_colors: ThemeColors,
@@ -250,7 +186,7 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     plotter = CityDrawingFigure(paper_size=base_fig.paper_size,
                                 latlon_aspect_ratio=base_fig.latlon_aspect_ratio,
                                 gpx_bounds=base_fig.gpx_bounds,
-                                w_display_pix=800,
+                                w_display_pix=W_DISPLAY_PIX,
                                 track_data=track_data,
                                 road_data=road_data,
                                 point_data=point_data,
