@@ -39,11 +39,15 @@ class CityDrawingFigure(BaseDrawingFigure):
     def draw(self,
              fig: Figure,
              ax: Axes,
-             theme_colors: ThemeColors
+             theme_colors: ThemeColors,
+             title_txt: str,
+             stats_txt: str
              ) -> None:
         """Plot the background image and the annotations on top of it."""
         road_color = "black" if theme_colors.dark_mode else "white"
 
+        self.title.s = title_txt
+        self.stats.s = stats_txt
 
         self.setup(fig, ax)
         self.adjust_display_width(fig, self.w_display_pix)
