@@ -143,8 +143,8 @@ def get_polygons_from_relation(relation: Relation) -> list[ShapelyPolygon]:
         #Tolerance is 2m near the point (converted to lon/lat)
         eps = 2/EARTH_RADIUS_M*180/np.pi
 
-        depth_outer = min(max(len(outer_geometry_relation_i)//100,4),4)
-        depth_inner = min(max(len(inner_geometry_relation_i)//100,4),4)
+        depth_outer = max(len(outer_geometry_relation_i)//50,4)
+        depth_inner = max(len(inner_geometry_relation_i)//50,4)
         outer_geometry_relation_i = merge_ways_closed_shapes(outer_geometry_relation_i, eps=eps, max_depth=depth_outer)
         inner_geometry_relation_i = merge_ways_closed_shapes(inner_geometry_relation_i, eps=eps, max_depth=depth_inner)
 

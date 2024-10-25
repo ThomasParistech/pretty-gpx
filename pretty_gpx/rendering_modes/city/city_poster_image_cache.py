@@ -14,6 +14,7 @@ from pretty_gpx.common.drawing.drawing_data import PolyFillData
 from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
 from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
+from pretty_gpx.common.drawing.elevation_stats_section import ElevationStatsSection
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
@@ -55,22 +56,30 @@ class CityPosterImageCache:
     plotter: CityDrawingFigure
     gpx_data: CityAugmentedGpxData
 
+    @profile
+    @staticmethod
+    def from_gpx(list_gpx_path: str | bytes | list[str] | list[bytes],
+                 paper_size: PaperSize) -> 'CityPosterImageCache':
+        """Create a CityPosterImageCache from a GPX file."""
+        gpx_data = CityAugmentedGpxData.from_path(list_gpx_path)
+        return CityPosterImageCache.from_gpx_data(gpx_data, paper_size)
 
     @profile
     @staticmethod
     def from_gpx_data(gpx_data: CityAugmentedGpxData,
-                      paper: PaperSize) -> 'CityPosterImageCache':
+                      paper_size: PaperSize,
+                      force_two_line: bool=False) -> 'CityPosterImageCache':
         """Create a CityPosterImageCache from a GPX file."""
-        if gpx_data.duration_s is not None:
+        if gpx_data.duration_s is not None or force_two_line:
             layout = CityVerticalLayout.two_lines_stats()
         else:
             layout = CityVerticalLayout.default()
 
         # Download the elevation map at the correct layout
-        img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper)
+        img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper_size)
 
         # Use default drawing params
-        drawing_size_params = CityLinewidthParams.default(paper, img_bounds.diagonal_m)
+        drawing_size_params = CityLinewidthParams.default(paper_size, img_bounds.diagonal_m)
         drawing_style_params = CityDrawingStyleParams()
 
         plotter = init_and_populate_drawing_figure(gpx_data, paper_fig, img_bounds, layout, drawing_size_params,
@@ -89,17 +98,27 @@ class CityPosterImageCache:
                             title_txt: str,
                             uphill_m: str,
                             duration_s: str,
-                            dist_km: str) -> CityPosterDrawingData:
+                            dist_km: str) -> tuple[CityPosterDrawingData, bool]:
         """Update the drawing data (can run in a separate thread)."""
         dist_km_int = int(dist_km if dist_km != '' else self.stats_dist_km)
         uphill_m_int = int(uphill_m if uphill_m != '' else self.stats_uphill_m)
         stats_duration_s = float(duration_s) if duration_s != '' else self.stats_duration_s
         stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
 
+        if self.stats_duration_s is None and stats_duration_s is not None:
+            # An update of the poster is needed
+            update_needed = True
+            logger.info("An update of the plotter is needed")
+        else:
+            update_needed = False
+
         if stats_duration_s is not None:
             stats_text += f"\n{format_timedelta(int(stats_duration_s))}"
 
-        return CityPosterDrawingData(theme_colors=theme_colors, title_txt=title_txt, stats_text=stats_text)
+        return (CityPosterDrawingData(theme_colors=theme_colors,
+                                      title_txt=title_txt,
+                                      stats_text=stats_text),
+                update_needed)
 
     @profile
     def draw(self, fig: Figure, ax: Axes, poster_drawing_data: CityPosterDrawingData) -> None:
@@ -159,7 +178,7 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
 
     b = base_fig.gpx_bounds
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
-                     s="Marathon de Lausanne", fontsize=mm_to_point(20.0),
+                     s="Title", fontsize=mm_to_point(20.0),
                      fontproperties=drawing_style_params.pretty_font,
                      ha="center",
                      va="center")
@@ -169,7 +188,10 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     if gpx_track.duration_s is not None:
         stats_text += f"\n{format_timedelta(gpx_track.duration_s)}"
 
-    stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * layout.stats_relative_h,
+    ele = ElevationStatsSection(layout, base_fig, gpx_track)
+    track_data.append(ele.fill_poly)
+
+    stats = TextData(x=b.lon_center, y=b.lat_min + 0.45 * b.dlat * layout.stats_relative_h,
                     s=stats_text, fontsize=mm_to_point(18.5),
                     fontproperties=drawing_style_params.pretty_font,
                     ha="center",
