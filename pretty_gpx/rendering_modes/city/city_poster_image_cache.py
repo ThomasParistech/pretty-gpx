@@ -91,8 +91,8 @@ class CityPosterImageCache:
                             duration_s: str,
                             dist_km: str) -> CityPosterDrawingData:
         """Update the drawing data (can run in a separate thread)."""
-        dist_km_int = int(dist_km if dist_km != '' else self.stats_dist_km)
-        uphill_m_int = int(uphill_m if uphill_m != '' else self.stats_uphill_m)
+        dist_km_int = int(float(dist_km if dist_km != '' else self.stats_dist_km))
+        uphill_m_int = int(float(uphill_m if uphill_m != '' else self.stats_uphill_m))
         stats_duration_s = float(duration_s) if duration_s != '' else self.stats_duration_s
         stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
 
