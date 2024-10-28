@@ -147,8 +147,8 @@ class MountainPosterImageCache:
 
         img = colored_hillshade.astype(np.uint8)
 
-        dist_km_int = int(dist_km if dist_km != '' else self.stats_dist_km)
-        uphill_m_int = int(uphill_m if uphill_m != '' else self.stats_uphill_m)
+        dist_km_int = int(float(dist_km if dist_km != '' else self.stats_dist_km))
+        uphill_m_int = int(float(uphill_m if uphill_m != '' else self.stats_uphill_m))
         stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
 
         return MountainPosterDrawingData(img, theme_colors, title_txt=title_txt, stats_text=stats_text)
