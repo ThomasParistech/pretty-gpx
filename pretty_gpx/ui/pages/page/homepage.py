@@ -3,7 +3,7 @@
 from nicegui import ui
 
 from pretty_gpx.ui.pages import RENDERING_PAGES
-from pretty_gpx.ui.pages.header import add_header
+from pretty_gpx.ui.pages.page.header import add_header
 from pretty_gpx.ui.utils.style import add_ui_hover_highlight_style
 from pretty_gpx.ui.utils.style import BOX_SHADOW_STYLE
 
