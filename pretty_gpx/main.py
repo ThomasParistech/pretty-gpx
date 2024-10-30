@@ -15,5 +15,5 @@ create_rendering_pages()
 app.on_shutdown(lambda: Profiling.export_events())
 
 ui.run(title='Pretty GPX',
-       favicon="✨", port=123,
+       favicon="✨",
        reload=False)
