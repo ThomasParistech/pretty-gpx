@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Rendering Mode."""
+"""Rendering Page."""
 import inspect
 import os
 from collections.abc import Callable

@@ -7,6 +7,7 @@ from nicegui import ui
 
 from pretty_gpx.common.utils.asserts import assert_isfile
 from pretty_gpx.ui.pages import RENDERING_PAGES
+from pretty_gpx.ui.utils.shutdown import add_exit_button
 
 
 def create_rendering_pages() -> None:
@@ -40,6 +41,8 @@ def add_header(body: Callable[[], None], mode_name: str | None) -> Callable[[], 
                             ui.tooltip(mode.name.capitalize()).classes('text-lg')
                             svg_to_html(mode.icon_svg).classes(f"{icon_shape} fill-white")
         body()
+
+        add_exit_button()
 
     return wrapper
 

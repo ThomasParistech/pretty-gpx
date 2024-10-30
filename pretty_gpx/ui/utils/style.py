@@ -19,3 +19,7 @@ def add_ui_hover_highlight_style() -> None:
         }
     </style>
     """)
+
+
+DARK_MODE_TEXT = "🌙"
+LIGHT_MODE_TEXT = "☀️"
