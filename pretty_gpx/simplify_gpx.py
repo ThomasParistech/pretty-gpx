@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 """Simplify GPX file."""
-import fire
+import argparse
 
 from pretty_gpx.common.gpx.gpx_io import load_gpxpy
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.utils import suffix_filename
 
 
-def main(input: str, max_distance_m: float = 5.0) -> None:
+def main(input: str, max_distance_m: float) -> None:
     """Simplify GPX file using the Ramer-Douglas-Peucker algorithm."""
     g = load_gpxpy(input)
 
@@ -21,4 +21,9 @@ def main(input: str, max_distance_m: float = 5.0) -> None:
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_file", help="Input GPX file")
+    parser.add_argument("--max_distance_m", type=float, default=5.0, help="Max simplification distance in meters")
+    args = parser.parse_args()
+
+    main(args.input_file, args.max_distance_m)

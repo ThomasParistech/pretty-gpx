@@ -1,6 +1,5 @@
 dem-stitcher==2.5.5
 dnspython==2.6.1
-fire==0.6.0
 geopy==2.4.1
 gpxpy==1.6.2
 mypy==1.5.1
@@ -8,9 +7,7 @@ mypy-protobuf==3.4.0
 natsort==8.4.0
 nicegui==2.4.0
 numpy==1.26.0
-opencv-contrib-python==4.9.0.80
 opencv-python==4.9.0.80
-opencv-python-headless==4.9.0.80
 overpy==0.7
 pathvalidate==3.2.0
 svgpathtools==1.6.1
