@@ -23,9 +23,9 @@ from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import mm_to_inch
-from pretty_gpx.rendering_modes.mountain.data.augmented_gpx_data import AugmentedGpxData
 from pretty_gpx.rendering_modes.mountain.data.elevation_map import download_elevation_map
 from pretty_gpx.rendering_modes.mountain.data.elevation_map import rescale_elevation
+from pretty_gpx.rendering_modes.mountain.data.mountain_augmented_gpx_data import MountainAugmentedGpxData
 from pretty_gpx.rendering_modes.mountain.drawing.hillshading import CachedHillShading
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MountainColors
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_figure import MountainDrawingFigure
@@ -47,7 +47,7 @@ class MountainDrawingData:
 
 @dataclass
 class MountainDrawer:
-    """Class leveraging cache to avoid reprocessing GPX when chaning color them, title, sun azimuth..."""
+    """Class leveraging cache to avoid reprocessing GPX when changing color them, title, sun azimuth..."""
 
     elevation_map: np.ndarray
     elevation_shading: CachedHillShading
@@ -61,7 +61,7 @@ class MountainDrawer:
 
     @profile
     @staticmethod
-    def from_gpx_data(gpx_data: AugmentedGpxData,
+    def from_gpx_data(gpx_data: MountainAugmentedGpxData,
                       paper: PaperSize,
                       layout: MountainVerticalLayout = MountainVerticalLayout.default(),
                       dpi: float = HIGH_RES_DPI) -> 'MountainDrawer':
@@ -135,7 +135,7 @@ class MountainDrawer:
                     f"(Elevation Map {poster_drawing_data.img.shape[1]}x{poster_drawing_data.img.shape[0]})")
 
 
-def init_and_populate_drawing_figure(gpx_data: AugmentedGpxData,
+def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
                                      paper_fig: BaseDrawingFigure,
                                      img_gpx_bounds: GpxBounds,
                                      layout: MountainVerticalLayout,
@@ -218,7 +218,7 @@ def init_and_populate_drawing_figure(gpx_data: AugmentedGpxData,
                                  img_gpx_bounds=img_gpx_bounds)
 
 
-def init_annotated_scatter_collection(gpx_data: AugmentedGpxData,
+def init_annotated_scatter_collection(gpx_data: MountainAugmentedGpxData,
                                       global_list_x: list[float],
                                       global_list_y: list[float],
                                       drawing_style_params: MountainDrawingStyleParams,

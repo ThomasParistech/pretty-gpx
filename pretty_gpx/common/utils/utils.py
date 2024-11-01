@@ -63,13 +63,14 @@ def format_timedelta(total_seconds: float | int) -> str:
     # Show minutes if hours or days are shown or minutes are non-zero
     if minutes > 0 or hours > 0 or days > 0:
         if days > 0 or hours > 0:
-            parts.append(f"{minutes:2.0f}")
+            parts.append(f"{minutes:02.0f}" if minutes != 0 else "00")
         else:
             parts.append(f"{minutes:.0f}min")
     # Show seconds if any higher units are shown or seconds are non-zero
     if seconds > 0 or minutes > 0 or hours > 0 or days > 0:
         if not(days > 0 or hours > 0):
-            parts.append(f"{seconds:2.0f}")
+            parts.append(f"{seconds:02.0f}" if seconds != 0 else "00")
+
 
     # Join the parts with commas
     return ''.join(parts) if parts else '0s'

@@ -85,17 +85,20 @@ class UiCache(Generic[T]):
                               paper_size: PaperSize,
                               msg: str) -> Self | None:
         """Pocess the files asynchronously to create the cache."""
+        res = None
         with UiWaitingModal(msg):
             try:
                 if isinstance(content, list):
-                    return await run_cpu_bound(cls.process_files, content, paper_size)
-                return await run_cpu_bound(cls.process_file, content, paper_size)
+                    res = await run_cpu_bound(cls.process_files, content, paper_size)
+                else:
+                    res = await run_cpu_bound(cls.process_file, content, paper_size)
             except SubprocessException as e:
                 logger.error(f"Error while {msg}: {e}")
                 logger.warning("Skip processing uploaded files")
                 ui.notify(f'Error while {msg}:\n{e.original_message}',
                           type='negative', multi_line=True, timeout=0, close_button='OK')
-                return None
+
+        return res
 
     async def on_paper_size_change(self, new_paper_size: PaperSize) -> Self:
         """Change the paper size."""

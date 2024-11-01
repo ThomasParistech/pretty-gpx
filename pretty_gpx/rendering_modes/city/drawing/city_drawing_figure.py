@@ -9,6 +9,7 @@ from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
 from pretty_gpx.common.drawing.drawing_data import TextData
+from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CityColors
 
 
@@ -36,39 +37,39 @@ class CityDrawingFigure(BaseDrawingFigure):
     title: TextData
     stats: TextData
 
+    @profile
     def draw(self,
              fig: Figure,
              ax: Axes,
              theme_colors: CityColors,
              title_txt: str,
-             stats_txt: str
-             ) -> None:
+             stats_txt: str) -> None:
         """Plot the background image and the annotations on top of it."""
         road_color = "black" if theme_colors.dark_mode else "white"
-
-        self.title.s = title_txt
-        self.stats.s = stats_txt
 
         self.setup(fig, ax)
         self.adjust_display_width(fig, self.w_display_pix)
 
-        for surface_data in self.farmland_data:
-            surface_data.plot(ax, theme_colors.farmland_color, theme_colors.background_color)
+        self.title.s = title_txt
+        self.stats.s = stats_txt
 
-        for surface_data in self.forests_data:
-            surface_data.plot(ax, theme_colors.forests_color, theme_colors.farmland_color)
+        for surface_data1 in self.farmland_data:
+            surface_data1.plot(ax, theme_colors.farmland_color, theme_colors.background_color)
 
-        for surface_data in self.rivers_data:
-            surface_data.plot(ax, theme_colors.rivers_color, theme_colors.background_color)
+        for surface_data2 in self.forests_data:
+            surface_data2.plot(ax, theme_colors.forests_color, theme_colors.farmland_color)
 
-        for data in self.road_data:
-            data.plot(ax, road_color)
+        for surface_data3 in self.rivers_data:
+            surface_data3.plot(ax, theme_colors.rivers_color, theme_colors.background_color)
 
-        for data in self.track_data:
-            data.plot(ax, theme_colors.track_color)
+        for data4 in self.road_data:
+            data4.plot(ax, road_color)
 
-        for data in self.point_data:
-            data.plot(ax, theme_colors.point_color)
+        for data5 in self.track_data:
+            data5.plot(ax, theme_colors.track_color)
+
+        for data6 in self.point_data:
+            data6.plot(ax, theme_colors.point_color)
 
         ax.set_facecolor(theme_colors.background_color)
 

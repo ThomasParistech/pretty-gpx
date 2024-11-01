@@ -1,12 +1,11 @@
 #!/usr/bin/python3
-"""Map Data."""
+"""Mountain Augmented GPX Data."""
 import math
 from dataclasses import dataclass
 
 import numpy as np
-from geopy.geocoders import Nominatim
-from geopy.location import Location
 
+from pretty_gpx.common.data.augmented_gpx_data import get_place_name
 from pretty_gpx.common.data.overpass_request import overpass_query
 from pretty_gpx.common.gpx.gpx_io import cast_to_list_gpx_path
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
@@ -37,7 +36,7 @@ class MountainHut:
 
 
 @dataclass
-class AugmentedGpxData:
+class MountainAugmentedGpxData:
     """Class storing the GPX track augmented with names of start/end points and mountain passes/huts along the way."""
     track: GpxTrack
 
@@ -66,7 +65,7 @@ class AugmentedGpxData:
     @staticmethod
     def from_path(list_gpx_path: str | bytes | list[str] | list[bytes],
                   strict_ths_m: float = 50,
-                  loose_ths_m: float = 1000) -> 'AugmentedGpxData':
+                  loose_ths_m: float = 1000) -> 'MountainAugmentedGpxData':
         """Create an AugmentedGpxData instance from an ordered list of daily GPX files."""
         list_gpx_path = cast_to_list_gpx_path(list_gpx_path)
 
@@ -103,14 +102,14 @@ class AugmentedGpxData:
         else:
             end_name = get_place_name(lon=gpx_track.list_lon[-1], lat=gpx_track.list_lat[-1])
 
-        return AugmentedGpxData(track=gpx_track,
-                                start_name=start_name,
-                                end_name=end_name,
-                                is_closed=is_closed,
-                                mountain_passes=mountain_passes,
-                                passes_ids=passes_ids,
-                                huts=huts_names,
-                                hut_ids=huts_ids)
+        return MountainAugmentedGpxData(track=gpx_track,
+                                        start_name=start_name,
+                                        end_name=end_name,
+                                        is_closed=is_closed,
+                                        mountain_passes=mountain_passes,
+                                        passes_ids=passes_ids,
+                                        huts=huts_names,
+                                        hut_ids=huts_ids)
 
 
 @profile
@@ -175,27 +174,6 @@ def is_close_to_a_mountain_pass(lon: float, lat: float,
     distances = np.linalg.norm(np.array([lat, lon]) - np.array([[m.lat, m.lon]
                                                                 for m in mountain_passes]), axis=-1)
     return np.min(distances) < local_m_to_deg(max_dist_m)
-
-
-def get_place_name(lon: float, lat: float) -> str:
-    """Get the name of a place from its coordinates."""
-    place_types = ["city", "town", "village", "locality", "hamlet"]
-
-    geolocator = Nominatim(user_agent="Place-Guesser")
-    location = geolocator.reverse((lat, lon), exactly_one=True)
-    assert isinstance(location, Location)
-    address = location.raw['address']
-
-    for place_type in place_types:
-        place_name = address.get(place_type, None)
-        if place_name is not None:
-            return place_name
-
-    # for key, place_name in address.items():
-    #     if key in place_types:
-    #         return place_name
-
-    raise RuntimeError(f"Place Not found at {lat:.3f}, {lon:.3f}. Got {address}")
 
 
 def load_and_merge_tracks(list_gpx_path: list[str] | list[bytes]) -> tuple[GpxTrack, list[int]]:

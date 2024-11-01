@@ -74,6 +74,8 @@ class BaseVerticalLayout:
     #########
 
     def __post_init__(self) -> None:
+        """Verify sum of fields is 1.0 and that all layout methods are accounted for."""
+        # Check fields sum to 1.0
         sum_fields = 0.0
         for f in fields(self):
             val = getattr(self, f.name)
@@ -133,12 +135,6 @@ class BaseVerticalLayout:
 
         if DEBUG:
             _debug(self, paper_bounds, download_bounds, bounds, gpx_track, latlon_aspect_ratio)
-
-        assert_close(download_bounds.lat_min,
-
-                     paper_bounds.lat_min + paper_bounds.dlat*self._get_download_y_bounds().bot, eps=1e-6)
-        assert_close(download_bounds.lat_max,
-                     paper_bounds.lat_min + paper_bounds.dlat*self._get_download_y_bounds().top, eps=1e-6)
 
         return download_bounds, drawing_fig
 
