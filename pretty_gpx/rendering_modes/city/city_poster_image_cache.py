@@ -29,9 +29,9 @@ from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_ri
 from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
 from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
 from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
+from pretty_gpx.rendering_modes.city.drawing.city_colors import CityColors
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityDrawingStyleParams
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityLinewidthParams
-from pretty_gpx.rendering_modes.city.drawing.theme_colors import ThemeColors
 
 W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
 
@@ -39,7 +39,7 @@ W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
 @dataclass
 class CityPosterDrawingData:
     """Drawing data for the poster."""
-    theme_colors: ThemeColors
+    theme_colors: CityColors
     title_txt: str
     stats_text: str
 
@@ -54,7 +54,6 @@ class CityPosterImageCache:
 
     plotter: CityDrawingFigure
     gpx_data: CityAugmentedGpxData
-
 
     @profile
     @staticmethod
@@ -83,9 +82,8 @@ class CityPosterImageCache:
                                     plotter=plotter,
                                     gpx_data=gpx_data)
 
-
     def update_drawing_data(self,
-                            theme_colors: ThemeColors,
+                            theme_colors: CityColors,
                             title_txt: str,
                             uphill_m: str,
                             duration_s: str,
@@ -111,6 +109,7 @@ class CityPosterImageCache:
                           stats_txt=poster_drawing_data.stats_text)
         logger.info("Drawing updated")
 
+
 def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
                                      base_fig: BaseDrawingFigure,
                                      city_bounds: GpxBounds,
@@ -124,7 +123,6 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     caracteristic_distance_m = city_bounds.diagonal_m
     logger.info(f"Domain diagonal is {caracteristic_distance_m/1000.:.1f}km")
 
-
     total_query = OverpassQuery()
     for prepare_func in [prepare_download_city_roads,
                          prepare_download_city_rivers,
@@ -135,7 +133,6 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     # Merge and run all queries
     total_query.launch_queries()
 
-
     # Retrieve the data
     roads = process_city_roads(query=total_query,
                                bounds=city_bounds)
@@ -143,8 +140,8 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     rivers = process_city_rivers(query=total_query,
                                  bounds=city_bounds)
 
-    forests,farmland = process_city_forests(query=total_query,
-                                            bounds=city_bounds)
+    forests, farmland = process_city_forests(query=total_query,
+                                             bounds=city_bounds)
     forests.interior_polygons = []
 
     track_data: list[BaseDrawingData] = [PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=2.0)]
@@ -163,17 +160,17 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
                      fontproperties=drawing_style_params.pretty_font,
                      ha="center",
                      va="center")
-    
+
     stats_text = f"{gpx_track.list_cumul_dist_km[-1]:.2f} km - {int(gpx_track.uphill_m)} m D+"
 
     if gpx_track.duration_s is not None:
         stats_text += f"\n{format_timedelta(gpx_track.duration_s)}"
 
     stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * layout.stats_relative_h,
-                    s=stats_text, fontsize=mm_to_point(18.5),
-                    fontproperties=drawing_style_params.pretty_font,
-                    ha="center",
-                    va="center")
+                     s=stats_text, fontsize=mm_to_point(18.5),
+                     fontproperties=drawing_style_params.pretty_font,
+                     ha="center",
+                     va="center")
     point_data.append(ScatterData(x=[gpx_track.list_lon[0]], y=[gpx_track.list_lat[0]],
                                   marker="o", markersize=mm_to_point(3.5)))
     point_data.append(ScatterData(x=[gpx_track.list_lon[-1]], y=[gpx_track.list_lat[-1]],

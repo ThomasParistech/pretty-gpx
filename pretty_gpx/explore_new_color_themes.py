@@ -7,19 +7,19 @@ import shutil
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+from pretty_gpx.common.drawing.color_theme import hex_to_rgb
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.paths import COLOR_EXPLORATION_DIR
 from pretty_gpx.common.utils.paths import CYCLING_DIR
 from pretty_gpx.rendering_modes.mountain.data.augmented_gpx_data import AugmentedGpxData
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MountainColors
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawer import MountainDrawer
-from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import hex_to_rgb
-from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import ThemeColors
 
 
-def generate_color_candidates(colors: list[tuple[str, str, str]], dark_mode: bool) -> list[ThemeColors]:
+def generate_color_candidates(colors: list[tuple[str, str, str]], dark_mode: bool) -> list[MountainColors]:
     """Generate color candidates."""
-    candidates: list[ThemeColors] = []
+    candidates: list[MountainColors] = []
     for trio in colors:
         # Sort by brightness
         sorted_trio = sorted(trio, key=lambda c: sum(hex_to_rgb(c)))
@@ -29,10 +29,10 @@ def generate_color_candidates(colors: list[tuple[str, str, str]], dark_mode: boo
         background_color = sorted_trio[2]
 
         for (track, peak) in itertools.permutations(sorted_trio[:2]):
-            candidates.append(ThemeColors(dark_mode=dark_mode,
-                                          background_color=background_color,
-                                          track_color=track,
-                                          peak_color=peak))
+            candidates.append(MountainColors(dark_mode=dark_mode,
+                                             background_color=background_color,
+                                             track_color=track,
+                                             peak_color=peak))
     return candidates
 
 
@@ -74,10 +74,10 @@ def main(color_palettes: list[tuple[str, str, str]]) -> None:
     fig, ax = plt.subplots()
     for theme in tqdm(candidates):
         res = cache.update_drawing_data(azimuth=0,
-                                        theme_colors=theme,
+                                        colors=theme,
                                         title_txt="Test Color",
-                                        uphill_m="",
-                                        dist_km="")
+                                        uphill_m=None,
+                                        dist_km=None)
         cache.draw(fig, ax, res)
 
         prefix = "dark_" if theme.dark_mode else "light_"

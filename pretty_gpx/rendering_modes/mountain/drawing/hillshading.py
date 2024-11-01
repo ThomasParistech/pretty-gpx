@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 """Cached Hill Shading."""
+from typing import Final
+
 import numpy as np
 
-AZIMUTHS: dict[str, int] = {
+AZIMUTHS: Final[dict[str, int]] = {
     "North": 0,
     "East": 90,
     "South": 180,

@@ -12,14 +12,16 @@ from nicegui import events
 from nicegui import ui
 from pathvalidate import sanitize_filename
 
+from pretty_gpx.common.drawing.color_theme import DarkTheme
+from pretty_gpx.common.drawing.color_theme import LightTheme
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile_parallel
 from pretty_gpx.common.utils.profile import Profiling
-from pretty_gpx.common.utils.utils import safe
-from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import DARK_COLOR_THEMES
-from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
+from pretty_gpx.ui.pages.template.elements.ui_input import UiInputInt
+from pretty_gpx.ui.pages.template.elements.ui_input import UiInputStr
+from pretty_gpx.ui.pages.template.elements.ui_toggle import UiToggle
 from pretty_gpx.ui.pages.template.ui_cache import UiCache
 from pretty_gpx.ui.pages.template.ui_plot import HIGH_RES_DPI
 from pretty_gpx.ui.pages.template.ui_plot import UiPlot
@@ -30,25 +32,75 @@ from pretty_gpx.ui.utils.style import LIGHT_MODE_TEXT
 T = TypeVar('T', bound=UiCache)
 
 
-@dataclass
+@dataclass(slots=True)
 class UiManager(Generic[T]):
-    """Ui Manager."""
+    """Ui Manager.
+
+    The UiManager is a template class that manages the layout of the page.
+
+    At initialization, when the cache is not initialized, the layout is partially hidden and looks like this:
+
+        ┌──────┐
+        │ Chat │
+        └──────┘
+        ┌──────┐
+        │Upload│
+        └──────┘
+      ┌──────────┐
+      │Paper Size│
+      └──────────┘
+
+    When the cache is initialized, the layout is fully displayed:
+
+                            ┌──────┐
+    ┌─────────────────┐     │ Chat │
+    │                 │     └──────┘
+    │                 │     ┌──────┐
+    │                 │     │Upload│
+    │                 │     └──────┘
+    │                 │   ┌──────────┐
+    │                 │   │Paper Size│
+    │                 │   └──────────┘
+    │                 │  ┌────────────┐
+    │      Plot       │  │   Title    │
+    │                 │  │  Distance  │
+    │                 │  │            │
+    │                 │  │    ...     │
+    │                 │  │            │
+    │                 │  │  Dark Mode │
+    │                 │  │Theme Colors│
+    │                 │  └────────────┘
+    │                 │    ┌────────┐
+    │                 │    │Download│
+    └─────────────────┘    └────────┘
+
+    The "..." represents the fields that the subclass can add to the layout, using the `subclass_column` context.
+
+    Subclasses must implement:
+    - `get_chat_msg`: Return the chat message, introducing the page.
+    - `on_click_update`: Return an async function that updates the poster with the current settings.
+    - `cb_before_download`: Optional callback to run before downloading the poster. If not implemented, it does nothing.
+
+    The template cache type `T` must implement:
+    - `on_multi_upload_events` or `on_single_upload_events`
+    - `on_paper_size_change`
+    """
     cache: T
 
     plot: UiPlot
-    col_2: ui.column
+    subclass_column: ui.column
     params_to_hide: ui.column
 
-    paper_size_toggle: ui.toggle
-    title_button: ui.input
-    dist_km_button: ui.input
+    paper_size: UiToggle[PaperSize]
+    title: UiInputStr
+    dist_km: UiInputInt
     dark_mode_switch: ui.switch
-    theme_toggle: ui.toggle
+    theme: UiToggle[DarkTheme] | UiToggle[LightTheme]
 
     hidden: bool
 
     def __init__(self, cache: T) -> None:
-        """When subclassing, add elements inside col_2."""
+        """When subclassing, add elements inside `subclass_column`."""
         self.cache = cache
 
         with ui.row().style("height: 100vh; width: 100%; justify-content: center; align-items: center; gap: 20px;"):
@@ -59,7 +111,7 @@ class UiManager(Generic[T]):
 
                 with ui.column(align_items="center") as self.params_to_hide:
                     with ui.card():
-                        self.col_2 = ui.column(align_items="center")
+                        self.subclass_column = ui.column(align_items="center")
                         col_3 = ui.column(align_items="center")
 
                     ui.button('Download', on_click=self.on_click_download)
@@ -85,17 +137,13 @@ class UiManager(Generic[T]):
                       ).props('accept=.gpx').on('rejected',
                                                 lambda: ui.notify('Please provide a GPX file')).classes('max-w-full')
             # Paper Size
-            self.paper_size_toggle = ui.toggle(list(PAPER_SIZES.keys()), value=list(PAPER_SIZES.keys())[0],
-                                               on_change=self.on_paper_size_change)
+            self.paper_size = UiToggle[PaperSize].create(PAPER_SIZES, on_change=self.on_paper_size_change)
 
-        with self.col_2:
-            with ui.input(label='Title',
-                          value="Title").on('keydown.enter', self.on_click_update()) as self.title_button:
-                ui.tooltip("Press Enter to update title")
-
-            with ui.input(label='Distance (km)',
-                          value="").on('keydown.enter', self.on_click_update()) as self.dist_km_button:
-                ui.tooltip("Press Enter to override distance from GPX")
+        with self.subclass_column:
+            self.title = UiInputStr.create(label='Title', value="Title", tooltip="Press Enter to update title",
+                                           on_enter=self.on_click_update())
+            self.dist_km = UiInputInt.create(label='Distance (km)', value="", on_enter=self.on_click_update(),
+                                             tooltip="Press Enter to override distance from GPX")
 
             #
             # New fields will be added here by the subclass
@@ -105,8 +153,8 @@ class UiManager(Generic[T]):
             # Colors
             # TODO(upgrade): Use same Theme colors for the different rendering modes
             self.dark_mode_switch = ui.switch(DARK_MODE_TEXT, value=True, on_change=self.on_dark_mode_switch_change)
-            self.theme_toggle = ui.toggle(list(DARK_COLOR_THEMES.keys()), value=list(DARK_COLOR_THEMES.keys())[0],
-                                          on_change=self.on_click_update())
+
+            self.theme = UiToggle[DarkTheme].create(DarkTheme.get_mapping(), on_change=self.on_click_update())
 
         #######
 
@@ -115,34 +163,14 @@ class UiManager(Generic[T]):
         if self.cache.is_initialized():
             self.make_visible()
 
-    @property
-    def paper_size_name(self) -> str:
-        """Get the current paper size name."""
-        return str(safe(self.paper_size_toggle.value))
-
-    @property
-    def paper_size(self) -> PaperSize:
-        """Get the current paper size."""
-        return PAPER_SIZES[self.paper_size_name]
-
-    @property
-    def title(self) -> str:
-        """Get the current title."""
-        return str(safe(self.title_button.value))
-
-    @property
-    def dist_km(self) -> str:
-        """Get the current dist."""
-        return str(safe(self.dist_km_button.value))
-
     async def on_multi_upload_events(self, e: events.MultiUploadEventArguments) -> None:
         """Sort the uploaded files by name and process them."""
-        res = await self.cache.on_multi_upload_events(e, self.paper_size)
+        res = await self.cache.on_multi_upload_events(e, self.paper_size.value)
         await self.update_cache_if_sucessful(res)
 
     async def on_single_upload_events(self, e: events.UploadEventArguments) -> None:
         """Process the uploaded file."""
-        res = await self.cache.on_single_upload_events(e, self.paper_size)
+        res = await self.cache.on_single_upload_events(e, self.paper_size.value)
         await self.update_cache_if_sucessful(res)
 
     async def update_cache_if_sucessful(self, new_cache: T | None) -> None:
@@ -163,16 +191,18 @@ class UiManager(Generic[T]):
     async def on_paper_size_change(self) -> None:
         """Change the paper size and update the poster."""
         if self.cache.is_initialized():
-            self.cache = await self.cache.on_paper_size_change(self.paper_size)
+            self.cache = await self.cache.on_paper_size_change(self.paper_size.value)
             await self.on_click_update()()
 
     def on_dark_mode_switch_change(self, e: events.ValueChangeEventArguments) -> None:
         """Switch between dark and light mode."""
         dark_mode = e.value
         self.dark_mode_switch.text = DARK_MODE_TEXT if dark_mode else LIGHT_MODE_TEXT
-        self.theme_toggle.options = list(DARK_COLOR_THEMES.keys()) if dark_mode else list(LIGHT_COLOR_THEMES.keys())
-        self.theme_toggle.value = self.theme_toggle.options[0]
-        self.theme_toggle.update()
+
+        if dark_mode:
+            self.theme = self.theme.change(DarkTheme.get_mapping())
+        else:
+            self.theme = self.theme.change(LightTheme.get_mapping())
 
     @profile_parallel
     def download(self) -> bytes:
@@ -186,7 +216,11 @@ class UiManager(Generic[T]):
 
     def download_done_callback(self, svg_bytes: bytes) -> None:
         """Download the SVG file."""
-        ui.download(svg_bytes, f'poster_{sanitize_filename(self.title.replace(" ", "_"))}.svg')
+        basename = "poster"
+        title = self.title.value
+        if title:
+            basename += f"_{sanitize_filename(title.replace(' ', '_'))}"
+        ui.download(svg_bytes, f'{basename}.svg')
         logger.info("Poster Downloaded")
 
     async def on_click_download(self) -> None:
