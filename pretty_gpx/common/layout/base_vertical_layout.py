@@ -9,7 +9,6 @@ from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.layout.paper_size import PaperSize
-from pretty_gpx.common.utils.asserts import assert_close
 from pretty_gpx.common.utils.asserts import assert_float_eq
 from pretty_gpx.common.utils.asserts import assert_in_range
 from pretty_gpx.common.utils.asserts import assert_lt
