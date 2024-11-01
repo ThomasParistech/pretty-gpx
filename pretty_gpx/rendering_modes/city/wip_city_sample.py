@@ -23,7 +23,6 @@ from pretty_gpx.common.utils.paths import RUNNING_DIR
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import format_timedelta
 from pretty_gpx.common.utils.utils import mm_to_point
-from pretty_gpx.rendering_modes.city.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
 from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_forests
 from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
@@ -32,6 +31,7 @@ from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
 from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
 from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CITY_COLOR_THEMES
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityLinewidthParams
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Poster Image Cache."""
+"""City Drawer."""
 from dataclasses import dataclass
 
 from matplotlib.axes import Axes
@@ -14,15 +14,15 @@ from pretty_gpx.common.drawing.drawing_data import PolyFillData
 from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
 from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
+from pretty_gpx.common.drawing.elevation_stats_section import ElevationStatsSection
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import format_timedelta
 from pretty_gpx.common.utils.utils import mm_to_point
-from pretty_gpx.rendering_modes.city.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
-from pretty_gpx.rendering_modes.city.data.augmented_gpx_data import CityAugmentedGpxData
+from pretty_gpx.rendering_modes.city.data.city_augmented_gpx_data import CityAugmentedGpxData
 from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_forests
 from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
 from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_rivers
@@ -30,77 +30,114 @@ from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
 from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
 from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CityColors
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityDrawingStyleParams
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityLinewidthParams
-
-W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
+from pretty_gpx.ui.pages.template.ui_plot import W_DISPLAY_PIX
 
 
 @dataclass
-class CityPosterDrawingData:
+class CityDrawingData:
     """Drawing data for the poster."""
     theme_colors: CityColors
     title_txt: str
     stats_text: str
 
+    @staticmethod
+    def get_stats_items(dist_km_int: int,
+                        uphill_m_int: int,
+                        duration_s_float: float | None) -> list[str]:
+        """Get a list of the items to plot in the stat panel."""
+        stats_items = []
+        if dist_km_int > 0:
+            stats_items.append(f"{dist_km_int} km")
+        if uphill_m_int > 0:
+            stats_items.append(f"{uphill_m_int} m D+")
+        if duration_s_float is not None and duration_s_float > 0:
+            stats_items.append(f"{format_timedelta(duration_s_float)}")
+        return stats_items
+
+    @staticmethod
+    def build_stats_text(stats_items: list[str]) -> str:
+        """Transform the stats items list into a string to display."""
+        if len(stats_items) == 0:
+            return ""
+        elif len(stats_items) == 1:
+            return stats_items[0]
+        elif len(stats_items) == 2:
+            return f"{stats_items[0]} - {stats_items[1]}"
+        elif len(stats_items) == 3:
+            return f"{stats_items[0]} - {stats_items[1]}\n{stats_items[2]}"
+        else:
+            raise ValueError("The stat items list length is not valid")
+
 
 @dataclass
-class CityPosterImageCache:
-    """Class leveraging cache to avoid reprocessing GPX when chaning color them, title, sun azimuth..."""
+class CityDrawer:
+    """Class leveraging cache to avoid reprocessing GPX when changing color them, title, stats..."""
 
     stats_dist_km: float
     stats_uphill_m: float
     stats_duration_s: float | None
 
     plotter: CityDrawingFigure
-    gpx_data: CityAugmentedGpxData
+
+    # TODO (upgrade): enhance support for duration with a 2 stats line layout
 
     @profile
     @staticmethod
     def from_gpx_data(gpx_data: CityAugmentedGpxData,
-                      paper: PaperSize) -> 'CityPosterImageCache':
-        """Create a CityPosterImageCache from a GPX file."""
-        if gpx_data.duration_s is not None:
-            layout = CityVerticalLayout.two_lines_stats()
-        else:
-            layout = CityVerticalLayout.default()
+                      paper_size: PaperSize) -> 'CityDrawer':
+        """Create a CityDrawer from a GPX file."""
+        layout = CityVerticalLayout.default()
 
         # Download the elevation map at the correct layout
-        img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper)
+        img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper_size)
 
         # Use default drawing params
-        drawing_size_params = CityLinewidthParams.default(paper, img_bounds.diagonal_m)
+        drawing_size_params = CityLinewidthParams.default(paper_size, img_bounds.diagonal_m)
         drawing_style_params = CityDrawingStyleParams()
 
         plotter = init_and_populate_drawing_figure(gpx_data, paper_fig, img_bounds, layout, drawing_size_params,
                                                    drawing_style_params)
 
         logger.info("Successful GPX Processing")
-        return CityPosterImageCache(stats_dist_km=gpx_data.dist_km,
-                                    stats_uphill_m=gpx_data.uphill_m,
-                                    stats_duration_s=gpx_data.duration_s,
-                                    plotter=plotter,
-                                    gpx_data=gpx_data)
+
+        return CityDrawer(stats_dist_km=gpx_data.dist_km,
+                          stats_uphill_m=gpx_data.uphill_m,
+                          stats_duration_s=gpx_data.duration_s,
+                          plotter=plotter)
 
     def update_drawing_data(self,
-                            theme_colors: CityColors,
-                            title_txt: str,
-                            uphill_m: str,
-                            duration_s: str,
-                            dist_km: str) -> CityPosterDrawingData:
+                            colors: CityColors,
+                            title_txt: str | None,
+                            uphill_m: int | None,
+                            duration_s: int | None,
+                            dist_km: int | None) -> CityDrawingData:
         """Update the drawing data (can run in a separate thread)."""
-        dist_km_int = int(float(dist_km if dist_km != '' else self.stats_dist_km))
-        uphill_m_int = int(float(uphill_m if uphill_m != '' else self.stats_uphill_m))
-        stats_duration_s = float(duration_s) if duration_s != '' else self.stats_duration_s
+        dist_km_int = dist_km if dist_km is not None else self.stats_dist_km
+        uphill_m_int = uphill_m if uphill_m is not None else self.stats_uphill_m
+        stats_duration_s = duration_s if duration_s is not None else self.stats_duration_s
         stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
+
+        if title_txt is None:
+            title_txt = ""
 
         if stats_duration_s is not None:
             stats_text += f"\n{format_timedelta(int(stats_duration_s))}"
 
-        return CityPosterDrawingData(theme_colors=theme_colors, title_txt=title_txt, stats_text=stats_text)
+        new_stats_items = CityDrawingData.get_stats_items(dist_km_int=int(dist_km_int),
+                                                          uphill_m_int=int(uphill_m_int),
+                                                          duration_s_float=stats_duration_s)
+
+        stats_text = CityDrawingData.build_stats_text(stats_items=new_stats_items)
+
+        return CityDrawingData(theme_colors=colors,
+                               title_txt=title_txt,
+                               stats_text=stats_text)
 
     @profile
-    def draw(self, fig: Figure, ax: Axes, poster_drawing_data: CityPosterDrawingData) -> None:
+    def draw(self, fig: Figure, ax: Axes, poster_drawing_data: CityDrawingData) -> None:
         """Draw the updated drawing data (Must run in the main thread because of matplotlib backend)."""
         self.plotter.draw(fig=fig,
                           ax=ax,
@@ -156,7 +193,7 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
 
     b = base_fig.gpx_bounds
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
-                     s="Marathon de Lausanne", fontsize=mm_to_point(20.0),
+                     s="Title", fontsize=mm_to_point(20.0),
                      fontproperties=drawing_style_params.pretty_font,
                      ha="center",
                      va="center")
@@ -165,6 +202,9 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
 
     if gpx_track.duration_s is not None:
         stats_text += f"\n{format_timedelta(gpx_track.duration_s)}"
+
+    ele = ElevationStatsSection(layout, base_fig, gpx_track)
+    track_data.append(ele.fill_poly)
 
     stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * layout.stats_relative_h,
                      s=stats_text, fontsize=mm_to_point(18.5),

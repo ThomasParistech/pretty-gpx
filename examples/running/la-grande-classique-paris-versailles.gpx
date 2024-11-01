@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1" creator="VisuGPX - https://www.visugpx.com">
+  <metadata>
+    <name>La Grande classique - Paris-Versailles</name>
+    <desc><![CDATA[[b]Un parcours toujours royal[/b]
+
+    Départ de Paris, au pied de la Tour Eiffel,
+    Issy Les Moulineaux, par les quais de la Seine,
+    Meudon, avec la célèbre \"Côte des Gardes\" et son parcours forestier,
+    Chaville, en bas de la descente des fonds de la chapelle,
+    Vélizy et Viroflay, une longue ligne droite vallonnée et en sous-bois,
+    Arrivée à Versailles, avenue de Paris, face au Château de Versailles
+]]></desc>
+  </metadata>
+  <wpt lat="48.8591" lon="2.29361">
+    <ele>39</ele>
+    <name><![CDATA[Paris versailles 16.119 km]]></name>
+  </wpt>
+  <trk>
+    <name><![CDATA[France--Paris--Paris versailles]]></name>
+    <trkseg>
+      <trkpt lat="48.8591" lon="2.29361">
+        <ele>39</ele>
+      </trkpt>
+      <trkpt lat="48.85887" lon="2.29314">
+        <ele>39</ele>
+      </trkpt>
+      <trkpt lat="48.85644" lon="2.28996">
+        <ele>38</ele>
+      </trkpt>
+      <trkpt lat="48.85478" lon="2.28915">
+        <ele>39</ele>
+      </trkpt>
+      <trkpt lat="48.85026" lon="2.28262">
+        <ele>32</ele>
+      </trkpt>
+      <trkpt lat="48.84656" lon="2.27769">
+        <ele>31</ele>
+      </trkpt>
+      <trkpt lat="48.84325" lon="2.27447">
+        <ele>30</ele>
+      </trkpt>
+      <trkpt lat="48.84023" lon="2.27194">
+        <ele>33</ele>
+      </trkpt>
+      <trkpt lat="48.84009" lon="2.27074">
+        <ele>35</ele>
+      </trkpt>
+      <trkpt lat="48.83859" lon="2.26915">
+        <ele>29</ele>
+      </trkpt>
+      <trkpt lat="48.83588" lon="2.26717">
+        <ele>29</ele>
+      </trkpt>
+      <trkpt lat="48.83359" lon="2.26426">
+        <ele>30</ele>
+      </trkpt>
+      <trkpt lat="48.83125" lon="2.26194">
+        <ele>32</ele>
+      </trkpt>
+      <trkpt lat="48.82874" lon="2.26061">
+        <ele>32</ele>
+      </trkpt>
+      <trkpt lat="48.82715" lon="2.26039">
+        <ele>30</ele>
+      </trkpt>
+      <trkpt lat="48.82506" lon="2.25773">
+        <ele>30</ele>
+      </trkpt>
+      <trkpt lat="48.82373" lon="2.25572">
+        <ele>30</ele>
+      </trkpt>
+      <trkpt lat="48.82275" lon="2.25331">
+        <ele>32</ele>
+      </trkpt>
+      <trkpt lat="48.82091" lon="2.247">
+        <ele>28</ele>
+      </trkpt>
+      <trkpt lat="48.82003" lon="2.24283">
+        <ele>29</ele>
+      </trkpt>
+      <trkpt lat="48.81902" lon="2.24246">
+        <ele>37</ele>
+      </trkpt>
+      <trkpt lat="48.81876" lon="2.23962">
+        <ele>43</ele>
+      </trkpt>
+      <trkpt lat="48.81887" lon="2.23666">
+        <ele>54</ele>
+      </trkpt>
+      <trkpt lat="48.81885" lon="2.23477">
+        <ele>67</ele>
+      </trkpt>
+      <trkpt lat="48.81901" lon="2.23311">
+        <ele>86</ele>
+      </trkpt>
+      <trkpt lat="48.81879" lon="2.23168">
+        <ele>94</ele>
+      </trkpt>
+      <trkpt lat="48.8176" lon="2.22978">
+        <ele>104</ele>
+      </trkpt>
+      <trkpt lat="48.81492" lon="2.2304">
+        <ele>117</ele>
+      </trkpt>
+      <trkpt lat="48.81441" lon="2.2298">
+        <ele>127</ele>
+      </trkpt>
+      <trkpt lat="48.81237" lon="2.22999">
+        <ele>142</ele>
+      </trkpt>
+      <trkpt lat="48.81037" lon="2.23024">
+        <ele>158</ele>
+      </trkpt>
+      <trkpt lat="48.80986" lon="2.22542">
+        <ele>173</ele>
+      </trkpt>
+      <trkpt lat="48.80661" lon="2.22211">
+        <ele>172</ele>
+      </trkpt>
+      <trkpt lat="48.80373" lon="2.21941">
+        <ele>182</ele>
+      </trkpt>
+      <trkpt lat="48.80042" lon="2.21628">
+        <ele>174</ele>
+      </trkpt>
+      <trkpt lat="48.79951" lon="2.21662">
+        <ele>173</ele>
+      </trkpt>
+      <trkpt lat="48.79799" lon="2.21855">
+        <ele>166</ele>
+      </trkpt>
+      <trkpt lat="48.79827" lon="2.21593">
+        <ele>172</ele>
+      </trkpt>
+      <trkpt lat="48.79875" lon="2.21478">
+        <ele>179</ele>
+      </trkpt>
+      <trkpt lat="48.79615" lon="2.2125">
+        <ele>180</ele>
+      </trkpt>
+      <trkpt lat="48.79389" lon="2.20988">
+        <ele>176</ele>
+      </trkpt>
+      <trkpt lat="48.79304" lon="2.20913">
+        <ele>172</ele>
+      </trkpt>
+      <trkpt lat="48.79411" lon="2.20696">
+        <ele>155</ele>
+      </trkpt>
+      <trkpt lat="48.7944" lon="2.20499">
+        <ele>148</ele>
+      </trkpt>
+      <trkpt lat="48.79423" lon="2.20302">
+        <ele>139</ele>
+      </trkpt>
+      <trkpt lat="48.79496" lon="2.20128">
+        <ele>132</ele>
+      </trkpt>
+      <trkpt lat="48.793" lon="2.19596">
+        <ele>135</ele>
+      </trkpt>
+      <trkpt lat="48.79404" lon="2.1901">
+        <ele>134</ele>
+      </trkpt>
+      <trkpt lat="48.79558" lon="2.18177">
+        <ele>117</ele>
+      </trkpt>
+      <trkpt lat="48.79869" lon="2.16619">
+        <ele>130</ele>
+      </trkpt>
+      <trkpt lat="48.79847" lon="2.16225">
+        <ele>114</ele>
+      </trkpt>
+      <trkpt lat="48.79827" lon="2.16139">
+        <ele>113</ele>
+      </trkpt>
+      <trkpt lat="48.79855" lon="2.15941">
+        <ele>115</ele>
+      </trkpt>
+      <trkpt lat="48.79813" lon="2.14542">
+        <ele>129</ele>
+      </trkpt>
+      <trkpt lat="48.79934" lon="2.14062">
+        <ele>131</ele>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

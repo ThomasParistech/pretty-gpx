@@ -12,7 +12,7 @@ from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.paths import COLOR_EXPLORATION_DIR
 from pretty_gpx.common.utils.paths import CYCLING_DIR
-from pretty_gpx.rendering_modes.mountain.data.augmented_gpx_data import AugmentedGpxData
+from pretty_gpx.rendering_modes.mountain.data.mountain_augmented_gpx_data import MountainAugmentedGpxData
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MountainColors
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawer import MountainDrawer
 
@@ -62,7 +62,7 @@ def main(color_palettes: list[tuple[str, str, str]]) -> None:
     Tune Color:
     - https://mdigi.tools/darken-color/#f1effc
     """
-    gpx_data = AugmentedGpxData.from_path(os.path.join(CYCLING_DIR, "marmotte.gpx"))
+    gpx_data = MountainAugmentedGpxData.from_path(os.path.join(CYCLING_DIR, "marmotte.gpx"))
     cache = MountainDrawer.from_gpx_data(gpx_data, paper=PAPER_SIZES["A4"],  dpi=60)
 
     shutil.rmtree(COLOR_EXPLORATION_DIR, ignore_errors=True)
