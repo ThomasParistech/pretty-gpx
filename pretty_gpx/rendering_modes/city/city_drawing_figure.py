@@ -9,7 +9,7 @@ from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
 from pretty_gpx.common.drawing.drawing_data import TextData
-from pretty_gpx.rendering_modes.city.drawing.theme_colors import ThemeColors
+from pretty_gpx.rendering_modes.city.drawing.city_colors import CityColors
 
 
 @dataclass
@@ -39,7 +39,7 @@ class CityDrawingFigure(BaseDrawingFigure):
     def draw(self,
              fig: Figure,
              ax: Axes,
-             theme_colors: ThemeColors,
+             theme_colors: CityColors,
              title_txt: str,
              stats_txt: str
              ) -> None:

@@ -11,7 +11,7 @@ from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import TextData
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.utils.profile import profile
-from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import ThemeColors
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MountainColors
 
 
 @dataclass
@@ -43,7 +43,7 @@ class MountainDrawingFigure(BaseDrawingFigure):
              fig: Figure,
              ax: Axes,
              img: np.ndarray,
-             theme_colors: ThemeColors,
+             theme_colors: MountainColors,
              title_txt: str,
              stats_txt: str) -> None:
         """Plot the background image and the annotations on top of it."""

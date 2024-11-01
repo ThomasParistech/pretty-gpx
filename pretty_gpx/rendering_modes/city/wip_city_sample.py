@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 
 from pretty_gpx.common.data.overpass_request import OverpassQuery
+from pretty_gpx.common.drawing.color_theme import DarkTheme
+from pretty_gpx.common.drawing.color_theme import LightTheme
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import LineCollectionData
 from pretty_gpx.common.drawing.drawing_data import PlotData
@@ -29,14 +31,13 @@ from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_ri
 from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
 from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
 from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
+from pretty_gpx.rendering_modes.city.drawing.city_colors import CITY_COLOR_THEMES
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityLinewidthParams
-from pretty_gpx.rendering_modes.city.drawing.theme_colors import DARK_COLOR_THEMES
-from pretty_gpx.rendering_modes.city.drawing.theme_colors import LIGHT_COLOR_THEMES
-from pretty_gpx.rendering_modes.city.drawing.theme_colors import ThemeColors
 
 
-def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
+def plot(gpx_track: GpxTrack, theme: DarkTheme | LightTheme) -> None:
     """Plot a GPX track on a city map."""
+    colors = CITY_COLOR_THEMES[theme]
     paper = PAPER_SIZES['A4']
     if gpx_track.duration_s is not None:
         layout = CityVerticalLayout.two_lines_stats()
@@ -126,7 +127,7 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
 
     plotter.draw(fig=fig,
                  ax=ax,
-                 theme_colors=theme_colors,
+                 theme_colors=colors,
                  stats_txt=stats_text,
                  title_txt=title_txt)
 
@@ -135,6 +136,6 @@ def plot(gpx_track: GpxTrack, theme_colors: ThemeColors) -> None:
 
 if __name__ == "__main__":
     gpx_track = GpxTrack.load(os.path.join(RUNNING_DIR, "route_4_chateaux.gpx"))
-    for theme in list(DARK_COLOR_THEMES.values())+list(LIGHT_COLOR_THEMES.values()):
+    for theme in list(DarkTheme)+list(LightTheme):
         plot(gpx_track, theme)
     Profiling.export_events()

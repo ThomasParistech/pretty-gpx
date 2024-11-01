@@ -8,6 +8,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
+from pretty_gpx.common.drawing.color_theme import hex_to_rgb
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import PlotData
 from pretty_gpx.common.drawing.drawing_data import PolyFillData
@@ -26,11 +27,10 @@ from pretty_gpx.rendering_modes.mountain.data.augmented_gpx_data import Augmente
 from pretty_gpx.rendering_modes.mountain.data.elevation_map import download_elevation_map
 from pretty_gpx.rendering_modes.mountain.data.elevation_map import rescale_elevation
 from pretty_gpx.rendering_modes.mountain.drawing.hillshading import CachedHillShading
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MountainColors
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_figure import MountainDrawingFigure
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_params import MountainDrawingSizeParams
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_params import MountainDrawingStyleParams
-from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import hex_to_rgb
-from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import ThemeColors
 from pretty_gpx.rendering_modes.mountain.mountain_vertical_layout import MountainVerticalLayout
 from pretty_gpx.ui.pages.template.ui_plot import HIGH_RES_DPI
 from pretty_gpx.ui.pages.template.ui_plot import W_DISPLAY_PIX
@@ -40,7 +40,7 @@ from pretty_gpx.ui.pages.template.ui_plot import W_DISPLAY_PIX
 class MountainDrawingData:
     """Drawing data for the poster."""
     img: np.ndarray
-    theme_colors: ThemeColors
+    theme_colors: MountainColors
     title_txt: str
     stats_text: str
 
@@ -102,24 +102,26 @@ class MountainDrawer:
 
     def update_drawing_data(self,
                             azimuth: int,
-                            theme_colors: ThemeColors,
-                            title_txt: str,
-                            uphill_m: str,
-                            dist_km: str) -> MountainDrawingData:
+                            colors: MountainColors,
+                            title_txt: str | None,
+                            uphill_m: int | None,
+                            dist_km: int | None) -> MountainDrawingData:
         """Update the drawing data (can run in a separate thread)."""
         grey_hillshade = self.elevation_shading.render_grey(azimuth)[..., None]
-        background_color_rgb = hex_to_rgb(theme_colors.background_color)
-        color_0 = (0, 0, 0) if theme_colors.dark_mode else background_color_rgb
-        color_1 = background_color_rgb if theme_colors.dark_mode else (255, 255, 255)
+        background_color_rgb = hex_to_rgb(colors.background_color)
+        color_0 = (0, 0, 0) if colors.dark_mode else background_color_rgb
+        color_1 = background_color_rgb if colors.dark_mode else (255, 255, 255)
         colored_hillshade = grey_hillshade * (np.array(color_1) - np.array(color_0)) + np.array(color_0)
 
         img = colored_hillshade.astype(np.uint8)
 
-        dist_km_int = int(float(dist_km if dist_km != '' else self.stats_dist_km))
-        uphill_m_int = int(float(uphill_m if uphill_m != '' else self.stats_uphill_m))
+        dist_km_int = dist_km if dist_km is not None else self.stats_dist_km
+        uphill_m_int = uphill_m if uphill_m is not None else self.stats_uphill_m
         stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
+        if title_txt is None:
+            title_txt = ""
 
-        return MountainDrawingData(img, theme_colors, title_txt=title_txt, stats_text=stats_text)
+        return MountainDrawingData(img, colors, title_txt=title_txt, stats_text=stats_text)
 
     @profile
     def draw(self, fig: Figure, ax: Axes, poster_drawing_data: MountainDrawingData) -> None:

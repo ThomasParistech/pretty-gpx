@@ -23,7 +23,16 @@ T = TypeVar('T')
 
 @dataclass(init=False)
 class UiCache(Generic[T]):
-    """Ui Cache."""
+    """UI Cache Management.
+
+    The methods `on_multi_upload_events` and `on_single_upload_events` serve as callbacks for the `ui.upload` component
+    used in the class `UiManager`.
+    The cache is initialized as `None` and is populated when files are uploaded, and updated upon paper size changes.
+
+    Subclasses must implement:
+    - `on_multi_upload_events` or `on_single_upload_events`
+    - `on_paper_size_change`
+    """
     data: T | None = None
 
     @classmethod

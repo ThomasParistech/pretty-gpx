@@ -15,7 +15,11 @@ HIGH_RES_DPI = 400  # DPI of the final poster
 
 
 class UiPlot:
-    """Ui Plot."""
+    """Ui Plot Management.
+
+    Create a Matplotlib plot with a shadow around it.
+    It is used to display the preview of the poster in the class `UiManager`.
+    """
 
     def __init__(self, visible: bool) -> None:
         with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style(f'{BOX_SHADOW_STYLE};') as self.card:

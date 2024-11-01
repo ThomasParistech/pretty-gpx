@@ -4,19 +4,17 @@ from collections.abc import Awaitable
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from nicegui import ui
-
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import profile_parallel
 from pretty_gpx.common.utils.profile import Profiling
-from pretty_gpx.common.utils.utils import safe
 from pretty_gpx.rendering_modes.mountain.drawing.hillshading import AZIMUTHS
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MOUNTAIN_COLOR_THEMES
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawer import MountainDrawer
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawer import MountainDrawingData
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_cache_data import MountainDrawingCacheData
-from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import DARK_COLOR_THEMES
-from pretty_gpx.rendering_modes.mountain.drawing.theme_colors import LIGHT_COLOR_THEMES
+from pretty_gpx.ui.pages.template.elements.ui_input import UiInputInt
+from pretty_gpx.ui.pages.template.elements.ui_toggle import UiToggle
 from pretty_gpx.ui.pages.template.ui_cache import UiCache
 from pretty_gpx.ui.pages.template.ui_manager import UiManager
 from pretty_gpx.ui.utils.run import on_click_slow_action_in_other_thread
@@ -45,21 +43,20 @@ class MountainUiCache(UiCache[MountainDrawingCacheData]):
         return MountainUiCache(new_data)
 
 
-@dataclass
+@dataclass(slots=True)
 class MountainUiManager(UiManager[MountainUiCache]):
     """Mountain Ui Manager."""
-    uphill_button: ui.input
-    azimuth_toggle: ui.toggle
+    uphill: UiInputInt
+    azimuth: UiToggle[int]
 
     def __init__(self, cache: MountainUiCache = MountainUiCache()) -> None:
-        super().__init__(cache)
+        # Dataclass doesn't handle __slots__  correctly and calling super() when slots=True raises an error
+        super(MountainUiManager, self).__init__(cache)  # noqa : UP008
 
-        with self.col_2:
-            with ui.input(label='D+ (m)', value="").on('keydown.enter', self.on_click_update()) as self.uphill_button:
-                ui.tooltip("Press Enter to override elevation from GPX")
-
-            self.azimuth_toggle = ui.toggle(list(AZIMUTHS.keys()), value=list(AZIMUTHS.keys())[0],
-                                            on_change=self.on_click_update())
+        with self.subclass_column:
+            self.uphill = UiInputInt.create(label='D+ (m)', value="", on_enter=self.on_click_update(),
+                                            tooltip="Press Enter to override elevation from GPX",)
+            self.azimuth = UiToggle[int].create(mapping=AZIMUTHS, on_change=self.on_click_update())
 
     @staticmethod
     def get_chat_msg() -> list[str]:
@@ -117,14 +114,12 @@ class MountainUiManager(UiManager[MountainUiCache]):
 
     def _update(self, c: MountainDrawer) -> MountainDrawingData:
         """Asynchronously update the MountainDrawingData with the current settings."""
-        dark_mode = bool(safe(self.dark_mode_switch.value))
-
-        color_themes = (DARK_COLOR_THEMES if dark_mode else LIGHT_COLOR_THEMES)
-        return c.update_drawing_data(azimuth=AZIMUTHS[safe(self.azimuth_toggle.value)],
-                                     theme_colors=color_themes[safe(self.theme_toggle.value)],
-                                     title_txt=self.title_button.value,
-                                     uphill_m=self.uphill_button.value,
-                                     dist_km=self.dist_km_button.value)
+        colors = MOUNTAIN_COLOR_THEMES[self.theme.value]
+        return c.update_drawing_data(azimuth=self.azimuth.value,
+                                     colors=colors,
+                                     title_txt=self.title.value,
+                                     uphill_m=self.uphill.value,
+                                     dist_km=self.dist_km.value)
 
     def _update_done_callback(self, c: MountainDrawer,
                               poster_drawing_data: MountainDrawingData) -> None:
