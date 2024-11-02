@@ -48,10 +48,6 @@ class BaseDrawingFigure:
 
         ax.autoscale(False)
 
-    def adjust_display_width(self, fig: Figure, w_display_pix: int) -> None:
-        """Adjust height in pixels on the screen of the displayed figure."""
-        fig.set_dpi(w_display_pix / fig.get_size_inches()[0])
-
     def imshow(self, ax: Axes, img: np.ndarray, img_gpx_bounds: GpxBounds) -> None:
         """Plot the background image."""
         h, w = img.shape[:2]

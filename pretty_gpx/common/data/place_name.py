@@ -1,8 +1,5 @@
 #!/usr/bin/python3
-"""Augmented GPX Data."""
-
-
-
+"""Place Name."""
 
 from geopy.geocoders import Nominatim
 from geopy.location import Location

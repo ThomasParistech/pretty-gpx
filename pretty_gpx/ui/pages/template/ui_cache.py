@@ -12,16 +12,17 @@ from nicegui.run import SubprocessException
 from typing_extensions import Self
 
 from pretty_gpx.common.layout.paper_size import PaperSize
+from pretty_gpx.common.structure import Drawer
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile_parallel
 from pretty_gpx.common.utils.utils import safe
+from pretty_gpx.ui.utils.modal import UiWaitingModal
 from pretty_gpx.ui.utils.run import run_cpu_bound
-from pretty_gpx.ui.utils.run import UiWaitingModal
 
-T = TypeVar('T')
+T = TypeVar('T', bound='Drawer')
 
 
-@dataclass(init=False)
+@dataclass
 class UiCache(Generic[T]):
     """UI Cache Management.
 
@@ -29,28 +30,39 @@ class UiCache(Generic[T]):
     used in the class `UiManager`.
     The cache is initialized as `None` and is populated when files are uploaded, and updated upon paper size changes.
 
-    Subclasses must implement:
-    - `on_multi_upload_events` or `on_single_upload_events`
-    - `on_paper_size_change`
+    The `Drawer` class inits an AugmentedGpxData and a DrawingFigure from GPX file(s), and has a `draw` method to
+    draw the poster on a Matplotlib Figure.
     """
-    data: T | None = None
+
+    drawer: T | None = None
+
+    ######### METHODS TO IMPLEMENT #########
+
+    @staticmethod
+    def get_drawer_cls() -> type[T]:
+        """Return the template Drawer class (Because Python doesn't allow to use T as a type)."""
+        raise NotImplementedError
+
+    #########################################
 
     @classmethod
     def multi(cls) -> bool:
         """Detect if the child class is for multi-upload."""
-        single = 'process_file' in cls.__dict__
-        multi = 'process_files' in cls.__dict__
-        assert multi != single, "Either process_file or process_files must be implemented"
+        gpx_data_cls = cls.get_drawer_cls().get_gpx_data_cls()
+        single = 'from_path' in gpx_data_cls.__dict__
+        multi = 'from_paths' in gpx_data_cls.__dict__
+        assert multi != single, "Either from_path or from_paths must be implemented " \
+            f"inside the AugmentedGpxData class ({gpx_data_cls.__class__.__name__})"
         return multi
 
     @property
-    def safe_data(self) -> T:
-        """Return the safe data."""
-        return safe(self.data)
+    def safe_drawer(self) -> T:
+        """Return the safe Drawer."""
+        return safe(self.drawer)
 
     def is_initialized(self) -> bool:
         """Check if the cache is initialized."""
-        return self.data is not None
+        return self.drawer is not None
 
     @classmethod
     async def on_multi_upload_events(cls, e: events.MultiUploadEventArguments,
@@ -105,21 +117,20 @@ class UiCache(Generic[T]):
         with UiWaitingModal(f"Creating {new_paper_size.name} Poster"):
             return await run_cpu_bound(self.change_paper_size, new_paper_size)
 
-    ############
-
     @profile_parallel
     def change_paper_size(self, new_paper_size: PaperSize) -> Self:
         """Change the paper size."""
-        raise NotImplementedError
+        cls = self.__class__
+        return cls(cls.get_drawer_cls().from_gpx_data(self.safe_drawer.gpx_data, new_paper_size))
 
     @classmethod
     @profile_parallel
     def process_file(cls, b: bytes | str, paper_size: PaperSize) -> Self:
         """Process the GPX file."""
-        raise NotImplementedError
+        return cls(cls.get_drawer_cls().from_path(b, paper_size))
 
     @classmethod
     @profile_parallel
     def process_files(cls, list_b: list[bytes] | list[str], paper_size: PaperSize) -> Self:
         """Process the GPX files."""
-        raise NotImplementedError
+        return cls(cls.get_drawer_cls().from_paths(list_b, paper_size))

@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 """Mountain Drawer."""
 from dataclasses import dataclass
+from typing import Final
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.color_theme import hex_to_rgb
@@ -20,6 +19,9 @@ from pretty_gpx.common.drawing.text_allocation import AnnotatedScatterDataCollec
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.layout.paper_size import PaperSize
+from pretty_gpx.common.structure import Drawer
+from pretty_gpx.common.structure import DrawingInputs
+from pretty_gpx.common.utils.asserts import assert_lt
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import mm_to_inch
@@ -28,119 +30,105 @@ from pretty_gpx.rendering_modes.mountain.data.elevation_map import rescale_eleva
 from pretty_gpx.rendering_modes.mountain.data.mountain_augmented_gpx_data import MountainAugmentedGpxData
 from pretty_gpx.rendering_modes.mountain.drawing.hillshading import CachedHillShading
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MountainColors
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_config import MountainDrawingSizeConfig
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_config import MountainDrawingStyleConfig
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_figure import MountainDrawingFigure
-from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_params import MountainDrawingSizeParams
-from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_params import MountainDrawingStyleParams
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_figure import MountainDrawingParams
 from pretty_gpx.rendering_modes.mountain.mountain_vertical_layout import MountainVerticalLayout
 from pretty_gpx.ui.pages.template.ui_plot import HIGH_RES_DPI
-from pretty_gpx.ui.pages.template.ui_plot import W_DISPLAY_PIX
+
+MOUNTAIN_LOW_RES_DPI: Final[int] = 50
+
+
+@dataclass(frozen=True)
+class MountainDrawingInputs(DrawingInputs):
+    """Input Data to be transformed into MountainDrawingParams."""
+    high_res: bool
+
+    azimuth: int
+    colors: MountainColors
+    title_txt: str | None
+    uphill_m: int | None
+    dist_km: float | None
 
 
 @dataclass
-class MountainDrawingData:
-    """Drawing data for the poster."""
-    img: np.ndarray
-    theme_colors: MountainColors
-    title_txt: str
-    stats_text: str
-
-
-@dataclass
-class MountainDrawer:
+class MountainDrawer(Drawer[MountainAugmentedGpxData,
+                            MountainDrawingInputs,
+                            MountainDrawingParams]):
     """Class leveraging cache to avoid reprocessing GPX when changing color them, title, sun azimuth..."""
-
-    elevation_map: np.ndarray
-    elevation_shading: CachedHillShading
+    low_res_elevation: CachedHillShading
+    high_res_elevation: CachedHillShading
 
     stats_dist_km: float
     stats_uphill_m: float
 
-    plotter: MountainDrawingFigure
-
-    dpi: float
+    @staticmethod
+    def get_gpx_data_cls() -> type[MountainAugmentedGpxData]:
+        """Return the template AugmentedGpxData class (Because Python doesn't allow to use T as a type)."""
+        return MountainAugmentedGpxData
 
     @profile
     @staticmethod
     def from_gpx_data(gpx_data: MountainAugmentedGpxData,
-                      paper: PaperSize,
-                      layout: MountainVerticalLayout = MountainVerticalLayout.default(),
-                      dpi: float = HIGH_RES_DPI) -> 'MountainDrawer':
+                      paper: PaperSize) -> 'MountainDrawer':
         """Create a MountainPosterImageCache from a GPX file."""
+        assert_lt(MOUNTAIN_LOW_RES_DPI, HIGH_RES_DPI)
+
         # Download the elevation map at the correct layout
+        layout = MountainVerticalLayout.default()
         img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper)
 
         elevation = download_elevation_map(img_bounds)
 
         # Rescale the elevation map to the target DPI
-        elevation = rescale_elevation_to_dpi(elevation, img_bounds, paper_fig, dpi)
+        low_res_elevation = rescale_elevation_to_dpi(elevation, img_bounds, paper_fig, MOUNTAIN_LOW_RES_DPI)
+        high_res_elevation = rescale_elevation_to_dpi(elevation, img_bounds, paper_fig, HIGH_RES_DPI)
 
         # Use default drawing params
-        drawing_size_params = MountainDrawingSizeParams.default(paper)
-        drawing_style_params = MountainDrawingStyleParams()
+        drawing_size_config = MountainDrawingSizeConfig.default(paper)
+        drawing_style_config = MountainDrawingStyleConfig()
 
-        plotter = init_and_populate_drawing_figure(gpx_data, paper_fig, img_bounds, layout, drawing_size_params,
-                                                   drawing_style_params)
+        plotter = init_and_populate_drawing_figure(gpx_data, paper_fig, img_bounds, layout, drawing_size_config,
+                                                   drawing_style_config)
 
         logger.info("Successful GPX Processing")
-        return MountainDrawer(elevation_map=elevation,
-                              elevation_shading=CachedHillShading(elevation),
+        return MountainDrawer(high_res_elevation=CachedHillShading(high_res_elevation),
+                              low_res_elevation=CachedHillShading(low_res_elevation),
                               stats_dist_km=gpx_data.dist_km,
                               stats_uphill_m=gpx_data.uphill_m,
                               plotter=plotter,
-                              dpi=dpi)
+                              gpx_data=gpx_data)
 
-    @profile
-    def change_dpi(self, dpi: float) -> 'MountainDrawer':
-        """Scale the elevation map to a new DPI."""
-        new_ele_map = rescale_elevation_to_dpi(self.elevation_map, self.plotter.img_gpx_bounds, self.plotter, dpi)
-        return MountainDrawer(elevation_map=new_ele_map,
-                              elevation_shading=CachedHillShading(new_ele_map),
-                              stats_dist_km=self.stats_dist_km,
-                              stats_uphill_m=self.stats_uphill_m,
-                              plotter=self.plotter,
-                              dpi=dpi)
+    def get_params(self, inputs: MountainDrawingInputs) -> MountainDrawingParams:
+        """Convert DrawingInputs to DrawingParams."""
+        if inputs.high_res:
+            elevation_shading = self.high_res_elevation
+        else:
+            elevation_shading = self.low_res_elevation
+        grey_hillshade = elevation_shading.render_grey(inputs.azimuth)[..., None]
 
-    def update_drawing_data(self,
-                            azimuth: int,
-                            colors: MountainColors,
-                            title_txt: str | None,
-                            uphill_m: int | None,
-                            dist_km: int | None) -> MountainDrawingData:
-        """Update the drawing data (can run in a separate thread)."""
-        grey_hillshade = self.elevation_shading.render_grey(azimuth)[..., None]
-        background_color_rgb = hex_to_rgb(colors.background_color)
-        color_0 = (0, 0, 0) if colors.dark_mode else background_color_rgb
-        color_1 = background_color_rgb if colors.dark_mode else (255, 255, 255)
+        background_color_rgb = hex_to_rgb(inputs.colors.background_color)
+        color_0 = (0, 0, 0) if inputs.colors.dark_mode else background_color_rgb
+        color_1 = background_color_rgb if inputs.colors.dark_mode else (255, 255, 255)
         colored_hillshade = grey_hillshade * (np.array(color_1) - np.array(color_0)) + np.array(color_0)
 
         img = colored_hillshade.astype(np.uint8)
 
-        dist_km_int = dist_km if dist_km is not None else self.stats_dist_km
-        uphill_m_int = uphill_m if uphill_m is not None else self.stats_uphill_m
-        stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
-        if title_txt is None:
-            title_txt = ""
+        dist_km_float = inputs.dist_km if inputs.dist_km is not None else self.stats_dist_km
+        uphill_m_float = inputs.uphill_m if inputs.uphill_m is not None else self.stats_uphill_m
+        stats_text = f"{dist_km_float:.2f} km - {int(uphill_m_float)} m D+"
+        title_txt = inputs.title_txt if inputs.title_txt is not None else ""
 
-        return MountainDrawingData(img, colors, title_txt=title_txt, stats_text=stats_text)
-
-    @profile
-    def draw(self, fig: Figure, ax: Axes, poster_drawing_data: MountainDrawingData) -> None:
-        """Draw the updated drawing data (Must run in the main thread because of matplotlib backend)."""
-        self.plotter.draw(fig, ax,
-                          poster_drawing_data.img,
-                          poster_drawing_data.theme_colors,
-                          poster_drawing_data.title_txt,
-                          poster_drawing_data.stats_text)
-        logger.info("Drawing updated "
-                    f"(Elevation Map {poster_drawing_data.img.shape[1]}x{poster_drawing_data.img.shape[0]})")
+        return MountainDrawingParams(img, inputs.colors, title_txt=title_txt, stats_txt=stats_text)
 
 
 def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
                                      paper_fig: BaseDrawingFigure,
                                      img_gpx_bounds: GpxBounds,
                                      layout: MountainVerticalLayout,
-                                     drawing_size_params: MountainDrawingSizeParams,
-                                     drawing_style_params: MountainDrawingStyleParams
+                                     drawing_size_config: MountainDrawingSizeConfig,
+                                     drawing_style_config: MountainDrawingStyleConfig
                                      ) -> MountainDrawingFigure:
     """Set up and populate the DrawingFigure for the poster."""
     list_x = gpx_data.track.list_lon
@@ -148,7 +136,7 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
 
     b = paper_fig.gpx_bounds
 
-    scatters = init_annotated_scatter_collection(gpx_data, list_x, list_y, drawing_style_params, drawing_size_params)
+    scatters = init_annotated_scatter_collection(gpx_data, list_x, list_y, drawing_style_config, drawing_size_config)
 
     plots_x_to_avoid, plots_y_to_avoid = [list_x], [list_y]
 
@@ -165,9 +153,9 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
                                  scatters=scatters,
                                  plots_x_to_avoid=plots_x_to_avoid,
                                  plots_y_to_avoid=plots_y_to_avoid,
-                                 output_linewidth=drawing_size_params.text_arrow_linewidth,
-                                 fontsize=drawing_size_params.text_fontsize,
-                                 fontproperties=drawing_style_params.classic_font)
+                                 output_linewidth=drawing_size_config.text_arrow_linewidth,
+                                 fontsize=drawing_size_config.text_fontsize,
+                                 fontproperties=drawing_style_config.classic_font)
 
     # Draw the elevation profile
     draw_start = gpx_data.start_name is not None
@@ -179,8 +167,8 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
                                                                huts_ids=gpx_data.hut_ids,
                                                                draw_start=draw_start,
                                                                draw_end=draw_end,
-                                                               drawing_style_params=drawing_style_params,
-                                                               drawing_size_params=drawing_size_params)
+                                                               drawing_style_config=drawing_style_config,
+                                                               drawing_size_config=drawing_size_config)
 
     # Prepare the plot data
     augmented_hut_ids = [0] + gpx_data.hut_ids
@@ -191,12 +179,12 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
 
         track_data.append(PlotData(x=list_x[begin_i:end_i],
                                    y=list_y[begin_i:end_i],
-                                   linewidth=drawing_size_params.track_linewidth))
+                                   linewidth=drawing_size_config.track_linewidth))
         if k != 0:
             # Draw dotted line between huts, in case there's a visible gap
             track_data.append(PlotData(x=[list_x[begin_i-1], list_x[begin_i]],
                                        y=[list_y[begin_i-1], list_y[begin_i]],
-                                       linewidth=0.5*drawing_size_params.track_linewidth,
+                                       linewidth=0.5*drawing_size_config.track_linewidth,
                                        linestyle="dotted"))
 
     track_data.append(ele_fill_poly)
@@ -204,13 +192,12 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
     peak_data: list[BaseDrawingData] = ele_scatter + scatters.list_scatter_data + texts + lines  # type:ignore
 
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
-                     s="", fontsize=drawing_size_params.title_fontsize,
-                     fontproperties=drawing_style_params.pretty_font, ha="center", va="center")
+                     s="", fontsize=drawing_size_config.title_fontsize,
+                     fontproperties=drawing_style_config.pretty_font, ha="center", va="center")
 
     return MountainDrawingFigure(paper_size=paper_fig.paper_size,
                                  latlon_aspect_ratio=paper_fig.latlon_aspect_ratio,
                                  gpx_bounds=paper_fig.gpx_bounds,
-                                 w_display_pix=W_DISPLAY_PIX,
                                  track_data=track_data,
                                  peak_data=peak_data,
                                  title=title,
@@ -221,8 +208,8 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
 def init_annotated_scatter_collection(gpx_data: MountainAugmentedGpxData,
                                       global_list_x: list[float],
                                       global_list_y: list[float],
-                                      drawing_style_params: MountainDrawingStyleParams,
-                                      drawing_size_params: MountainDrawingSizeParams) -> AnnotatedScatterDataCollection:
+                                      drawing_style_config: MountainDrawingStyleConfig,
+                                      drawing_size_config: MountainDrawingSizeConfig) -> AnnotatedScatterDataCollection:
     """Initialize the AnnotatedScatterDataCollection with the mountain passes, huts, start and end markers."""
     scatter_collection = AnnotatedScatterDataCollection()
 
@@ -230,30 +217,30 @@ def init_annotated_scatter_collection(gpx_data: MountainAugmentedGpxData,
                                         scatter_ids=gpx_data.passes_ids,
                                         scatter_texts=[f" {mountain_pass.name} \n({int(mountain_pass.ele)} m)"
                                                        for mountain_pass in gpx_data.mountain_passes],
-                                        marker=drawing_style_params.peak_marker,
-                                        markersize=drawing_size_params.peak_markersize)
+                                        marker=drawing_style_config.peak_marker,
+                                        markersize=drawing_size_config.peak_markersize)
 
     scatter_collection.add_scatter_data(global_x=global_list_x, global_y=global_list_y,
                                         scatter_ids=gpx_data.hut_ids,
                                         scatter_texts=[f" {mountain_hut.name} "
                                                        if mountain_hut.name is not None else None
                                                        for mountain_hut in gpx_data.huts],
-                                        marker=drawing_style_params.hut_marker,
-                                        markersize=drawing_size_params.hut_markersize)
+                                        marker=drawing_style_config.hut_marker,
+                                        markersize=drawing_size_config.hut_markersize)
 
     if gpx_data.start_name is not None:
         scatter_collection.add_scatter_data(global_x=global_list_x, global_y=global_list_y,
                                             scatter_ids=[0],
                                             scatter_texts=[f" {gpx_data.start_name} "],
-                                            marker=drawing_style_params.start_marker,
-                                            markersize=drawing_size_params.start_markersize)
+                                            marker=drawing_style_config.start_marker,
+                                            markersize=drawing_size_config.start_markersize)
 
     if gpx_data.end_name is not None:
         scatter_collection.add_scatter_data(global_x=global_list_x, global_y=global_list_y,
                                             scatter_ids=[len(global_list_x)-1],
                                             scatter_texts=[f" {gpx_data.end_name} "],
-                                            marker=drawing_style_params.end_marker,
-                                            markersize=drawing_size_params.end_markersize)
+                                            marker=drawing_style_config.end_marker,
+                                            markersize=drawing_size_config.end_markersize)
     return scatter_collection
 
 
@@ -264,8 +251,8 @@ def get_elevation_drawings(layout: MountainVerticalLayout,
                            huts_ids: list[int],
                            draw_start: bool,
                            draw_end: bool,
-                           drawing_style_params: MountainDrawingStyleParams,
-                           drawing_size_params: MountainDrawingSizeParams) -> tuple[list[ScatterData],
+                           drawing_style_config: MountainDrawingStyleConfig,
+                           drawing_size_config: MountainDrawingSizeConfig) -> tuple[list[ScatterData],
                                                                                     PolyFillData,
                                                                                     TextData]:
     """Create the plot elements for the elevation profile."""
@@ -277,26 +264,26 @@ def get_elevation_drawings(layout: MountainVerticalLayout,
         ScatterData(x=[ele.get_profile_lon_x(closest_idx) for closest_idx in ids],
                     y=[ele.get_profile_lat_y(closest_idx) for closest_idx in ids],
                     marker=marker, markersize=markersize)
-        for ids, marker, markersize in [(passes_ids, drawing_style_params.peak_marker,
-                                         drawing_size_params.peak_markersize),
-                                        (huts_ids, drawing_style_params.hut_marker,
-                                         drawing_size_params.hut_markersize)]
+        for ids, marker, markersize in [(passes_ids, drawing_style_config.peak_marker,
+                                         drawing_size_config.peak_markersize),
+                                        (huts_ids, drawing_style_config.hut_marker,
+                                         drawing_size_config.hut_markersize)]
     ]
 
     # Start and End
     if draw_start:
         scatter_data.append(ScatterData(x=[ele.get_profile_lon_x(0)], y=[ele.get_profile_lat_y(0)],
-                                        marker=drawing_style_params.start_marker,
-                                        markersize=drawing_size_params.start_markersize))
+                                        marker=drawing_style_config.start_marker,
+                                        markersize=drawing_size_config.start_markersize))
     if draw_end:
         scatter_data.append(ScatterData(x=[ele.get_profile_lon_x(-1)], y=[ele.get_profile_lat_y(-1)],
-                                        marker=drawing_style_params.end_marker,
-                                        markersize=drawing_size_params.end_markersize))
+                                        marker=drawing_style_config.end_marker,
+                                        markersize=drawing_size_config.end_markersize))
 
     # Text
     stats = TextData(x=ele.section_center_lon_x, y=ele.section_center_lat_y,
-                     s="", fontsize=drawing_size_params.stats_fontsize,
-                     fontproperties=drawing_style_params.pretty_font, ha="center", va="center")
+                     s="", fontsize=drawing_size_config.stats_fontsize,
+                     fontproperties=drawing_style_config.pretty_font, ha="center", va="center")
 
     return scatter_data, ele.fill_poly, stats
 

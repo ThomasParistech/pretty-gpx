@@ -48,7 +48,7 @@ def allocate_text(fig: Figure,
     if DEBUG_TEXT_ALLOCATION:
         debug_fig, debug_ax = plt.subplots()
         base_fig.setup(debug_fig, debug_ax)
-        base_fig.adjust_display_width(debug_fig, 600)
+        debug_fig.set_dpi(600 / debug_fig.get_size_inches()[0])
         for list_x, list_y in zip(plots_x_to_avoid, plots_y_to_avoid):
             debug_ax.plot(list_x, list_y, "-r")
         for text_x, text_y, text_s in zip(scatters.list_text_x, scatters.list_text_y, scatters.list_text_s):
@@ -102,7 +102,7 @@ def allocate_text(fig: Figure,
     if DEBUG_TEXT_ALLOCATION:
         debug_fig, debug_ax = plt.subplots()
         base_fig.setup(debug_fig, debug_ax)
-        base_fig.adjust_display_width(debug_fig, 600)
+        debug_fig.set_dpi(600 / debug_fig.get_size_inches()[0])
 
         for list_x, list_y in zip(plots_x_to_avoid, plots_y_to_avoid):
             plt.plot(list_x, list_y, "-r")

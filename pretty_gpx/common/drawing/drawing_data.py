@@ -20,14 +20,18 @@ class BaseDrawingData:
 
     zorder: int = 2
 
-    def plot(self, ax: Axes, color: str) -> None:
-        """Plot the annotation."""
-        with Profiling.Scope(f"Plot {self.__class__.__name__}"):
-            self._plot(ax, color)
+    ######### METHODS TO IMPLEMENT #########
 
     def _plot(self, ax: Axes, color: str) -> None:
         """Plot the annotation."""
         raise NotImplementedError("Plot method must be implemented in child classes")
+
+    #########################################
+
+    def plot(self, ax: Axes, color: str) -> None:
+        """Plot the annotation."""
+        with Profiling.Scope(f"Plot {self.__class__.__name__}"):
+            self._plot(ax, color)
 
     def kwargs(self, skip_xy: bool = False) -> dict:
         """Return the dataclass fields as a dictionary."""

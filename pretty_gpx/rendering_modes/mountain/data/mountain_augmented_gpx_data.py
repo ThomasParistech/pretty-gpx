@@ -2,16 +2,21 @@
 """Mountain Augmented GPX Data."""
 import math
 from dataclasses import dataclass
+from typing import Final
 
 import numpy as np
 
-from pretty_gpx.common.data.augmented_gpx_data import get_place_name
 from pretty_gpx.common.data.overpass_request import overpass_query
+from pretty_gpx.common.data.place_name import get_place_name
 from pretty_gpx.common.gpx.gpx_io import cast_to_list_gpx_path
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.gpx.gpx_track import local_m_to_deg
+from pretty_gpx.common.structure import AugmentedGpxData
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
+
+STRICT_THS_M: Final[float] = 50
+LOOSE_THS_M: Final[float] = 1000
 
 
 class GpxBoundsTooLargeError(Exception):
@@ -36,7 +41,7 @@ class MountainHut:
 
 
 @dataclass
-class MountainAugmentedGpxData:
+class MountainAugmentedGpxData(AugmentedGpxData):
     """Class storing the GPX track augmented with names of start/end points and mountain passes/huts along the way."""
     track: GpxTrack
 
@@ -63,9 +68,7 @@ class MountainAugmentedGpxData:
 
     @profile
     @staticmethod
-    def from_path(list_gpx_path: str | bytes | list[str] | list[bytes],
-                  strict_ths_m: float = 50,
-                  loose_ths_m: float = 1000) -> 'MountainAugmentedGpxData':
+    def from_paths(list_gpx_path: str | bytes | list[str] | list[bytes]) -> 'MountainAugmentedGpxData':
         """Create an AugmentedGpxData instance from an ordered list of daily GPX files."""
         list_gpx_path = cast_to_list_gpx_path(list_gpx_path)
 
@@ -81,16 +84,16 @@ class MountainAugmentedGpxData:
 
         huts_names = find_huts_between_daily_tracks(gpx_track, huts_ids)
 
-        is_closed = gpx_track.is_closed(loose_ths_m)
-        passes_ids, mountain_passes = get_close_mountain_passes(gpx_track, strict_ths_m)
+        is_closed = gpx_track.is_closed(LOOSE_THS_M)
+        passes_ids, mountain_passes = get_close_mountain_passes(gpx_track, STRICT_THS_M)
         close_to_start = is_close_to_a_mountain_pass(lon=gpx_track.list_lon[0],
                                                      lat=gpx_track.list_lat[0],
                                                      mountain_passes=mountain_passes,
-                                                     max_dist_m=loose_ths_m)
+                                                     max_dist_m=LOOSE_THS_M)
         close_to_end = is_close_to_a_mountain_pass(lon=gpx_track.list_lon[-1],
                                                    lat=gpx_track.list_lat[-1],
                                                    mountain_passes=mountain_passes,
-                                                   max_dist_m=loose_ths_m)
+                                                   max_dist_m=LOOSE_THS_M)
 
         if close_to_start:
             start_name = None

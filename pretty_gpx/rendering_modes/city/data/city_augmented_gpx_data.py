@@ -1,14 +1,18 @@
 #!/usr/bin/python3
 """City Augmented GPX Data."""
 from dataclasses import dataclass
+from typing import Final
 
-from pretty_gpx.common.data.augmented_gpx_data import get_place_name
+from pretty_gpx.common.data.place_name import get_place_name
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
+from pretty_gpx.common.structure import AugmentedGpxData
 from pretty_gpx.common.utils.profile import profile
+
+LOOSE_THS_M: Final[float] = 1000
 
 
 @dataclass
-class CityAugmentedGpxData:
+class CityAugmentedGpxData(AugmentedGpxData):
     """Class storing the GPX track augmented with names of start/end points."""
     track: GpxTrack
 
@@ -34,12 +38,11 @@ class CityAugmentedGpxData:
 
     @profile
     @staticmethod
-    def from_path(gpx_path: str | bytes,
-                  loose_ths_m: float = 1000) -> 'CityAugmentedGpxData':
+    def from_path(gpx_path: str | bytes) -> 'CityAugmentedGpxData':
         """Create an AugmentedGpxData instance from a GPX file."""
         gpx_track = GpxTrack.load(gpx_path)
 
-        is_closed = gpx_track.is_closed(loose_ths_m)
+        is_closed = gpx_track.is_closed(LOOSE_THS_M)
 
         start_name = get_place_name(lon=gpx_track.list_lon[0], lat=gpx_track.list_lat[0])
 

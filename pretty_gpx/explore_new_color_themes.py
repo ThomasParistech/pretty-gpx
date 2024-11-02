@@ -15,6 +15,7 @@ from pretty_gpx.common.utils.paths import CYCLING_DIR
 from pretty_gpx.rendering_modes.mountain.data.mountain_augmented_gpx_data import MountainAugmentedGpxData
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MountainColors
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawer import MountainDrawer
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawer import MountainDrawingInputs
 
 
 def generate_color_candidates(colors: list[tuple[str, str, str]], dark_mode: bool) -> list[MountainColors]:
@@ -63,7 +64,7 @@ def main(color_palettes: list[tuple[str, str, str]]) -> None:
     - https://mdigi.tools/darken-color/#f1effc
     """
     gpx_data = MountainAugmentedGpxData.from_path(os.path.join(CYCLING_DIR, "marmotte.gpx"))
-    cache = MountainDrawer.from_gpx_data(gpx_data, paper=PAPER_SIZES["A4"],  dpi=60)
+    cache = MountainDrawer.from_gpx_data(gpx_data, paper=PAPER_SIZES["A4"])
 
     shutil.rmtree(COLOR_EXPLORATION_DIR, ignore_errors=True)
     os.makedirs(COLOR_EXPLORATION_DIR, exist_ok=True)
@@ -73,12 +74,13 @@ def main(color_palettes: list[tuple[str, str, str]]) -> None:
 
     fig, ax = plt.subplots()
     for theme in tqdm(candidates):
-        res = cache.update_drawing_data(azimuth=0,
-                                        colors=theme,
-                                        title_txt="Test Color",
-                                        uphill_m=None,
-                                        dist_km=None)
-        cache.draw(fig, ax, res)
+        inputs = MountainDrawingInputs(high_res=False,
+                                       azimuth=0,
+                                       colors=theme,
+                                       title_txt="Test Color",
+                                       uphill_m=None,
+                                       dist_km=None)
+        cache.draw(fig, ax, inputs)
 
         prefix = "dark_" if theme.dark_mode else "light_"
         basename = f"{theme.background_color}_{theme.track_color}_{theme.peak_color}.png".lower()

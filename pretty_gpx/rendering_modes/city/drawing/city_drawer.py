@@ -2,9 +2,6 @@
 """City Drawer."""
 from dataclasses import dataclass
 
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
-
 from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
@@ -17,6 +14,8 @@ from pretty_gpx.common.drawing.drawing_data import TextData
 from pretty_gpx.common.drawing.elevation_stats_section import ElevationStatsSection
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.layout.paper_size import PaperSize
+from pretty_gpx.common.structure import Drawer
+from pretty_gpx.common.structure import DrawingInputs
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import format_timedelta
@@ -31,17 +30,19 @@ from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roa
 from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CityColors
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_figure import CityDrawingFigure
-from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityDrawingStyleParams
-from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityLinewidthParams
-from pretty_gpx.ui.pages.template.ui_plot import W_DISPLAY_PIX
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_figure import CityDrawingParams
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityDrawingSizeConfig
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityDrawingStyleConfig
 
 
-@dataclass
-class CityDrawingData:
-    """Drawing data for the poster."""
+@dataclass(frozen=True)
+class CityDrawingInputs(DrawingInputs):
+    """Input Data to be transformed into CityDrawingParams."""
     theme_colors: CityColors
-    title_txt: str
-    stats_text: str
+    title_txt: str | None
+    uphill_m: int | None
+    duration_s: int | None
+    dist_km: float | None
 
     @staticmethod
     def get_stats_items(dist_km_int: int,
@@ -73,16 +74,21 @@ class CityDrawingData:
 
 
 @dataclass
-class CityDrawer:
+class CityDrawer(Drawer[CityAugmentedGpxData,
+                        CityDrawingInputs,
+                        CityDrawingParams]):
     """Class leveraging cache to avoid reprocessing GPX when changing color them, title, stats..."""
 
     stats_dist_km: float
     stats_uphill_m: float
     stats_duration_s: float | None
 
-    plotter: CityDrawingFigure
-
     # TODO (upgrade): enhance support for duration with a 2 stats line layout
+
+    @staticmethod
+    def get_gpx_data_cls() -> type[CityAugmentedGpxData]:
+        """Return the template AugmentedGpxData class (Because Python doesn't allow to use T as a type)."""
+        return CityAugmentedGpxData
 
     @profile
     @staticmethod
@@ -95,64 +101,49 @@ class CityDrawer:
         img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper_size)
 
         # Use default drawing params
-        drawing_size_params = CityLinewidthParams.default(paper_size, img_bounds.diagonal_m)
-        drawing_style_params = CityDrawingStyleParams()
+        drawing_size_config = CityDrawingSizeConfig.default(paper_size, img_bounds.diagonal_m)
+        drawing_style_config = CityDrawingStyleConfig()
 
-        plotter = init_and_populate_drawing_figure(gpx_data, paper_fig, img_bounds, layout, drawing_size_params,
-                                                   drawing_style_params)
+        plotter = init_and_populate_drawing_figure(gpx_data, paper_fig, img_bounds, layout, drawing_size_config,
+                                                   drawing_style_config)
 
         logger.info("Successful GPX Processing")
 
         return CityDrawer(stats_dist_km=gpx_data.dist_km,
                           stats_uphill_m=gpx_data.uphill_m,
                           stats_duration_s=gpx_data.duration_s,
-                          plotter=plotter)
+                          plotter=plotter,
+                          gpx_data=gpx_data)
 
-    def update_drawing_data(self,
-                            colors: CityColors,
-                            title_txt: str | None,
-                            uphill_m: int | None,
-                            duration_s: int | None,
-                            dist_km: int | None) -> CityDrawingData:
-        """Update the drawing data (can run in a separate thread)."""
-        dist_km_int = dist_km if dist_km is not None else self.stats_dist_km
-        uphill_m_int = uphill_m if uphill_m is not None else self.stats_uphill_m
-        stats_duration_s = duration_s if duration_s is not None else self.stats_duration_s
+    def get_params(self, inputs: CityDrawingInputs) -> CityDrawingParams:
+        """Convert DrawingInputs to DrawingParams."""
+        dist_km_int = inputs.dist_km if inputs.dist_km is not None else self.stats_dist_km
+        uphill_m_int = inputs.uphill_m if inputs.uphill_m is not None else self.stats_uphill_m
+        stats_duration_s = inputs.duration_s if inputs.duration_s is not None else self.stats_duration_s
         stats_text = f"{dist_km_int} km - {uphill_m_int} m D+"
 
-        if title_txt is None:
-            title_txt = ""
+        title_txt = inputs.title_txt if inputs.title_txt is not None else ""
 
         if stats_duration_s is not None:
             stats_text += f"\n{format_timedelta(int(stats_duration_s))}"
 
-        new_stats_items = CityDrawingData.get_stats_items(dist_km_int=int(dist_km_int),
-                                                          uphill_m_int=int(uphill_m_int),
-                                                          duration_s_float=stats_duration_s)
+        new_stats_items = CityDrawingInputs.get_stats_items(dist_km_int=int(dist_km_int),
+                                                            uphill_m_int=int(uphill_m_int),
+                                                            duration_s_float=stats_duration_s)
 
-        stats_text = CityDrawingData.build_stats_text(stats_items=new_stats_items)
+        stats_text = CityDrawingInputs.build_stats_text(stats_items=new_stats_items)
 
-        return CityDrawingData(theme_colors=colors,
-                               title_txt=title_txt,
-                               stats_text=stats_text)
-
-    @profile
-    def draw(self, fig: Figure, ax: Axes, poster_drawing_data: CityDrawingData) -> None:
-        """Draw the updated drawing data (Must run in the main thread because of matplotlib backend)."""
-        self.plotter.draw(fig=fig,
-                          ax=ax,
-                          theme_colors=poster_drawing_data.theme_colors,
-                          title_txt=poster_drawing_data.title_txt,
-                          stats_txt=poster_drawing_data.stats_text)
-        logger.info("Drawing updated")
+        return CityDrawingParams(theme_colors=inputs.theme_colors,
+                                 title_txt=title_txt,
+                                 stats_txt=stats_text)
 
 
 def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
                                      base_fig: BaseDrawingFigure,
                                      city_bounds: GpxBounds,
                                      layout: CityVerticalLayout,
-                                     drawing_size_params: CityLinewidthParams,
-                                     drawing_style_params: CityDrawingStyleParams
+                                     drawing_size_config: CityDrawingSizeConfig,
+                                     drawing_style_config: CityDrawingStyleConfig
                                      ) -> CityDrawingFigure:
     """Set up and populate the DrawingFigure for the poster."""
     gpx_track = gpx_data.track
@@ -189,12 +180,12 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     farmland_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=farmland)]
 
     for priority, way in roads.items():
-        road_data.append(LineCollectionData(way, linewidth=drawing_size_params.linewidth_priority[priority], zorder=1))
+        road_data.append(LineCollectionData(way, linewidth=drawing_size_config.linewidth_priority[priority], zorder=1))
 
     b = base_fig.gpx_bounds
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
                      s="Title", fontsize=mm_to_point(20.0),
-                     fontproperties=drawing_style_params.pretty_font,
+                     fontproperties=drawing_style_config.pretty_font,
                      ha="center",
                      va="center")
 
@@ -208,7 +199,7 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
 
     stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * layout.stats_relative_h,
                      s=stats_text, fontsize=mm_to_point(18.5),
-                     fontproperties=drawing_style_params.pretty_font,
+                     fontproperties=drawing_style_config.pretty_font,
                      ha="center",
                      va="center")
     point_data.append(ScatterData(x=[gpx_track.list_lon[0]], y=[gpx_track.list_lat[0]],
@@ -223,7 +214,6 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     plotter = CityDrawingFigure(paper_size=base_fig.paper_size,
                                 latlon_aspect_ratio=base_fig.latlon_aspect_ratio,
                                 gpx_bounds=base_fig.gpx_bounds,
-                                w_display_pix=W_DISPLAY_PIX,
                                 track_data=track_data,
                                 road_data=road_data,
                                 point_data=point_data,

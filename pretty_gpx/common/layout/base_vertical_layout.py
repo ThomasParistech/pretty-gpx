@@ -58,6 +58,8 @@ class BaseVerticalLayout:
     └───► X
     """
 
+    ######### METHODS TO IMPLEMENT #########
+
     def _get_download_y_bounds(self) -> 'RelativeYBounds':
         """Get relative Vertical Bounds of the Download Area, e.g. (0.0, 1.0) for the entire paper."""
         raise NotImplementedError("Subclass must implement this method")
@@ -70,7 +72,7 @@ class BaseVerticalLayout:
         """Get relative Horizonal/Vertical Margin inside the Track Area."""
         raise NotImplementedError("Subclass must implement this method")
 
-    #########
+    #########################################
 
     def __post_init__(self) -> None:
         """Verify sum of fields is 1.0 and that all layout methods are accounted for."""
