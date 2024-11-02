@@ -1,9 +1,5 @@
 #!/usr/bin/python3
 """Ui Manager."""
-import os
-import tempfile
-from collections.abc import Awaitable
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Generic
 from typing import TypeVar
@@ -17,15 +13,11 @@ from pretty_gpx.common.drawing.color_theme import LightTheme
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
-from pretty_gpx.common.utils.profile import profile_parallel
-from pretty_gpx.common.utils.profile import Profiling
-from pretty_gpx.ui.pages.template.elements.ui_input import UiInputInt
+from pretty_gpx.ui.pages.template.elements.ui_input import UiInputFloat
 from pretty_gpx.ui.pages.template.elements.ui_input import UiInputStr
 from pretty_gpx.ui.pages.template.elements.ui_toggle import UiToggle
 from pretty_gpx.ui.pages.template.ui_cache import UiCache
-from pretty_gpx.ui.pages.template.ui_plot import HIGH_RES_DPI
 from pretty_gpx.ui.pages.template.ui_plot import UiPlot
-from pretty_gpx.ui.utils.run import on_click_slow_action_in_other_thread
 from pretty_gpx.ui.utils.style import DARK_MODE_TEXT
 from pretty_gpx.ui.utils.style import LIGHT_MODE_TEXT
 
@@ -80,10 +72,6 @@ class UiManager(Generic[T]):
     - `get_chat_msg`: Return the chat message, introducing the page.
     - `on_click_update`: Return an async function that updates the poster with the current settings.
     - `cb_before_download`: Optional callback to run before downloading the poster. If not implemented, it does nothing.
-
-    The template cache type `T` must implement:
-    - `on_multi_upload_events` or `on_single_upload_events`
-    - `on_paper_size_change`
     """
     cache: T
 
@@ -93,11 +81,28 @@ class UiManager(Generic[T]):
 
     paper_size: UiToggle[PaperSize]
     title: UiInputStr
-    dist_km: UiInputInt
+    dist_km: UiInputFloat
     dark_mode_switch: ui.switch
     theme: UiToggle[DarkTheme] | UiToggle[LightTheme]
 
     hidden: bool
+
+    ######### METHODS TO IMPLEMENT #########
+
+    @staticmethod
+    def get_chat_msg() -> list[str]:
+        """Return the chat message."""
+        raise NotImplementedError
+
+    async def on_click_update(self) -> None:
+        """Asynchronously update the UiPlot."""
+        raise NotImplementedError
+
+    async def render_download_svg_bytes(self) -> bytes:
+        """Asynchronously download bytes of SVG image using UiPlot."""
+        raise NotImplementedError
+
+    #########################################
 
     def __init__(self, cache: T) -> None:
         """When subclassing, add elements inside `subclass_column`."""
@@ -141,9 +146,9 @@ class UiManager(Generic[T]):
 
         with self.subclass_column:
             self.title = UiInputStr.create(label='Title', value="Title", tooltip="Press Enter to update title",
-                                           on_enter=self.on_click_update())
-            self.dist_km = UiInputInt.create(label='Distance (km)', value="", on_enter=self.on_click_update(),
-                                             tooltip="Press Enter to override distance from GPX")
+                                           on_enter=self.on_click_update)
+            self.dist_km = UiInputFloat.create(label='Distance (km)', value="", on_enter=self.on_click_update,
+                                               tooltip="Press Enter to override distance from GPX")
 
             #
             # New fields will be added here by the subclass
@@ -154,7 +159,7 @@ class UiManager(Generic[T]):
             # TODO(upgrade): Use same Theme colors for the different rendering modes
             self.dark_mode_switch = ui.switch(DARK_MODE_TEXT, value=True, on_change=self.on_dark_mode_switch_change)
 
-            self.theme = UiToggle[DarkTheme].create(DarkTheme.get_mapping(), on_change=self.on_click_update())
+            self.theme = UiToggle[DarkTheme].create(DarkTheme.get_mapping(), on_change=self.on_click_update)
 
         #######
 
@@ -178,7 +183,7 @@ class UiManager(Generic[T]):
         if new_cache is None:
             return
         self.cache = new_cache
-        await self.on_click_update()()
+        await self.on_click_update()
         if self.hidden:
             self.make_visible()
 
@@ -192,7 +197,7 @@ class UiManager(Generic[T]):
         """Change the paper size and update the poster."""
         if self.cache.is_initialized():
             self.cache = await self.cache.on_paper_size_change(self.paper_size.value)
-            await self.on_click_update()()
+            await self.on_click_update()
 
     def on_dark_mode_switch_change(self, e: events.ValueChangeEventArguments) -> None:
         """Switch between dark and light mode."""
@@ -204,41 +209,13 @@ class UiManager(Generic[T]):
         else:
             self.theme = self.theme.change(LightTheme.get_mapping())
 
-    @profile_parallel
-    def download(self) -> bytes:
-        """Save the poster as SVG and return the bytes."""
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            with Profiling.Scope("Matplotlib Save SVG"):
-                tmp_svg = os.path.join(tmp_dir, "tmp.svg")
-                self.plot.fig.savefig(tmp_svg, dpi=HIGH_RES_DPI)
-            with open(tmp_svg, "rb") as svg_file:
-                return svg_file.read()
+    async def on_click_download(self) -> None:
+        """Asynchronously render the high resolution poster and download it as SVG."""
+        svg_bytes = await self.render_download_svg_bytes()
 
-    def download_done_callback(self, svg_bytes: bytes) -> None:
-        """Download the SVG file."""
         basename = "poster"
         title = self.title.value
         if title:
             basename += f"_{sanitize_filename(title.replace(' ', '_'))}"
         ui.download(svg_bytes, f'{basename}.svg')
         logger.info("Poster Downloaded")
-
-    async def on_click_download(self) -> None:
-        """Asynchronously render the high resolution poster and download it as SVG."""
-        await self.cb_before_download()
-        await on_click_slow_action_in_other_thread('Exporting SVG', self.download, self.download_done_callback)()
-
-    ####
-
-    @staticmethod
-    def get_chat_msg() -> list[str]:
-        """Return the chat message."""
-        raise NotImplementedError
-
-    def on_click_update(self) -> Callable[[], Awaitable[None]]:
-        """Return an async function that updates the poster with the current settings."""
-        raise NotImplementedError
-
-    async def cb_before_download(self) -> None:
-        """Callback before downloading."""
-        pass

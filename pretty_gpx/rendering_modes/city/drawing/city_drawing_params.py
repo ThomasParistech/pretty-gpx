@@ -1,4 +1,5 @@
-"""Linewidth for city drawings."""
+#!/usr/bin/python3
+"""City Drawing Style/Size Config."""
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,8 +18,8 @@ REF_PAPER_SIZE: PaperSize = PAPER_SIZES["A4"]
 
 
 @dataclass(kw_only=True)
-class CityDrawingStyleParams:
-    """Drawing Style Parameters."""
+class CityDrawingStyleConfig:
+    """City Drawing Style Config."""
     start_marker: str | Path = "o"
     end_marker: str | Path = "s"
 
@@ -27,8 +28,8 @@ class CityDrawingStyleParams:
 
 
 @dataclass(kw_only=True)
-class CityLinewidthParams:
-    """City Linewidth Parameters."""
+class CityDrawingSizeConfig:
+    """City Drawing Size Config."""
     paper_size: PaperSize
 
     caracteristic_distance: float
@@ -36,23 +37,9 @@ class CityLinewidthParams:
     linewidth_priority: dict[CityRoadType, float]
     linewidth_track: float
 
-    def change_paper_size(self, new_paper_size: PaperSize) -> 'CityLinewidthParams':
-        """Scale parameters to new paper size."""
-        current_diag_mm = np.linalg.norm([self.paper_size.w_mm, self.paper_size.h_mm])
-        new_diag_mm = np.linalg.norm([new_paper_size.w_mm, new_paper_size.h_mm])
-        scale = float(new_diag_mm/current_diag_mm)
-
-        updated_lw_priority = {road_type: value * scale for road_type, value in self.linewidth_priority.items()}
-        updated_lw_track = self.linewidth_track * scale
-
-        return CityLinewidthParams(paper_size=new_paper_size,
-                                   caracteristic_distance=self.caracteristic_distance*scale,
-                                   linewidth_priority=updated_lw_priority,
-                                   linewidth_track=updated_lw_track)
-
     @staticmethod
-    def default(paper_size: PaperSize, diagonal_distance_m: float) -> 'CityLinewidthParams':
-        """Default Drawing Size Parameters."""
+    def default(paper_size: PaperSize, diagonal_distance_m: float) -> 'CityDrawingSizeConfig':
+        """Default City Drawing Size Config."""
         # Convert default A4 parameters to paper size
         ref_diag_mm = np.linalg.norm([REF_PAPER_SIZE.w_mm, REF_PAPER_SIZE.h_mm])
         new_diag_mm = np.linalg.norm([paper_size.w_mm, paper_size.h_mm])
@@ -72,7 +59,7 @@ class CityLinewidthParams:
                                linewidth_priority[CityRoadType.SECONDARY_ROAD])/2.0
         linewidth_track = min(2.0 * scale, max_track_linewidth)
 
-        return CityLinewidthParams(paper_size=paper_size,
-                                   caracteristic_distance=diagonal_distance_m,
-                                   linewidth_priority=linewidth_priority,
-                                   linewidth_track=linewidth_track)
+        return CityDrawingSizeConfig(paper_size=paper_size,
+                                     caracteristic_distance=diagonal_distance_m,
+                                     linewidth_priority=linewidth_priority,
+                                     linewidth_track=linewidth_track)

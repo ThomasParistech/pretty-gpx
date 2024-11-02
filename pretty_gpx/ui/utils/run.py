@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """NiceGUI Run."""
-from collections.abc import Awaitable
 from collections.abc import Callable
 from typing import ParamSpec
 from typing import TypeVar
@@ -9,35 +8,9 @@ from nicegui import run
 
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.profile import ProfilingEvent
-from pretty_gpx.ui.utils.modal import UiWaitingModal
 
 P = ParamSpec('P')
 R = TypeVar('R')
-
-
-def on_click_slow_action_in_other_thread(label: str,
-                                         slow_func: Callable[..., tuple[R, list[ProfilingEvent]]],
-                                         done_callback: Callable[[R], None] | None) -> Callable[[], Awaitable[None]]:
-    """Callback to open a modal dialog and run a slow function in a separate thread.
-
-    Args:
-        label: The label of the modal dialog.
-        slow_func: The function to run in a separate thread. Note it must have been decorated with @profile_parallel
-            to correctly profile the execution.
-        done_callback: The callback to call with the result of slow_func.
-
-    Returns:
-        An async function that shows a modal dialog, runs slow_func in a separate thread and calls done_callback with
-        the result
-    """
-    async def on_click() -> None:
-        with UiWaitingModal(label), Profiling.Scope("Modal"):
-            res = await run_io_bound(slow_func)
-
-            if done_callback is not None:
-                done_callback(res)
-
-    return on_click
 
 
 async def run_cpu_bound(func: Callable[P, tuple[R, list[ProfilingEvent]]],
