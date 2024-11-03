@@ -2,6 +2,7 @@
 """Base Vertical Layout."""
 from dataclasses import dataclass
 from dataclasses import fields
+from typing import ClassVar
 
 import matplotlib.pyplot as plt
 
@@ -58,6 +59,55 @@ class BaseVerticalLayout:
     └───► X
     """
 
+    # Class attribute to be defined by child classes
+    _LAYOUTS: ClassVar[set[str]] = set()
+
+    @classmethod
+    def get_max_download_bounds_across_layouts(cls,
+                                               gpx_track: GpxTrack,
+                                               paper: PaperSize) -> GpxBounds:
+        """Get maximum possible GPX bounds by trying all available layouts, considering X and Y independently."""
+        max_dlon = 0.0
+        max_dlat = 0.0
+        max_x_layout_name = None
+        max_y_layout_name = None
+
+        bounds_by_layout = {}
+
+        # Get all layout methods
+        layout_methods = {name: getattr(cls, name) for name in cls._LAYOUTS}
+
+        for layout_name, layout_method in layout_methods.items():
+            layout : BaseVerticalLayout = layout_method()
+            bounds = layout.get_layout_download_bounds(gpx_track, paper)
+
+            bounds_by_layout[layout_name] = bounds
+
+            if bounds.dlon > max_dlon:
+                max_dlon = bounds.dlon
+                max_x_layout_name = layout_name
+
+            if bounds.dlat > max_dlat:
+                max_dlat = bounds.dlat
+                max_y_layout_name = layout_name
+
+        if max_x_layout_name is None or max_y_layout_name is None:
+            raise ValueError("No valid layouts found")
+
+        # Get the center points from the bounds that gave us max X and Y
+        x_center = bounds_by_layout[max_x_layout_name].lon_center
+        y_center = bounds_by_layout[max_y_layout_name].lat_center
+
+        # Create the final maximum bounds combining the largest X and Y extents
+        max_bounds = GpxBounds.from_center(
+            lon_center=x_center,
+            lat_center=y_center,
+            dlon=max_dlon,
+            dlat=max_dlat
+        )
+
+        return max_bounds
+
     ######### METHODS TO IMPLEMENT #########
 
     def _get_download_y_bounds(self) -> 'RelativeYBounds':
@@ -84,6 +134,66 @@ class BaseVerticalLayout:
             sum_fields += val
 
         assert_float_eq(sum_fields, 1.0, msg="Sum of fields must be 1.0")
+
+        # Verify layouts
+        layout_methods = {name for name, method in self.__class__.__dict__.items()
+                         if isinstance(method, staticmethod)
+                         and name != 'get_layout_with_largest_map_and_title'
+                         and not name.startswith('_')}
+
+        missing_layouts = layout_methods - self.__class__._LAYOUTS
+        extra_layouts = self.__class__._LAYOUTS - layout_methods
+
+        if missing_layouts:
+            raise ValueError(f"Layout methods {missing_layouts} exist but are not included in _LAYOUTS")
+        if extra_layouts:
+            raise ValueError(f"Layouts {extra_layouts} are included in _LAYOUTS but don't exist as methods")
+
+
+    def get_layout_download_bounds(self,
+                                   gpx_track: GpxTrack,
+                                   paper: PaperSize) -> GpxBounds:
+        """Get GPX bounds around the GPX track to match the input vertical layout and paper size."""
+        # Remove the margins
+        paper_w_mm = (paper.w_mm - 2*paper.margin_mm)
+        paper_h_mm = (paper.h_mm - 2*paper.margin_mm)
+
+        # Track area
+        track_w_mm = paper_w_mm
+        track_h_mm = paper_h_mm * self._get_track_y_bounds().height
+
+        # Tight Track area (after removing the margins)
+        tight_w_mm = track_w_mm * (1. - 2*self._get_track_margin())
+        tight_h_mm = track_h_mm * (1. - 2*self._get_track_margin())
+
+        # Analyze the GPX track
+        bounds = gpx_track.get_bounds()
+
+        # Aspect ratio of the lat/lon map
+        latlon_aspect_ratio = bounds.latlon_aspect_ratio
+
+        # Tight fit
+        lat_deg_per_mm = max(
+            bounds.dlon / (tight_w_mm * latlon_aspect_ratio),  # Track touching left/right of tight area
+            bounds.dlat / tight_h_mm  # Track touching bot/top of tight area
+        )
+
+        # Compute the Paper Bounds
+        paper_dlon = paper_w_mm * lat_deg_per_mm * latlon_aspect_ratio
+        paper_dlat = paper_h_mm * lat_deg_per_mm
+
+        # Compute the Download Bounds
+        download_dlon = paper_dlon
+        download_dlat = paper_dlat * self._get_download_y_bounds().height
+
+        download_lat_offset = paper_dlat*(self._get_download_y_bounds().center - self._get_track_y_bounds().center)
+        download_bounds = GpxBounds.from_center(lon_center=bounds.lon_center,
+                                                lat_center=bounds.lat_center + download_lat_offset,
+                                                dlon=download_dlon,
+                                                dlat=download_dlat)
+
+        return download_bounds
+
 
     def get_download_bounds_and_paper_figure(self,
                                              gpx_track: GpxTrack,
@@ -124,15 +234,9 @@ class BaseVerticalLayout:
                                              dlat=paper_dlat)
         drawing_fig = BaseDrawingFigure(paper, latlon_aspect_ratio, paper_bounds)
 
-        # Compute the Download Bounds
-        download_dlon = paper_dlon
-        download_dlat = paper_dlat * self._get_download_y_bounds().height
-
-        download_lat_offset = paper_dlat*(self._get_download_y_bounds().center - self._get_track_y_bounds().center)
-        download_bounds = GpxBounds.from_center(lon_center=bounds.lon_center,
-                                                lat_center=bounds.lat_center + download_lat_offset,
-                                                dlon=download_dlon,
-                                                dlat=download_dlat)
+        # Get the Download Bounds
+        download_bounds = self.get_max_download_bounds_across_layouts(gpx_track=gpx_track,
+                                                                      paper=paper)
 
         if DEBUG:
             _debug(self, paper_bounds, download_bounds, bounds, gpx_track, latlon_aspect_ratio)

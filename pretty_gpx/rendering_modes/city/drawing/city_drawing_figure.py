@@ -8,9 +8,11 @@ from matplotlib.figure import Figure
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
 from pretty_gpx.common.drawing.drawing_data import TextData
+from pretty_gpx.common.drawing.elevation_stats_section import ElevationStatsSection
 from pretty_gpx.common.structure import DrawingFigure
 from pretty_gpx.common.structure import DrawingParams
 from pretty_gpx.common.utils.profile import profile
+from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CityColors
 
 
@@ -20,6 +22,7 @@ class CityDrawingParams(DrawingParams):
     theme_colors: CityColors
     title_txt: str
     stats_txt: str
+    layout: CityVerticalLayout
 
 
 @dataclass
@@ -38,6 +41,7 @@ class CityDrawingFigure(DrawingFigure[CityDrawingParams]):
     rivers_data: list[PolygonCollectionData]
     forests_data: list[PolygonCollectionData]
     farmland_data: list[PolygonCollectionData]
+    elevation_profile: ElevationStatsSection
 
     title: TextData
     stats: TextData
@@ -46,6 +50,14 @@ class CityDrawingFigure(DrawingFigure[CityDrawingParams]):
     def draw(self, fig: Figure, ax: Axes, params: CityDrawingParams) -> None:
         """Plot the annotations."""
         road_color = "black" if params.theme_colors.dark_mode else "white"
+
+        old_layout = self.elevation_profile.layout
+        new_layout = params.layout
+
+        if old_layout != new_layout:
+            self.elevation_profile.update_section_with_new_layout(self,
+                                                                  new_layout=new_layout)
+            self.stats.y = self.gpx_bounds.lat_min + 0.5 * self.gpx_bounds.dlat * new_layout.stats_relative_h
 
         self.setup(fig, ax)
 
@@ -69,6 +81,8 @@ class CityDrawingFigure(DrawingFigure[CityDrawingParams]):
 
         for data6 in self.point_data:
             data6.plot(ax, params.theme_colors.point_color)
+
+        self.elevation_profile.fill_poly.plot(ax, params.theme_colors.track_color)
 
         ax.set_facecolor(params.theme_colors.background_color)
 

@@ -9,6 +9,8 @@ from pretty_gpx.common.layout.elevation_vertical_layout import ElevationVertical
 class MountainVerticalLayout(ElevationVerticalLayout):
     """Mountain Vertical Layout."""
 
+    _LAYOUTS = {'default'}
+
     @staticmethod
     def default() -> 'MountainVerticalLayout':
         """Return the default Mountain Vertical Layout."""
