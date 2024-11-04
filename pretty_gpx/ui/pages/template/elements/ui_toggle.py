@@ -4,10 +4,10 @@ from collections.abc import Awaitable
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Generic
+from typing import Self
 from typing import TypeVar
 
 from nicegui import ui
-from typing_extensions import Self
 
 from pretty_gpx.common.utils.utils import safe
 

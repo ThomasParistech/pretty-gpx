@@ -3,9 +3,9 @@
 from collections.abc import Awaitable
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Self
 
 from nicegui import ui
-from typing_extensions import Self
 
 from pretty_gpx.common.utils.utils import safe
 

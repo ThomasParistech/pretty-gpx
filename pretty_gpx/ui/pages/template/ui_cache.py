@@ -2,6 +2,7 @@
 """Ui Cache."""
 from dataclasses import dataclass
 from typing import Generic
+from typing import Self
 from typing import TypeVar
 
 from natsort import index_natsorted
@@ -9,7 +10,6 @@ from nicegui import events
 from nicegui import ui
 from nicegui.elements.upload import Upload
 from nicegui.run import SubprocessException
-from typing_extensions import Self
 
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.structure import Drawer
