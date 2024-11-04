@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 """Base Vertical Layout."""
+from collections.abc import Callable
 from dataclasses import dataclass
 from dataclasses import fields
 from typing import ClassVar
+from typing import Self
 
 import matplotlib.pyplot as plt
 
@@ -13,6 +15,8 @@ from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.asserts import assert_float_eq
 from pretty_gpx.common.utils.asserts import assert_in_range
 from pretty_gpx.common.utils.asserts import assert_lt
+from pretty_gpx.common.utils.asserts import assert_not_empty
+from pretty_gpx.common.utils.asserts import assert_same_keys
 
 DEBUG = False
 
@@ -62,6 +66,13 @@ class BaseVerticalLayout:
     # Class attribute to be defined by child classes
     _LAYOUTS: ClassVar[set[str]] = set()
 
+    @classmethod  
+    def get_layouts(cls) -> dict[str, Callable[[], Self]]:  
+        """Get all available layouts."""  
+        assert_not_empty(cls._LAYOUTS)  
+        return {name: getattr(cls, name) for name in cls._LAYOUTS}  
+
+
     @classmethod
     def get_max_download_bounds_across_layouts(cls,
                                                gpx_track: GpxTrack,
@@ -75,8 +86,8 @@ class BaseVerticalLayout:
         bounds_by_layout = {}
 
         # Get all layout methods
-        layout_methods = {name: getattr(cls, name) for name in cls._LAYOUTS}
-
+        layout_methods = cls.get_layouts()
+    
         for layout_name, layout_method in layout_methods.items():
             layout : BaseVerticalLayout = layout_method()
             bounds = layout.get_layout_download_bounds(gpx_track, paper)
@@ -133,21 +144,13 @@ class BaseVerticalLayout:
             assert isinstance(val, float), f"Field {f.name} must be a float"
             sum_fields += val
 
-        assert_float_eq(sum_fields, 1.0, msg="Sum of fields must be 1.0")
+        layout_methods = self.__class__.get_layouts()
 
         # Verify layouts
-        layout_methods = {name for name, method in self.__class__.__dict__.items()
-                         if isinstance(method, staticmethod)
-                         and name != 'get_layout_with_largest_map_and_title'
-                         and not name.startswith('_')}
+        assert_float_eq(sum_fields, 1.0, msg="Sum of fields must be 1.0")
 
-        missing_layouts = layout_methods - self.__class__._LAYOUTS
-        extra_layouts = self.__class__._LAYOUTS - layout_methods
 
-        if missing_layouts:
-            raise ValueError(f"Layout methods {missing_layouts} exist but are not included in _LAYOUTS")
-        if extra_layouts:
-            raise ValueError(f"Layouts {extra_layouts} are included in _LAYOUTS but don't exist as methods")
+        assert_same_keys(layout_methods, self.__class__._LAYOUTS)
 
 
     def get_layout_download_bounds(self,
