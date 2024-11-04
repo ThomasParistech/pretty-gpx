@@ -2,11 +2,11 @@
 """Structure."""
 from dataclasses import dataclass
 from typing import Generic
+from typing import Self
 from typing import TypeVar
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from typing_extensions import Self
 
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.layout.paper_size import PaperSize

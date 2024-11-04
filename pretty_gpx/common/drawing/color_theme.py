@@ -3,9 +3,9 @@
 from enum import auto
 from enum import Enum
 from typing import Final
+from typing import Self
 
 from matplotlib import colors
-from typing_extensions import Self
 
 
 class _BaseTheme(Enum):
