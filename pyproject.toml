@@ -7,7 +7,7 @@ authors = [
 license = {text = "CC BY-NC-SA 4.0 License"}
 description = "GPX to Poster: Showcase Your Mountain Cycling or Hiking Adventures"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 
 [project.urls]

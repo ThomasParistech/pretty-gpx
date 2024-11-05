@@ -15,7 +15,7 @@ Here's a demo GIF to give you a glimpse of a user interacting with the webapp an
 
 ### Option 1: Install Locally
 
-Make sure you have Python version 3.10 or higher installed.
+Make sure you have Python version 3.11 or higher installed.
 
 Install the dependencies.
 ```
