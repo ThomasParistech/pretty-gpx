@@ -100,6 +100,7 @@ class MountainDrawer(Drawer[MountainAugmentedGpxData,
                               plotter=plotter,
                               gpx_data=gpx_data)
 
+    @profile
     def get_params(self, inputs: MountainDrawingInputs) -> MountainDrawingParams:
         """Convert DrawingInputs to DrawingParams."""
         if inputs.high_res:
