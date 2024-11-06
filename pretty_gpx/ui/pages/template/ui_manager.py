@@ -2,6 +2,7 @@
 """Ui Manager."""
 from dataclasses import dataclass
 from typing import Generic
+from typing import Literal
 from typing import TypeVar
 
 from nicegui import events
@@ -119,7 +120,9 @@ class UiManager(Generic[T]):
                         self.subclass_column = ui.column(align_items="center")
                         col_3 = ui.column(align_items="center")
 
-                    ui.button('Download', on_click=self.on_click_download)
+                    with ui.row(align_items="center"):
+                        ui.button('Download SVG', on_click=self.on_click_download_svg)
+                        ui.button('Download PDF', on_click=self.on_click_download_pdf)
                 self.params_to_hide.visible = False
 
         ###
@@ -209,13 +212,22 @@ class UiManager(Generic[T]):
         else:
             self.theme = self.theme.change(LightTheme.get_mapping())
 
-    async def on_click_download(self) -> None:
+    async def on_click_download_svg(self) -> None:
         """Asynchronously render the high resolution poster and download it as SVG."""
         svg_bytes = await self.render_download_svg_bytes()
+        self.download(svg_bytes, "svg")
 
+    async def on_click_download_pdf(self) -> None:
+        """Asynchronously render the high resolution poster and download it as PDF."""
+        svg_bytes = await self.render_download_svg_bytes()
+        pdf_bytes = await self.plot.svg_to_pdf_bytes(svg_bytes)
+        self.download(pdf_bytes, "pdf")
+
+    def download(self, data: bytes, ext: Literal["svg", "pdf"]) -> None:
+        """Download the high resolution poster."""
         basename = "poster"
         title = self.title.value
         if title:
             basename += f"_{sanitize_filename(title.replace(' ', '_'))}"
-        ui.download(svg_bytes, f'{basename}.svg')
-        logger.info("Poster Downloaded")
+        ui.download(data, f'{basename}.{ext}')
+        logger.info(f"{ext.upper()} Poster Downloaded")
