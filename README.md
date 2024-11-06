@@ -148,6 +148,7 @@ The script below takes a list of color triplets as input and generates posters f
 python3 pretty_gpx/explore_color_themes.py
 ```
 
+
 # Simplify a GPX file
 
 If your GPX file is quite heavy, e.g. 20Mo, you can run the following script to make it lighter.
@@ -160,7 +161,9 @@ python3 pretty_gpx/simplify_gpx.py --input <GPX_FILE>
 
 To give you a better idea of what this app can create, here are some example posters generated from real GPX tracks (See the `examples` folder).
 
+
 ## Mountain mode
+
 
 <table>
   <tr>
@@ -178,6 +181,7 @@ To give you a better idea of what this app can create, here are some example pos
 </table>
 
 ## City mode
+
 
 <table>
   <tr>
