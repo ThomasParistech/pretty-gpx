@@ -5,6 +5,7 @@ from collections.abc import Callable
 from io import BytesIO
 from typing import TypeVar
 
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -20,7 +21,6 @@ W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
 
 LOW_RES_DPI = 100  # DPI of the poster's preview
 HIGH_RES_DPI = 400  # DPI of the final poster
-
 
 T = TypeVar('T')
 
@@ -44,7 +44,8 @@ class UiPlot:
     @profile_parallel
     def draw_png(func: Callable[[Figure, Axes, T], None], data: T) -> str:
         """Update the plot."""
-        fig, ax = plt.subplots()  # TODO (upgrade): speed up by reusing the figure (Warning process/thread safety)
+        matplotlib.use('Agg')
+        fig, ax = plt.subplots()
         func(fig, ax, data)
         base64_image = fig_to_rasterized_base64(fig, dpi=100)
         return f'data:image/png;base64,{base64_image}'
@@ -53,7 +54,8 @@ class UiPlot:
     @profile_parallel
     def draw_svg(func: Callable[[Figure, Axes, T], None], data: T) -> bytes:
         """Update the plot."""
-        fig, ax = plt.subplots()  # TODO (upgrade): speed up by reusing the figure (Warning process/thread safety)
+        matplotlib.use('Agg')
+        fig, ax = plt.subplots()
         func(fig, ax, data)
         return fig_to_svg_bytes(fig, dpi=HIGH_RES_DPI)
 
@@ -77,16 +79,19 @@ def fig_to_rasterized_base64(fig: Figure, dpi: int) -> str:
     """Convert a Matplotlib figure to a rasterized PNG in base64."""
     buf = BytesIO()
     fig.savefig(buf, format='png', dpi=dpi)
-    fig.clf()
     buf.seek(0)
-    return base64.b64encode(buf.read()).decode('utf-8')
+    res = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
+    plt.close(fig)
+    return res
 
 
 @profile
 def fig_to_svg_bytes(fig: Figure, dpi: int) -> bytes:
     """Convert a Matplotlib figure to bytes of a vectorized SVG."""
-    buffer = BytesIO()
-    fig.savefig(buffer, format="svg", dpi=dpi)
-    fig.clf()
-    buffer.seek(0)
-    return buffer.read()
+    buf = BytesIO()
+    fig.savefig(buf, format="svg", dpi=dpi)
+    res = buf.getvalue()
+    buf.close()
+    plt.close(fig)
+    return res

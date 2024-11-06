@@ -121,6 +121,7 @@ class CityDrawer(Drawer[CityAugmentedGpxData,
                           plotter=plotter,
                           gpx_data=gpx_data)
 
+    @profile
     def get_params(self, inputs: CityDrawingInputs) -> CityDrawingParams:
         """Convert DrawingInputs to DrawingParams."""
         dist_km_int = inputs.dist_km if inputs.dist_km is not None else self.stats_dist_km
