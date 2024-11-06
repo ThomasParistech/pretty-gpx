@@ -25,7 +25,6 @@ pip3 install -r .devcontainer/requirements.txt
 ```
 
 In ubuntu, install the packages.
-
 ```
 sudo xargs -a .devcontainer/packages.txt apt-get install -y
 ```
@@ -55,7 +54,6 @@ You should see the updated PYTHONPATH value.
 ### Option 2: Open in VS Code with Dev Containers
 
 If you are using Visual Studio Code, you can take advantage of the Dev Containers feature:
-
 - Install the Remote - Containers extension in VS Code.
 - Open this project folder in VS Code.
 - When prompted, select Reopen in Container.
@@ -65,10 +63,10 @@ This will open the project in a fully configured container environment based on 
 ### Run
 
 Finally, run the webapp.
-
 ```
 python3 pretty_gpx/main.py
 ```
+
 
 # Features
 
