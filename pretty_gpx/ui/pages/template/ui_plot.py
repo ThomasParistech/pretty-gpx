@@ -1,10 +1,12 @@
 #!/usr/bin/python3
 """Ui Plot."""
 import base64
+import io
 from collections.abc import Callable
 from io import BytesIO
 from typing import TypeVar
 
+import cairosvg
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
@@ -39,6 +41,7 @@ class UiPlot:
         with ui.card().classes(f'w-[{W_DISPLAY_PIX}px]').style(f'{BOX_SHADOW_STYLE};') as self.card:
             self.img = ui.image()
         self.card.visible = visible
+        self.svg_bytes: bytes | None = None
 
     @staticmethod
     @profile_parallel
@@ -61,17 +64,35 @@ class UiPlot:
 
     async def update_preview(self, draw_func: Callable[[Figure, Axes, T], None], data: T) -> None:
         """Draw the figure and rasterize it to update the preview."""
+        self.svg_bytes = None
         with UiWaitingModal("Updating Preview"):
             self.img.source = await run_cpu_bound(UiPlot.draw_png, draw_func, data)
 
     async def render_svg(self, draw_func: Callable[[Figure, Axes, T], None], data: T) -> bytes:
         """Draw the figure and return the SVG bytes."""
-        with UiWaitingModal("Rendering SVG"):
-            return await run_cpu_bound(UiPlot.draw_svg, draw_func, data)
+        if self.svg_bytes is None:
+            with UiWaitingModal("Rendering Vectorized Poster"):
+                self.svg_bytes = await run_cpu_bound(UiPlot.draw_svg, draw_func, data)
+
+        return self.svg_bytes
+
+    async def svg_to_pdf_bytes(self, svg_bytes: bytes) -> bytes:
+        """Convert SVG bytes to PDF bytes."""
+        with UiWaitingModal("Converting to PDF"):
+            return await run_cpu_bound(svg_to_pdf_bytes, svg_bytes)
 
     def make_visible(self) -> None:
         """Make the layout visible."""
         self.card.visible = True
+
+
+@profile_parallel
+def svg_to_pdf_bytes(svg_bytes: bytes) -> bytes:
+    """Convert SVG bytes to PDF bytes."""
+    pdf_bytes = io.BytesIO()
+    cairosvg.svg2pdf(bytestring=svg_bytes, write_to=pdf_bytes)
+    pdf_bytes.seek(0)
+    return pdf_bytes.read()
 
 
 @profile
