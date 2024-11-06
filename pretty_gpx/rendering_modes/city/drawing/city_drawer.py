@@ -11,6 +11,7 @@ from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
 from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
 from pretty_gpx.common.drawing.elevation_stats_section import ElevationStatsSection
+from pretty_gpx.common.drawing.fonts import FontEnum
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.structure import Drawer
@@ -28,10 +29,10 @@ from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
 from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
 from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CityColors
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_config import CityDrawingSizeConfig
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_config import CityDrawingStyleConfig
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_figure import CityDrawingParams
-from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityDrawingSizeConfig
-from pretty_gpx.rendering_modes.city.drawing.city_drawing_params import CityDrawingStyleConfig
 
 
 @dataclass(frozen=True)
@@ -194,7 +195,7 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     b = base_fig.gpx_bounds
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
                      s="Title", fontsize=mm_to_point(20.0),
-                     fontproperties=drawing_style_config.pretty_font,
+                     fontproperties=FontEnum.TITLE.value,
                      ha="center",
                      va="center")
 
@@ -202,7 +203,7 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
 
     stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * layout.stats_relative_h,
                      s=stats_text, fontsize=mm_to_point(18.5),
-                     fontproperties=drawing_style_config.pretty_font,
+                     fontproperties=FontEnum.STATS.value,
                      ha="center",
                      va="center")
     point_data.append(ScatterData(x=[gpx_track.list_lon[0]], y=[gpx_track.list_lat[0]],

@@ -4,13 +4,11 @@ import os
 from dataclasses import dataclass
 
 import numpy as np
-from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 
 from pretty_gpx.common.drawing.plt_marker import marker_from_svg
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
-from pretty_gpx.common.utils.paths import FONTS_DIR
 from pretty_gpx.common.utils.paths import ICONS_DIR
 from pretty_gpx.common.utils.utils import mm_to_point
 
@@ -22,9 +20,6 @@ class MountainDrawingStyleConfig:
     end_marker: str | Path = "s"
     peak_marker: str | Path = "^"
     hut_marker: str | Path = marker_from_svg(os.path.join(ICONS_DIR, "house.svg"))
-
-    classic_font: FontProperties = FontProperties(weight="bold")
-    pretty_font: FontProperties = FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf"))
 
 
 @dataclass(kw_only=True)
@@ -54,7 +49,7 @@ class MountainDrawingSizeConfig:
         return MountainDrawingSizeConfig(text_fontsize=mm_to_point(3.0) * scale,
                                          text_arrow_linewidth=mm_to_point(0.3) * scale,
                                          title_fontsize=mm_to_point(20.0) * scale,
-                                         stats_fontsize=mm_to_point(18.5) * scale,
+                                         stats_fontsize=mm_to_point(14) * scale,
                                          start_markersize=mm_to_point(3.5) * scale,
                                          end_markersize=mm_to_point(3.5) * scale,
                                          peak_markersize=mm_to_point(3.5) * scale,

@@ -14,6 +14,7 @@ from pretty_gpx.common.drawing.drawing_data import PolyFillData
 from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
 from pretty_gpx.common.drawing.elevation_stats_section import ElevationStatsSection
+from pretty_gpx.common.drawing.fonts import FontEnum
 from pretty_gpx.common.drawing.text_allocation import allocate_text
 from pretty_gpx.common.drawing.text_allocation import AnnotatedScatterDataCollection
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
@@ -156,7 +157,7 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
                                  plots_y_to_avoid=plots_y_to_avoid,
                                  output_linewidth=drawing_size_config.text_arrow_linewidth,
                                  fontsize=drawing_size_config.text_fontsize,
-                                 fontproperties=drawing_style_config.classic_font)
+                                 fontproperties=FontEnum.ANNOTATION.value)
 
     # Draw the elevation profile
     draw_start = gpx_data.start_name is not None
@@ -194,7 +195,7 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
 
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
                      s="", fontsize=drawing_size_config.title_fontsize,
-                     fontproperties=drawing_style_config.pretty_font, ha="center", va="center")
+                     fontproperties=FontEnum.TITLE.value, ha="center", va="center")
 
     return MountainDrawingFigure(paper_size=paper_fig.paper_size,
                                  latlon_aspect_ratio=paper_fig.latlon_aspect_ratio,
