@@ -20,6 +20,13 @@ class BaseDrawingFigure:
     latlon_aspect_ratio: float
     gpx_bounds: GpxBounds
 
+    def get_scale(self) -> float:
+        """Get the scale of the drawing, i.e. ratio between real meters and drawing millimeters."""
+        dx_m, dy_m = self.gpx_bounds.dx_dy_m
+        w_mm = self.paper_size.w_mm - 2*self.paper_size.margin_mm
+        h_mm = self.paper_size.h_mm - 2*self.paper_size.margin_mm
+        return 0.5 * (dx_m/w_mm + dy_m/h_mm)
+
     @profile
     def setup(self, fig: Figure, ax: Axes) -> None:
         """Setup the figure with the appropriate aspect-ratio, xlim/ylim, size in inches and dpi."""

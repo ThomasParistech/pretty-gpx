@@ -4,10 +4,12 @@ from dataclasses import dataclass
 from dataclasses import fields
 from typing import Literal
 
+import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 from matplotlib.collections import PatchCollection
 from matplotlib.font_manager import FontProperties
+from matplotlib.patches import ConnectionPatch
 from matplotlib.path import Path
 
 from pretty_gpx.common.data.overpass_processing import SurfacePolygons
@@ -74,6 +76,24 @@ class PlotData(BaseDrawingData):
 
 
 @dataclass(kw_only=True)
+class ArrowData(BaseDrawingData):
+    """Arrow Data."""
+    x: float
+    y: float
+    dx: float
+    dy: float
+
+    linewidth: float
+
+    def _plot(self, ax: Axes, color: str) -> None:
+        """Plot the annotation."""
+        # Don't use ax.arrow as it will be affected by the aspect ratio of the plot
+        # Don't use ax.annotate as it will handle the linewidth differently than ax.plot
+        ax.add_patch(ConnectionPatch((self.x, self.y), (self.x+self.dx, self.y+self.dy), "data", "data",
+                                     arrowstyle="-|>", color=color, lw=self.linewidth))
+
+
+@dataclass(kw_only=True)
 class ScatterData(BaseDrawingData):
     """Scatter Data."""
     x: list[float]
@@ -126,3 +146,17 @@ class PolygonCollectionData:
             ax.add_collection(PatchCollection(self.polygons.interior_polygons,
                                               facecolor=color_background,
                                               edgecolor=None))
+
+
+if __name__ == "__main__":
+    lw = 1
+
+    plt.plot([0, 1], [0, 1], lw=lw)
+
+    plt.annotate('', xy=(0, 1), xytext=(1, 0),
+                 arrowprops=dict(color="red", linewidth=lw))
+
+    plt.gca().add_patch(ConnectionPatch((2, 1), (2, 0), "data", "data",
+                                        arrowstyle="-|>", color="red", lw=lw))
+
+    plt.show()
