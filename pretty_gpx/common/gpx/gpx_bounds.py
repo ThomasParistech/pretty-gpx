@@ -4,7 +4,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from pretty_gpx.common.utils.utils import EARTH_RADIUS_M
+from pretty_gpx.common.gpx.gpx_distance import get_delta_xy
+from pretty_gpx.common.gpx.gpx_distance import latlon_aspect_ratio
 
 
 @dataclass
@@ -69,20 +70,18 @@ class GpxBounds:
     @property
     def latlon_aspect_ratio(self) -> float:
         """Aspect ratio of the lat/lon map."""
-        return 1.0/np.cos(np.deg2rad(self.lat_center))
+        return latlon_aspect_ratio(self.lat_center)
 
     @property
-    def dy_m(self) -> float:
-        """Latitude span converted in meters."""
-        return EARTH_RADIUS_M * np.deg2rad(self.dlat)
-
-    @property
-    def dx_m(self) -> float:
-        """Longitude span converted in meters."""
-        return EARTH_RADIUS_M * np.deg2rad(self.dlon) / self.latlon_aspect_ratio
+    def area_m2(self) -> float:
+        """The area of the bounds in meters squared."""
+        dx, dy = get_delta_xy((self.lat_min, self.lon_min),
+                              (self.lat_max, self.lon_max))
+        return dx * dy
 
     @property
     def diagonal_m(self) -> float:
         """The diagonal of the bounds in meters."""
-        return (self.dx_m**2 + self.dy_m**2)**0.5
-    
+        dx, dy = get_delta_xy((self.lat_min, self.lon_min),
+                              (self.lat_max, self.lon_max))
+        return float(np.linalg.norm([dx, dy]))

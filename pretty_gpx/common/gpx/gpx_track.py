@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from dataclasses import field
 
 import matplotlib.pyplot as plt
-import numpy as np
 from gpxpy.gpx import GPXTrackPoint
 
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
+from pretty_gpx.common.gpx.gpx_distance import get_distance_m
 from pretty_gpx.common.gpx.gpx_io import load_gpxpy
 from pretty_gpx.common.utils.asserts import assert_close
 from pretty_gpx.common.utils.asserts import assert_not_empty
@@ -16,11 +16,6 @@ from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.utils import safe
 
 DEBUG_TRACK = False
-
-
-def local_m_to_deg(m: float) -> float:
-    """Convert meters to degrees that the earth is locally planar."""
-    return m * 180. / (np.pi * 6371*1e3)
 
 
 @dataclass
@@ -79,11 +74,11 @@ class GpxTrack:
 
         return gpx_track
 
-    def is_closed(self, dist_m: float) -> bool:
+    def is_closed(self, ths_m: float) -> bool:
         """Estimate if the track is closed."""
-        dist_deg = float(np.linalg.norm((self.list_lon[0] - self.list_lon[-1],
-                                         self.list_lat[0] - self.list_lat[-1])))
-        return dist_deg < local_m_to_deg(dist_m)
+        distance_m = get_distance_m((self.list_lat[0], self.list_lon[0]),
+                                    (self.list_lat[-1], self.list_lon[-1]))
+        return distance_m < ths_m
 
     @staticmethod
     def merge(list_gpx_track: list['GpxTrack']) -> 'GpxTrack':

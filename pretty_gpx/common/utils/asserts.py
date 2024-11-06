@@ -10,6 +10,8 @@ from typing import Final
 import numpy as np
 
 Number = float | int
+Shape = tuple[int, ...] | list[int]
+OptionalShape = tuple[int | None, ...] | list[int | None] | Shape
 
 EPSILON: Final[float] = float(np.finfo(float).eps)
 
@@ -22,6 +24,10 @@ def _clean_msg(prefix: str = "") -> str:
     if prefix.endswith(": "):
         return prefix
     return prefix+": "
+
+
+def _shape_to_str(shape: OptionalShape) -> str:
+    return ','.join([str(k) if k is not None else '?' for k in shape])
 
 
 def assert_isfile(path: str, *, ext: str | None = None, msg: str = "") -> None:
@@ -117,6 +123,20 @@ def assert_not_empty(seq: Sized, *, msg: str = "") -> None:
     """Assert Sized element is not empty."""
     m = _clean_msg(msg)
     assert len(seq) != 0, m+"Got empty sequence."
+
+
+def assert_np_dim(x: np.ndarray, dim: int, *, msg: str = "") -> None:
+    """Assert Numpy array dimension."""
+    m = _clean_msg(msg)
+    assert x.ndim == dim, m+f"Invalid tensor. Expect dimension {dim}. Got {x.ndim}"
+
+
+def assert_np_shape(x: np.ndarray, shape: OptionalShape, *, msg: str = "") -> None:
+    """Assert Numpy array shape."""
+    m = _clean_msg(msg)
+    m += f"Invalid tensor. Must be of shape ({_shape_to_str(shape)}) and not {x.shape}"
+    assert_np_dim(x, len(shape), msg=m)
+    assert np.all([n1 == n2 or n2 is None for n1, n2 in zip(x.shape, shape)]), m
 
 
 def assert_same_keys(a: dict[Any, Any] | Iterable[Any],
