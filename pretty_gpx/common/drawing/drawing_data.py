@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from dataclasses import fields
 from typing import Literal
 
-import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 from matplotlib.collections import PatchCollection
