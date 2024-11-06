@@ -62,8 +62,8 @@ class OverpassQuery:
             out_param = ""
 
         if include_relation_members_nodes:
-            # If include_relation_members_nodes and include_way_nodes as 
-            # the double reccursion is stronger than the simple, there is 
+            # If include_relation_members_nodes and include_way_nodes as
+            # the double reccursion is stronger than the simple, there is
             # no problem
             recursion_param = f"(.{array_name};>>;)->.{array_name};\n"
         elif include_way_nodes:
@@ -225,8 +225,6 @@ def overpass_query(query_elements: list[str],
     {recursion_param}
     out {out_param};"""
     result = api.query(query)
-
-    # logger.info(f"Overpass query :\n{query}")
 
     if DEBUG_OVERPASS_QUERY:
         logger.debug("----")

@@ -66,12 +66,11 @@ class BaseVerticalLayout:
     # Class attribute to be defined by child classes
     _LAYOUTS: ClassVar[set[str]] = set()
 
-    @classmethod  
-    def get_layouts(cls) -> dict[str, Callable[[], Self]]:  
-        """Get all available layouts."""  
-        assert_not_empty(cls._LAYOUTS)  
-        return {name: getattr(cls, name) for name in cls._LAYOUTS}  
-
+    @classmethod
+    def get_layouts(cls) -> dict[str, Callable[[], Self]]:
+        """Get all available layouts."""
+        assert_not_empty(cls._LAYOUTS)
+        return {name: getattr(cls, name) for name in cls._LAYOUTS}
 
     @classmethod
     def get_max_download_bounds_across_layouts(cls,
@@ -83,13 +82,13 @@ class BaseVerticalLayout:
         max_x_layout_name = None
         max_y_layout_name = None
 
-        bounds_by_layout = {}
+        bounds_by_layout: dict[str, GpxBounds] = {}
 
         # Get all layout methods
         layout_methods = cls.get_layouts()
-    
+
         for layout_name, layout_method in layout_methods.items():
-            layout : BaseVerticalLayout = layout_method()
+            layout: BaseVerticalLayout = layout_method()
             bounds = layout.get_layout_download_bounds(gpx_track, paper)
 
             bounds_by_layout[layout_name] = bounds
@@ -149,9 +148,7 @@ class BaseVerticalLayout:
         # Verify layouts
         assert_float_eq(sum_fields, 1.0, msg="Sum of fields must be 1.0")
 
-
         assert_same_keys(layout_methods, self.__class__._LAYOUTS)
-
 
     def get_layout_download_bounds(self,
                                    gpx_track: GpxTrack,
@@ -196,7 +193,6 @@ class BaseVerticalLayout:
                                                 dlat=download_dlat)
 
         return download_bounds
-
 
     def get_download_bounds_and_paper_figure(self,
                                              gpx_track: GpxTrack,
