@@ -126,7 +126,8 @@ def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[in
                              "nwr['mountain_pass'='yes']",
                              "nwr['hiking'='yes']['tourism'='information']",
                              "nwr['hiking'='yes']['information'='guidepost']"],
-                            gpx)
+                            gpx,
+                            add_relative_margin=0.05)
 
     # See https://www.openstreetmap.org/node/4977980007 (Col du Galibier)
     # See https://www.openstreetmap.org/node/12068789882 (Col de la Vanoise)
@@ -213,7 +214,8 @@ def find_huts_between_daily_tracks(full_gpx_track: GpxTrack,
     result = overpass_query(["nwr['tourism'='alpine_hut']",
                              "nwr['tourism'='wilderness_hut']",
                              "nwr['tourism'='camp_site']"],
-                            full_gpx_track)
+                            full_gpx_track,
+                            add_relative_margin=0.05)
 
     # See https://www.openstreetmap.org/way/112147855 (Refuge Plan-Sec)
     # See https://www.openstreetmap.org/node/451703419 (Refuge des Barmettes)
