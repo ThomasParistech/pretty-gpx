@@ -146,17 +146,3 @@ class PolygonCollectionData:
             ax.add_collection(PatchCollection(self.polygons.interior_polygons,
                                               facecolor=color_background,
                                               edgecolor=None))
-
-
-if __name__ == "__main__":
-    lw = 1
-
-    plt.plot([0, 1], [0, 1], lw=lw)
-
-    plt.annotate('', xy=(0, 1), xytext=(1, 0),
-                 arrowprops=dict(color="red", linewidth=lw))
-
-    plt.gca().add_patch(ConnectionPatch((2, 1), (2, 0), "data", "data",
-                                        arrowstyle="-|>", color="red", lw=lw))
-
-    plt.show()
