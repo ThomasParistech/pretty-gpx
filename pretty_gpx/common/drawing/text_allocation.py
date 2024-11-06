@@ -125,11 +125,14 @@ class AnnotatedScatterDataCollection:
     - list_text_y: list of y-coordinates that text annotations are tied to
     - list_text_s: list of text annotation strings
 
+    The field `list_text_markersize` stores the size of the marker that the text annotation is tied to.
+
     Whereas the field `list_scatter_data` stored all scatter points, which are used as obstacles to avoid text overlap.
     """
     list_text_x: list[float] = field(default_factory=list)
     list_text_y: list[float] = field(default_factory=list)
     list_text_s: list[str] = field(default_factory=list)
+    list_text_markersize: list[float] = field(default_factory=list)
 
     list_scatter_data: list[ScatterData] = field(default_factory=list)
 
@@ -153,6 +156,7 @@ class AnnotatedScatterDataCollection:
                 self.list_text_x.append(x)
                 self.list_text_y.append(y)
                 self.list_text_s.append(s)
+                self.list_text_markersize.append(markersize)
 
     @property
     def scatters_to_avoid_x(self) -> list[float]:

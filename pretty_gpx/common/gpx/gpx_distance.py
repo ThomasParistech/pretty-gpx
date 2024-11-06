@@ -31,7 +31,7 @@ def get_delta_xy(latlon_1: tuple[float, float],
     latlon_2_np = np.array(latlon_2).reshape(-1, 2)
 
     dy = EARTH_RADIUS_M*np.deg2rad(np.abs(latlon_1_np[:, 0]-latlon_2_np[:, 0]))
-    dx = EARTH_RADIUS_M*np.deg2rad(np.abs(latlon_1_np[:, 1]-latlon_2_np[:, 1])) / latlon_aspect_ratio(0.5*latlon_1[0])
+    dx = EARTH_RADIUS_M*np.deg2rad(np.abs(latlon_1_np[:, 1]-latlon_2_np[:, 1])) / latlon_aspect_ratio(latlon_1[0])
 
     if isinstance(latlon_2, tuple):
         return float(dx[0]), float(dy[0])

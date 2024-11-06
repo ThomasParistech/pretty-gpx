@@ -73,15 +73,18 @@ class GpxBounds:
         return latlon_aspect_ratio(self.lat_center)
 
     @property
+    def dx_dy_m(self) -> tuple[float, float]:
+        """Delta x and delta y."""
+        return get_delta_xy((self.lat_min, self.lon_min),
+                            (self.lat_max, self.lon_max))
+
+    @property
     def area_m2(self) -> float:
         """The area of the bounds in meters squared."""
-        dx, dy = get_delta_xy((self.lat_min, self.lon_min),
-                              (self.lat_max, self.lon_max))
+        dx, dy = self.dx_dy_m
         return dx * dy
 
     @property
     def diagonal_m(self) -> float:
         """The diagonal of the bounds in meters."""
-        dx, dy = get_delta_xy((self.lat_min, self.lon_min),
-                              (self.lat_max, self.lon_max))
-        return float(np.linalg.norm([dx, dy]))
+        return float(np.linalg.norm(self.dx_dy_m))

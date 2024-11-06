@@ -1,15 +1,12 @@
 #!/usr/bin/python3
 """City Drawing Style/Size Config."""
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from matplotlib.font_manager import FontProperties
 
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
-from pretty_gpx.common.utils.paths import FONTS_DIR
 from pretty_gpx.rendering_modes.city.data.roads import CityRoadType
 
 # Diagonal of the case used to set the reference value
@@ -22,9 +19,6 @@ class CityDrawingStyleConfig:
     """City Drawing Style Config."""
     start_marker: str | Path = "o"
     end_marker: str | Path = "s"
-
-    classic_font: FontProperties = FontProperties(weight="bold")
-    pretty_font: FontProperties = FontProperties(fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf"))
 
 
 @dataclass(kw_only=True)
