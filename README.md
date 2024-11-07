@@ -30,6 +30,24 @@ sudo xargs -a .devcontainer/packages.txt apt-get install -y
 ```
 
 **Remark:** You can set the directory path in the PYTHONPATH environment variable so that the imports of other files from the repository are working properly.
+
+* On Linux
+
+You can add a line in the .bashrc file :
+```
+nano ~/.bashrc
+```
+And add this line at the bottom of the file where /path/to/add is pretty_gpx repository path.
+```
+export PYTHONPATH=$PYTHONPATH:/path/to/add
+```
+If you always run the code from the repository folder instead of /path/to/add you can use:
+```
+export PYTHONPATH=$PYTHONPATH:$PWD
+```
+
+* In a conda environment
+
 In a conda environment enter (do not forget to edit the /path/to/add):
 
 ```
