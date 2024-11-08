@@ -143,6 +143,24 @@ class Profiling:
             Profiling.push_event(self._name, self._start, self._start+self._dt)
 
 
+class LogScopeTime:
+    """Log the time spent inside a scope. Use as context `with LogScopeTime(name):`."""
+
+    def __init__(self, name: str):
+        self._name = name
+
+    def __enter__(self) -> None:
+        self._start_time = time.perf_counter()
+        logger.info(self._name)
+
+    def __exit__(self,
+                 exc_type: type[BaseException] | None,
+                 exc_val: BaseException | None,
+                 exc_tb: TracebackType | None) -> None:
+        end_time = time.perf_counter()
+        logger.info(f"--- {(end_time - self._start_time): .2f} s ({self._name}) ---")
+
+
 P = ParamSpec('P')
 R = TypeVar('R')
 

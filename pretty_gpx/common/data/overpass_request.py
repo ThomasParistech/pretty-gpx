@@ -21,9 +21,6 @@ from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import convert_bytes
 
-DEBUG_OVERPASS_QUERY = False
-
-
 ListLonLat = list[tuple[float, float]]
 
 
@@ -42,6 +39,7 @@ class OverpassQuery:
                            include_relation_members_nodes: bool = False,
                            return_geometry: bool = False,
                            return_center_only: bool = False,
+                           tags: bool = False,
                            add_relative_margin: float | None = None) -> None:
         """Add a query to the list so that all queries can be launch simultaneously."""
         if isinstance(bounds, GpxTrack):
@@ -60,6 +58,9 @@ class OverpassQuery:
             out_param = "geom"
         else:
             out_param = ""
+
+        if tags:
+            out_param += " tags"
 
         if include_relation_members_nodes:
             # If include_relation_members_nodes and include_way_nodes as
@@ -180,54 +181,3 @@ class OverpassQuery:
             raise KeyError(f"The specified array name ({array_name})"
                            "has not been added to the query/not been resolved")
         return self.query_unprocessed_results[array_name]
-
-
-@profile
-def overpass_query(query_elements: list[str],
-                   bounds: GpxBounds | GpxTrack,
-                   include_way_nodes: bool = False,
-                   return_geometry: bool = False,
-                   add_relative_margin: float | None = None,
-                   max_retry_count: int = 2) -> Result:
-    """Query the overpass API for a single request."""
-    # See https://wiki.openstreetmap.org/wiki/Key:natural
-    # See https://wiki.openstreetmap.org/wiki/Key:mountain_pass
-    # See https://wiki.openstreetmap.org/wiki/Tag:tourism=alpine_hut
-    api = Overpass(max_retry_count=max_retry_count)
-    if isinstance(bounds, GpxTrack):
-        bounds = bounds.get_bounds()
-
-    if add_relative_margin is not None:
-        bounds = bounds.add_relative_margin(add_relative_margin)
-
-    bounds_str = f"({bounds.lat_min:.5f}, {bounds.lon_min:.5f}, {bounds.lat_max:.5f}, {bounds.lon_max:.5f})"
-
-    query_body = "\n".join([f"{element}{bounds_str};" for element in query_elements])
-
-    if return_geometry:
-        out_param = "geom"
-    else:
-        out_param = "body"
-
-    if include_way_nodes:
-        recursion_param = "(._;>;);\n"
-    else:
-        recursion_param = ""
-
-    query = f"""(
-       {query_body}
-    );
-    {recursion_param}
-    out {out_param};"""
-    result = api.query(query)
-
-    if DEBUG_OVERPASS_QUERY:
-        logger.debug("----")
-        logger.debug(f"GPX bounds: {bounds_str}")
-        named_nodes = [node for node in result.nodes if "name" in node.tags]
-        named_nodes.sort(key=lambda node: node.tags['name'])
-        for node in named_nodes:
-            logger.debug(f"{node.tags['name']} at ({node.lat:.3f}, {node.lon:.3f}) {node.tags}")
-        logger.debug("----")
-
-    return result

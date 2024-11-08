@@ -4,7 +4,10 @@
 from geopy.geocoders import Nominatim
 from geopy.location import Location
 
+from pretty_gpx.common.utils.profile import profile
 
+
+@profile
 def get_place_name(*, lon: float, lat: float) -> str:
     """Get the name of a place from its coordinates."""
     place_types = ["city", "town", "village", "locality", "hamlet"]
