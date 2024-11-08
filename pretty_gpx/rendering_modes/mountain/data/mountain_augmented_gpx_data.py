@@ -6,14 +6,21 @@ from typing import Final
 
 import numpy as np
 
-from pretty_gpx.common.data.overpass_request import overpass_query
+from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.data.place_name import get_place_name
+from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_distance import get_distance_m
 from pretty_gpx.common.gpx.gpx_io import cast_to_list_gpx_path
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.structure import AugmentedGpxData
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
+from pretty_gpx.rendering_modes.mountain.data.mountain_huts import MountainHut
+from pretty_gpx.rendering_modes.mountain.data.mountain_huts import prepare_download_mountain_huts
+from pretty_gpx.rendering_modes.mountain.data.mountain_huts import process_mountain_huts
+from pretty_gpx.rendering_modes.mountain.data.mountain_passes import MountainPass
+from pretty_gpx.rendering_modes.mountain.data.mountain_passes import prepare_download_mountain_passes
+from pretty_gpx.rendering_modes.mountain.data.mountain_passes import process_mountain_passes
 
 STRICT_THS_M: Final[float] = 50
 LOOSE_THS_M: Final[float] = 1000
@@ -21,23 +28,6 @@ LOOSE_THS_M: Final[float] = 1000
 
 class GpxBoundsTooLargeError(Exception):
     """Raised when the GPX area is too large to download elevation map."""
-
-
-@dataclass
-class MountainPass:
-    """Mountain pass Data."""
-    name: str
-    ele: float  # Elevation (in m)
-    lon: float
-    lat: float
-
-
-@dataclass
-class MountainHut:
-    """Mountain Hut Data."""
-    name: str | None
-    lon: float
-    lat: float
 
 
 @dataclass
@@ -82,10 +72,17 @@ class MountainAugmentedGpxData(AugmentedGpxData):
                 f"GPX area is too large to download elevation map. "
                 f"Got an area equivalent to a square of {math.ceil(area_squared_side_km)}km side.")
 
-        huts_names = find_huts_between_daily_tracks(gpx_track, huts_ids)
+        # OSM query
+        total_query = OverpassQuery()
+        prepare_download_mountain_passes(total_query, bounds)
+        if len(huts_ids) != 0:
+            prepare_download_mountain_huts(total_query, bounds)
+        total_query.launch_queries()
+
+        huts_names = find_huts_between_daily_tracks(gpx_track, huts_ids, total_query, bounds)
 
         is_closed = gpx_track.is_closed(LOOSE_THS_M)
-        passes_ids, mountain_passes = get_close_mountain_passes(gpx_track, STRICT_THS_M)
+        passes_ids, mountain_passes = get_close_mountain_passes(gpx_track, STRICT_THS_M, total_query, bounds)
         close_to_start = is_close_to_a_mountain_pass(lon=gpx_track.list_lon[0],
                                                      lat=gpx_track.list_lat[0],
                                                      mountain_passes=mountain_passes,
@@ -116,53 +113,32 @@ class MountainAugmentedGpxData(AugmentedGpxData):
 
 
 @profile
-def get_close_mountain_passes(gpx: GpxTrack, max_dist_m: float) -> tuple[list[int], list[MountainPass]]:
+def get_close_mountain_passes(gpx: GpxTrack,
+                              max_dist_m: float,
+                              query: OverpassQuery,
+                              bounds: GpxBounds) -> tuple[list[int], list[MountainPass]]:
     """Get mountain passes close to a GPX track."""
     gpx_curve = np.stack((gpx.list_lat, gpx.list_lon), axis=-1)
 
-    result = overpass_query(["nwr['natural'='saddle']",
-                             "nwr['natural'='peak']",
-                             "nwr['natural'='volcano']",
-                             "nwr['mountain_pass'='yes']",
-                             "nwr['hiking'='yes']['tourism'='information']",
-                             "nwr['hiking'='yes']['information'='guidepost']"],
-                            gpx,
-                            add_relative_margin=0.05)
+    candidate_passes = process_mountain_passes(query, bounds)
 
-    # See https://www.openstreetmap.org/node/4977980007 (Col du Galibier)
-    # See https://www.openstreetmap.org/node/12068789882 (Col de la Vanoise)
-    # See https://www.openstreetmap.org/node/34975894 (Pic du Cabaliros)
     ids: list[int] = []
     passes: list[MountainPass] = []
-    for node in result.nodes:
-        tags = node.tags
+    for mpass in candidate_passes:
+        # Check if close to the GPX track
+        distances_m = get_distance_m((mpass.lat, mpass.lon), gpx_curve)
+        closest_idx = int(np.argmin(distances_m))
+        closest_distance_m = distances_m[closest_idx]
 
-        if "name" in tags and "ele" in tags:
-            if not node.tags["ele"].isnumeric():
-                continue
+        if closest_distance_m > max_dist_m:
+            continue
 
-            name = str(node.tags["name"])
-            ele = float(node.tags["ele"])
+        # Check if the mountain pass is not already in the list
+        if is_close_to_a_mountain_pass(mpass.lon, mpass.lat, passes, 200):
+            continue
 
-            if "hiking" in tags and tags["hiking"] == "yes":
-                if not name.lower().startswith(("col ", "golet ", "pic ", "mont ")):
-                    continue
-
-            # Check if close to the GPX track
-            lon, lat = float(node.lon), float(node.lat)
-            distances_m = get_distance_m((lat, lon), gpx_curve)
-            closest_idx = int(np.argmin(distances_m))
-            closest_distance_m = distances_m[closest_idx]
-
-            if closest_distance_m > max_dist_m:
-                continue
-
-            # Check if the mountain pass is not already in the list
-            if is_close_to_a_mountain_pass(lon, lat, passes, 200):
-                continue
-
-            ids.append(closest_idx)
-            passes.append(MountainPass(ele=ele, name=name, lon=lon, lat=lat))
+        ids.append(closest_idx)
+        passes.append(mpass)
 
     return ids, passes
 
@@ -208,31 +184,15 @@ def load_and_merge_tracks(list_gpx_path: list[str] | list[bytes]) -> tuple[GpxTr
 @profile
 def find_huts_between_daily_tracks(full_gpx_track: GpxTrack,
                                    huts_ids: list[int],
+                                   query: OverpassQuery,
+                                   bounds: GpxBounds,
                                    max_dist_m: float = 300) -> list[MountainHut]:
     """Merge ordered GPX tracks into a single one and find huts between them."""
+    if len(huts_ids) == 0:
+        return []
+
     # Request the huts
-    result = overpass_query(["nwr['tourism'='alpine_hut']",
-                             "nwr['tourism'='wilderness_hut']",
-                             "nwr['tourism'='camp_site']"],
-                            full_gpx_track,
-                            add_relative_margin=0.05)
-
-    # See https://www.openstreetmap.org/way/112147855 (Refuge Plan-Sec)
-    # See https://www.openstreetmap.org/node/451703419 (Refuge des Barmettes)
-    candidate_huts: list[MountainHut] = []
-    for node in result.nodes:
-        lon, lat = float(node.lon), float(node.lat)
-        if "name" in node.tags:
-            name = str(node.tags["name"])
-            candidate_huts.append(MountainHut(name=name, lon=lon, lat=lat))
-
-    for way in result.ways:
-        if "name" in way.tags:
-            name = str(way.tags["name"])
-            nodes = way.get_nodes(resolve_missing=True)
-            avg_lat = float(np.mean([float(node.lat) for node in nodes]))
-            avg_lon = float(np.mean([float(node.lon) for node in nodes]))
-            candidate_huts.append(MountainHut(name=name, lon=avg_lon, lat=avg_lat))
+    candidate_huts = process_mountain_huts(query, bounds)
 
     # Estimate the huts locations
     huts: list[MountainHut] = []

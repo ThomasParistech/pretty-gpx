@@ -42,6 +42,7 @@ class OverpassQuery:
                            include_relation_members_nodes: bool = False,
                            return_geometry: bool = False,
                            return_center_only: bool = False,
+                           tags: bool = False,
                            add_relative_margin: float | None = None) -> None:
         """Add a query to the list so that all queries can be launch simultaneously."""
         if isinstance(bounds, GpxTrack):
@@ -60,6 +61,9 @@ class OverpassQuery:
             out_param = "geom"
         else:
             out_param = ""
+
+        if tags:
+            out_param += " tags"
 
         if include_relation_members_nodes:
             # If include_relation_members_nodes and include_way_nodes as

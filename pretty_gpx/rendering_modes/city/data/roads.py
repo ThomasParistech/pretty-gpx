@@ -62,29 +62,33 @@ def prepare_download_city_roads(query: OverpassQuery,
 
     if os.path.isfile(cache_pkl):
         query.add_cached_result(ROADS_CACHE.name, cache_file=cache_pkl)
-    else:
-        for city_road_type in tqdm(CityRoadType):
-            highway_tags_str = "|".join(HIGHWAY_TAGS_PER_CITY_ROAD_TYPE[city_road_type])
-            query.add_overpass_query(QUERY_NAME_PER_CITY_ROAD_TYPE[city_road_type],
-                                     [f"way['highway'~'({highway_tags_str})']"],
-                                     bounds,
-                                     include_way_nodes=True,
-                                     add_relative_margin=None)
+        return
+
+    for city_road_type in tqdm(CityRoadType):
+        highway_tags_str = "|".join(HIGHWAY_TAGS_PER_CITY_ROAD_TYPE[city_road_type])
+        query.add_overpass_query(QUERY_NAME_PER_CITY_ROAD_TYPE[city_road_type],
+                                 [f"way['highway'~'({highway_tags_str})']"],
+                                 bounds,
+                                 include_way_nodes=True,
+                                 add_relative_margin=None)
+
 
 @profile
 def process_city_roads(query: OverpassQuery,
-                       bounds: GpxBounds) -> dict[CityRoadType,list[ListLonLat]]:
+                       bounds: GpxBounds) -> dict[CityRoadType, list[ListLonLat]]:
     """Query the overpass API to get the roads of a city."""
     if query.is_cached(ROADS_CACHE.name):
         cache_file = query.get_cache_file(ROADS_CACHE.name)
-        roads = read_pickle(cache_file)
-    else:
-        with Profiling.Scope("Process City Roads"):
-            roads = dict()
-            for city_road_type,query_name in QUERY_NAME_PER_CITY_ROAD_TYPE.items():
-                result = query.get_query_result(query_name)
-                roads[city_road_type] = get_ways_coordinates_from_results(result)
-        cache_pkl = ROADS_CACHE.get_path(bounds)
-        write_pickle(cache_pkl, roads)
-        query.add_cached_result(ROADS_CACHE.name, cache_file=cache_pkl)
+        return read_pickle(cache_file)
+
+    with Profiling.Scope("Process City Roads"):
+        roads = dict()
+        for city_road_type, query_name in QUERY_NAME_PER_CITY_ROAD_TYPE.items():
+            result = query.get_query_result(query_name)
+            roads[city_road_type] = get_ways_coordinates_from_results(result)
+
+    cache_pkl = ROADS_CACHE.get_path(bounds)
+    write_pickle(cache_pkl, roads)
+    query.add_cached_result(ROADS_CACHE.name, cache_file=cache_pkl)
+
     return roads
