@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from typing import Final
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
@@ -155,9 +154,7 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
         plots_x_to_avoid.append([b.lon_min, b.lon_max])
         plots_y_to_avoid.append([y, y])
 
-    texts, lines = allocate_text(fig=plt.gcf(),
-                                 ax=plt.gca(),
-                                 base_fig=paper_fig,
+    texts, lines = allocate_text(base_fig=paper_fig,
                                  scatters=scatters,
                                  plots_x_to_avoid=plots_x_to_avoid,
                                  plots_y_to_avoid=plots_y_to_avoid,

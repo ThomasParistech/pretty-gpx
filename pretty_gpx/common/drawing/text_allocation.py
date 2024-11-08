@@ -4,10 +4,9 @@ import os
 from dataclasses import dataclass
 from dataclasses import field
 
+import matplotlib
 import matplotlib.pyplot as plt
 import textalloc as ta
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 
@@ -25,9 +24,7 @@ DEBUG_TEXT_ALLOCATION = False
 
 
 @profile
-def allocate_text(fig: Figure,
-                  ax: Axes,
-                  base_fig: BaseDrawingFigure,
+def allocate_text(base_fig: BaseDrawingFigure,
                   scatters: 'AnnotatedScatterDataCollection',
                   plots_x_to_avoid: list[list[float]],
                   plots_y_to_avoid: list[list[float]],
@@ -41,6 +38,9 @@ def allocate_text(fig: Figure,
                   ha: str = 'center',
                   va: str = 'center') -> tuple[list[TextData], list[PlotData]]:
     """Allocate text-boxes in imshow plot while avoiding overlap with other annotations."""
+    matplotlib.use('Agg')
+    fig, ax = plt.subplots()
+
     base_fig.setup(fig, ax)
 
     logger.info(f"Optimize {len(scatters.list_text_x)} Text Allocations...")
