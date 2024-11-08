@@ -134,12 +134,7 @@ class OverpassQuery:
         with Profiling.Scope("Loading data into JSON"):
             content_bytes = response.read()
             logger.info(f"Downloaded {convert_bytes(len(content_bytes))}")
-            encoding = response.info().get_content_charset('utf-8')
-            content_str = content_bytes.decode(encoding)
-
-        logger.info("Loading data")
-        with Profiling.Scope("Loading response"):
-            data = ujson.loads(content_str)
+            data = ujson.loads(content_bytes)
 
         logger.info("Loading overpass data into overpy")
         with Profiling.Scope("Loading overpass data into overpy"):
