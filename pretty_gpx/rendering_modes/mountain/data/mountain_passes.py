@@ -77,7 +77,7 @@ def process_mountain_passes(query: OverpassQuery, bounds: GpxBounds) -> list[Mou
                                                ele=float(ele),
                                                lon=float(node.lon),
                                                lat=float(node.lat)))
-        logger.info(f"Found {len(passes)} mountain passes: " + ", ".join(p.name for p in passes))
+        logger.info(f"Found {len(passes)} candidate mountain passes")
 
     cache_pkl = MOUNTAIN_PASS_CACHE.get_path(bounds)
     write_pickle(cache_pkl, passes)

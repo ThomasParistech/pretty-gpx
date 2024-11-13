@@ -14,7 +14,6 @@ LOOSE_THS_M: Final[float] = 1000
 @dataclass
 class CityAugmentedGpxData(AugmentedGpxData):
     """Class storing the GPX track augmented with names of start/end points."""
-    track: GpxTrack
 
     start_name: str
     end_name: str | None
