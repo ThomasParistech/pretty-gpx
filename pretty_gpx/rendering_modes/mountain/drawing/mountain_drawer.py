@@ -20,7 +20,6 @@ from pretty_gpx.common.drawing.text_allocation import AnnotatedScatterDataCollec
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_distance import get_distance_m
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
-from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.structure import Drawer
 from pretty_gpx.common.structure import DrawingInputs
 from pretty_gpx.common.utils.asserts import assert_in_strict_range
@@ -31,11 +30,11 @@ from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import mm_to_inch
 from pretty_gpx.common.utils.utils import mm_to_point
-from pretty_gpx.rendering_modes.mountain.data.elevation_map import download_elevation_map
 from pretty_gpx.rendering_modes.mountain.data.elevation_map import rescale_elevation
 from pretty_gpx.rendering_modes.mountain.data.mountain_augmented_gpx_data import MountainAugmentedGpxData
 from pretty_gpx.rendering_modes.mountain.drawing.hillshading import CachedHillShading
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MountainColors
+from pretty_gpx.rendering_modes.mountain.drawing.mountain_download_data import MountainDownloadData
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_config import MountainDrawingSizeConfig
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_config import MountainDrawingStyleConfig
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawing_figure import MountainDrawingFigure
@@ -60,9 +59,10 @@ class MountainDrawingInputs(DrawingInputs):
 
 @dataclass
 class MountainDrawer(Drawer[MountainAugmentedGpxData,
+                            MountainDownloadData,
                             MountainDrawingInputs,
                             MountainDrawingParams]):
-    """Class leveraging cache to avoid reprocessing GPX when changing color them, title, sun azimuth..."""
+    """Class leveraging cache to avoid reprocessing GPX when changing color theme, title, sun azimuth..."""
     low_res_elevation: CachedHillShading
     high_res_elevation: CachedHillShading
 
@@ -74,28 +74,32 @@ class MountainDrawer(Drawer[MountainAugmentedGpxData,
         """Return the template AugmentedGpxData class (Because Python doesn't allow to use T as a type)."""
         return MountainAugmentedGpxData
 
+    @staticmethod
+    def get_download_data_cls() -> type[MountainDownloadData]:
+        """Return the template MountainDownloadData class (Because Python doesn't allow to use U as a type)."""
+        return MountainDownloadData
+
     @profile
     @staticmethod
-    def from_gpx_data(gpx_data: MountainAugmentedGpxData,
-                      paper: PaperSize) -> 'MountainDrawer':
-        """Create a MountainPosterImageCache from a GPX file."""
-        assert_lt(MOUNTAIN_LOW_RES_DPI, HIGH_RES_DPI)
-
-        # Download the elevation map at the correct layout
-        layout = MountainVerticalLayout.default()
-        img_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper)
-
-        elevation = download_elevation_map(img_bounds)
-
+    def from_gpx_and_download_data(gpx_data: MountainAugmentedGpxData,
+                                   download_data: MountainDownloadData) -> 'MountainDrawer':
+        """Create a MountainDrawer from a GPX file."""
         # Rescale the elevation map to the target DPI
-        low_res_elevation = rescale_elevation_to_dpi(elevation, img_bounds, paper_fig, MOUNTAIN_LOW_RES_DPI)
-        high_res_elevation = rescale_elevation_to_dpi(elevation, img_bounds, paper_fig, HIGH_RES_DPI)
+        assert_lt(MOUNTAIN_LOW_RES_DPI, HIGH_RES_DPI)
+        low_res_elevation = rescale_elevation_to_dpi(download_data.elevation, download_data.img_bounds,
+                                                     download_data.paper_fig, MOUNTAIN_LOW_RES_DPI)
+        high_res_elevation = rescale_elevation_to_dpi(download_data.elevation, download_data.img_bounds,
+                                                      download_data.paper_fig, HIGH_RES_DPI)
 
         # Use default drawing params
-        drawing_size_config = MountainDrawingSizeConfig.default(paper)
+        drawing_size_config = MountainDrawingSizeConfig.default(download_data.paper_fig.paper_size)
         drawing_style_config = MountainDrawingStyleConfig()
 
-        plotter = init_and_populate_drawing_figure(gpx_data, paper_fig, img_bounds, layout, drawing_size_config,
+        plotter = init_and_populate_drawing_figure(gpx_data,
+                                                   download_data.paper_fig,
+                                                   download_data.img_bounds,
+                                                   download_data.layout,
+                                                   drawing_size_config,
                                                    drawing_style_config)
 
         logger.info("Successful GPX Processing")

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
+from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
 from pretty_gpx.common.utils.profile import profile
@@ -67,6 +68,7 @@ def process_mountain_huts(query: OverpassQuery, bounds: GpxBounds) -> list[Mount
                     for way in results.ways
                     if "name" in way.tags]
         huts = node_huts + way_huts
+        logger.info(f"Found {len(huts)} candidate mountain huts")
 
     cache_pkl = MOUNTAIN_HUTS_CACHE.get_path(bounds)
     write_pickle(cache_pkl, huts)

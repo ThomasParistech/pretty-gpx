@@ -2,8 +2,6 @@
 """City Drawer."""
 from dataclasses import dataclass
 
-from pretty_gpx.common.data.overpass_request import OverpassQuery
-from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import LineCollectionData
 from pretty_gpx.common.drawing.drawing_data import PlotData
@@ -12,8 +10,6 @@ from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
 from pretty_gpx.common.drawing.elevation_stats_section import ElevationStatsSection
 from pretty_gpx.common.drawing.fonts import FontEnum
-from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.structure import Drawer
 from pretty_gpx.common.structure import DrawingInputs
 from pretty_gpx.common.utils.logger import logger
@@ -22,15 +18,9 @@ from pretty_gpx.common.utils.utils import format_timedelta
 from pretty_gpx.common.utils.utils import mm_to_point
 from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
 from pretty_gpx.rendering_modes.city.data.city_augmented_gpx_data import CityAugmentedGpxData
-from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_forests
-from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
-from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_rivers
-from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
-from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
-from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CityColors
+from pretty_gpx.rendering_modes.city.drawing.city_download_data import CityDownloadData
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_config import CityDrawingSizeConfig
-from pretty_gpx.rendering_modes.city.drawing.city_drawing_config import CityDrawingStyleConfig
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_figure import CityDrawingParams
 
@@ -75,6 +65,7 @@ class CityDrawingInputs(DrawingInputs):
 
 @dataclass
 class CityDrawer(Drawer[CityAugmentedGpxData,
+                        CityDownloadData,
                         CityDrawingInputs,
                         CityDrawingParams]):
     """Class leveraging cache to avoid reprocessing GPX when changing color them, title, stats..."""
@@ -88,31 +79,22 @@ class CityDrawer(Drawer[CityAugmentedGpxData,
         """Return the template AugmentedGpxData class (Because Python doesn't allow to use T as a type)."""
         return CityAugmentedGpxData
 
+    @staticmethod
+    def get_download_data_cls() -> type[CityDownloadData]:
+        """Return the template CityDownloadData class (Because Python doesn't allow to use U as a type)."""
+        return CityDownloadData
+
     @profile
     @staticmethod
-    def from_gpx_data(gpx_data: CityAugmentedGpxData,
-                      paper_size: PaperSize) -> 'CityDrawer':
+    def from_gpx_and_download_data(gpx_data: CityAugmentedGpxData, download_data: CityDownloadData) -> 'CityDrawer':
         """Create a CityDrawer from a GPX file."""
-        stats_items = CityDrawingInputs.get_stats_items(dist_km_int=int(gpx_data.dist_km),
-                                                        uphill_m_int=int(gpx_data.uphill_m),
-                                                        duration_s_float=gpx_data.duration_s)
-
-        stats_txt, layout = CityDrawingInputs.build_stats_text(stats_items=stats_items)
-
-        # Download the elevation map at the correct layout
-        download_bounds, paper_fig = layout.get_download_bounds_and_paper_figure(gpx_data.track, paper_size)
-
         # Use default drawing params
-        drawing_size_config = CityDrawingSizeConfig.default(paper_size, paper_fig.gpx_bounds.diagonal_m)
-        drawing_style_config = CityDrawingStyleConfig()
+        drawing_size_config = CityDrawingSizeConfig.default(download_data.paper_fig.paper_size,
+                                                            download_data.paper_fig.gpx_bounds.diagonal_m)
 
         plotter = init_and_populate_drawing_figure(gpx_data=gpx_data,
-                                                   base_fig=paper_fig,
-                                                   download_bounds=download_bounds,
-                                                   layout=layout,
-                                                   stats_text=stats_txt,
-                                                   drawing_size_config=drawing_size_config,
-                                                   drawing_style_config=drawing_style_config)
+                                                   download_data=download_data,
+                                                   drawing_size_config=drawing_size_config)
 
         logger.info("Successful GPX Processing")
 
@@ -148,61 +130,32 @@ class CityDrawer(Drawer[CityAugmentedGpxData,
 
 
 def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
-                                     base_fig: BaseDrawingFigure,
-                                     download_bounds: GpxBounds,
-                                     layout: CityVerticalLayout,
-                                     stats_text: str,
-                                     drawing_size_config: CityDrawingSizeConfig,
-                                     drawing_style_config: CityDrawingStyleConfig
-                                     ) -> CityDrawingFigure:
+                                     download_data: CityDownloadData,
+                                     drawing_size_config: CityDrawingSizeConfig) -> CityDrawingFigure:
     """Set up and populate the DrawingFigure for the poster."""
     gpx_track = gpx_data.track
-
-    caracteristic_distance_m = base_fig.gpx_bounds.diagonal_m
-    logger.info(f"Domain diagonal is {caracteristic_distance_m/1000.:.1f}km")
-
-    total_query = OverpassQuery()
-    for prepare_func in [prepare_download_city_roads,
-                         prepare_download_city_rivers,
-                         prepare_download_city_forests]:
-
-        prepare_func(query=total_query, bounds=download_bounds)
-
-    # Merge and run all queries
-    total_query.launch_queries()
-
-    # Retrieve the data
-    roads = process_city_roads(query=total_query,
-                               bounds=download_bounds)
-
-    rivers = process_city_rivers(query=total_query,
-                                 bounds=download_bounds)
-
-    forests, farmland = process_city_forests(query=total_query,
-                                             bounds=download_bounds)
-    forests.interior_polygons = []
 
     track_data: list[BaseDrawingData] = [PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=2.0)]
     road_data: list[BaseDrawingData] = []
     point_data: list[BaseDrawingData] = []
-    rivers_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=rivers)]
-    forests_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=forests)]
-    farmland_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=farmland)]
+    rivers_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=download_data.rivers)]
+    forests_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=download_data.forests)]
+    farmland_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=download_data.farmlands)]
 
-    for priority, way in roads.items():
+    for priority, way in download_data.roads.items():
         road_data.append(LineCollectionData(way, linewidth=drawing_size_config.linewidth_priority[priority], zorder=1))
 
-    b = base_fig.gpx_bounds
-    title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
+    b = download_data.paper_fig.gpx_bounds
+    title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * download_data.layout.title_relative_h,
                      s="Title", fontsize=mm_to_point(20.0),
                      fontproperties=FontEnum.TITLE.value,
                      ha="center",
                      va="center")
 
-    elevation_profile = ElevationStatsSection(layout, base_fig, gpx_track)
+    elevation_profile = ElevationStatsSection(download_data.layout, download_data.paper_fig, gpx_track)
 
-    stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * layout.stats_relative_h,
-                     s=stats_text, fontsize=mm_to_point(18.5),
+    stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * download_data.layout.stats_relative_h,
+                     s=download_data.stats_txt, fontsize=mm_to_point(18.5),
                      fontproperties=FontEnum.STATS.value,
                      ha="center",
                      va="center")
@@ -211,9 +164,9 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     point_data.append(ScatterData(x=[gpx_track.list_lon[-1]], y=[gpx_track.list_lat[-1]],
                                   marker="s", markersize=mm_to_point(3.5)))
 
-    plotter = CityDrawingFigure(paper_size=base_fig.paper_size,
-                                latlon_aspect_ratio=base_fig.latlon_aspect_ratio,
-                                gpx_bounds=base_fig.gpx_bounds,
+    plotter = CityDrawingFigure(paper_size=download_data.paper_fig.paper_size,
+                                latlon_aspect_ratio=download_data.paper_fig.latlon_aspect_ratio,
+                                gpx_bounds=download_data.paper_fig.gpx_bounds,
                                 track_data=track_data,
                                 road_data=road_data,
                                 point_data=point_data,

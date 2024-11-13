@@ -55,8 +55,7 @@ class CityDrawingFigure(DrawingFigure[CityDrawingParams]):
         new_layout = params.layout
 
         if old_layout != new_layout:
-            self.elevation_profile.update_section_with_new_layout(self,
-                                                                  new_layout=new_layout)
+            self.elevation_profile.update_section_with_new_layout(self, new_layout=new_layout)
             self.stats.y = self.gpx_bounds.lat_min + 0.5 * self.gpx_bounds.dlat * new_layout.stats_relative_h
 
         self.setup(fig, ax)

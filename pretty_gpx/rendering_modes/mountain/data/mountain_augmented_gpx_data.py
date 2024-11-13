@@ -33,8 +33,6 @@ class GpxBoundsTooLargeError(Exception):
 @dataclass
 class MountainAugmentedGpxData(AugmentedGpxData):
     """Class storing the GPX track augmented with names of start/end points and mountain passes/huts along the way."""
-    track: GpxTrack
-
     start_name: str | None
     end_name: str | None
 
