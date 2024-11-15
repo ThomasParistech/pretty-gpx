@@ -18,10 +18,13 @@ from overpy import Way
 
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
+from pretty_gpx.common.utils.asserts import assert_same_keys
+from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import convert_bytes
+from pretty_gpx.common.utils.utils import generate_unique_strings
 
 ListLonLat = list[tuple[float, float]]
 
@@ -200,3 +203,43 @@ def download_query(query: str) -> dict[str, Any]:
 
     return data
 
+
+@profile
+def get_count(query_elements: dict[T, list[str]],
+              bounds: GpxBounds | GpxTrack,
+              include_way_nodes: bool = False) -> dict[T, dict[str, int]]:
+    """Query the overpass API for a single request."""
+    if isinstance(bounds, GpxTrack):
+        bounds = bounds.get_bounds()
+
+    bounds_str = f"({bounds.lat_min:.5f}, {bounds.lon_min:.5f}, {bounds.lat_max:.5f}, {bounds.lon_max:.5f})"
+
+    unique_strings = generate_unique_strings(n_min=len(query_elements))
+
+    query = f"""[timeout:{30:.0f}][maxsize:{100000000:.0f}][out:json];"""
+
+    for queries_l in query_elements.values():
+        query += "("
+        result_tag = next(unique_strings)
+        query += "\n".join([f"{q}{bounds_str}->.{result_tag};" for q in queries_l])
+        query += ");\n"
+        if include_way_nodes:
+            query += f"(.{result_tag};>>;)->.{result_tag};\n"
+        query += f".{result_tag} out count;\n"
+
+    data = download_query(query=query)
+
+    elements = data.get("elements", [])
+    query_elements_keys = list(query_elements.keys())
+    assert_same_len([query_elements_keys, elements])
+
+    output = dict()
+
+    for i in range(len(elements)):
+        output_str_i = elements[i].get("tags", {})
+        assert_same_keys(output_str_i, ["nodes", "ways", "relations", "total"])
+        output_int = dict()
+        for key, value in output_str_i.items():
+            output_int[key] = int(value)
+        output[query_elements_keys[i]] = output_int
+    return output
