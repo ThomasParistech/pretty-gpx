@@ -68,7 +68,7 @@ def simplify_ways(coordinates: list[ListLonLat],
     """Simplify a list of ways using Douglas-Peucker algorithm from shapely."""
     tolerance = np.rad2deg(tolerance_m/EARTH_RADIUS_M)
     total_hausdorff_distance = 0
-    coordinates = merge_ways(coordinates, eps=1e-5, verbose=False)
+    coordinates = merge_ways(coordinates, eps=tolerance, verbose=False)
     simplified_ways = []
     for way in coordinates:
         line = LineString(way)
@@ -90,7 +90,7 @@ def get_ways_coordinates_from_results(api_result: Result) -> list[ListLonLat]:
                 for node in way.get_nodes(resolve_missing=True)]
         if len(road) > 0:
             ways_coords.append(road)
-    ways_coords = simplify_ways(ways_coords, 1e-4)
+    ways_coords = simplify_ways(coordinates=ways_coords)
     return ways_coords
 
 
@@ -452,7 +452,7 @@ def get_lat_lon_from_geometry(geom: list[RelationWayGeometryValue]) -> ListLonLa
     point_l = []
     for point in geom:
         point_l.append((float(point.lon), float(point.lat)))
-    point_l = simplify_ways([point_l], 1e-4)[0]
+    point_l = simplify_ways(coordinates=[point_l])[0]
     return point_l
 
 
