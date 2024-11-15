@@ -5,6 +5,7 @@ import os
 from typing import TypeVar
 
 EARTH_RADIUS_M = 6371000
+MAX_RECURSION_DEPTH = 100 #sys.getrecursionlimit() - 10
 
 T = TypeVar('T')
 
