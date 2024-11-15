@@ -7,8 +7,8 @@ from io import BytesIO
 from typing import Any
 from typing import TypeVar
 
-import requests
 import orjson
+import requests
 from overpy import Area
 from overpy import Node
 from overpy import Overpass
