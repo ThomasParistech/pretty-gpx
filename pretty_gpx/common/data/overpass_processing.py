@@ -3,6 +3,7 @@
 
 import random
 from dataclasses import dataclass
+from typing import cast
 from typing import Generic
 from typing import TypeVar
 
@@ -27,7 +28,10 @@ from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import are_close
 from pretty_gpx.common.utils.utils import EARTH_RADIUS_M
+from pretty_gpx.common.utils.utils import MAX_RECURSION_DEPTH
 from pretty_gpx.common.utils.utils import points_are_close
+
+DEBUG_DISTANCE = False
 
 
 @dataclass(kw_only=True)
@@ -59,6 +63,24 @@ class Segment(Generic[T]):
         self.merged = False
 
 
+def simplify_ways(coordinates: list[ListLonLat],
+                  tolerance_m: float=5) -> list[ListLonLat]:
+    """Simplify a list of ways using Douglas-Peucker algorithm from shapely."""
+    tolerance = np.rad2deg(tolerance_m/EARTH_RADIUS_M)
+    total_hausdorff_distance = 0
+    coordinates = merge_ways(coordinates, eps=tolerance, verbose=False)
+    simplified_ways = []
+    for way in coordinates:
+        line = LineString(way)
+        simplified_line = line.simplify(tolerance)
+        simplified_ways.append(list(simplified_line.coords))
+        if DEBUG_DISTANCE:
+            total_hausdorff_distance += EARTH_RADIUS_M*np.deg2rad(line.hausdorff_distance(simplified_line))
+    if DEBUG_DISTANCE:
+        logger.info(f"Hausdorff distance simplfied {total_hausdorff_distance:.2e}m")
+    return simplified_ways
+
+
 @profile
 def get_ways_coordinates_from_results(api_result: Result) -> list[ListLonLat]:
     """Get the lat/lon nodes coordinates of the ways from the overpass API result."""
@@ -67,7 +89,7 @@ def get_ways_coordinates_from_results(api_result: Result) -> list[ListLonLat]:
         road = get_way_coordinates(way)
         if len(road) > 0:
             ways_coords.append(road)
-    # ways_coords = merge_ways(ways_coords)
+    ways_coords = simplify_ways(coordinates=ways_coords)
     return ways_coords
 
 
@@ -92,6 +114,7 @@ def get_rivers_polygons_from_lines(api_result: Result,
         new_polygons = []
     for segment in ways_coords:
         line = LineString(segment)
+        line = cast(LineString, line.simplify(0.5 * np.rad2deg(width / EARTH_RADIUS_M)))
         # Transforms the line into a polygon with
         # a buffer around the line with half the width
         buffered = line.buffer(width/2.0)
@@ -142,13 +165,15 @@ def get_polygons_from_relation(relation: Relation) -> list[ShapelyPolygon]:
     if relation_members is not None:
         outer_geometry_relation_i: list[list[RelationWayGeometryValue]] = []
         inner_geometry_relation_i: list[list[RelationWayGeometryValue]] = []
-        outer_geometry_relation_i, inner_geometry_relation_i = get_members_from_relation(relation)
+        outer_geometry_relation_i, inner_geometry_relation_i = get_members_from_relation(relation=relation,
+                                                                                         recursion_depth=0)
 
         # Tolerance is 2m near the point (converted to lon/lat)
         eps = 2/EARTH_RADIUS_M*180/np.pi
 
-        depth_outer = max(len(outer_geometry_relation_i)//50, 4)
-        depth_inner = max(len(inner_geometry_relation_i)//50, 4)
+        # To avoid the max_reccursion_depth system error on very large relations
+        depth_outer = min(max(len(outer_geometry_relation_i)//50, 4), MAX_RECURSION_DEPTH)
+        depth_inner = min(max(len(inner_geometry_relation_i)//50, 4), MAX_RECURSION_DEPTH)
         outer_geometry_relation_i = merge_ways_closed_shapes(outer_geometry_relation_i, eps=eps, max_depth=depth_outer)
         inner_geometry_relation_i = merge_ways_closed_shapes(inner_geometry_relation_i, eps=eps, max_depth=depth_inner)
 
@@ -195,34 +220,38 @@ def merge_ways_closed_shapes(segments: list[list[RelationWayGeometryValue]],
 
 
 @profile
-def get_members_from_relation(relation: Relation) -> tuple[list[list[RelationWayGeometryValue]],
-                                                           list[list[RelationWayGeometryValue]]]:
+def get_members_from_relation(relation: Relation, recursion_depth: int=0) -> tuple[list[list[RelationWayGeometryValue]],
+                                                                                  list[list[RelationWayGeometryValue]]]:
     """Get the members from a relation and classify them by their role."""
     relation_members = relation.members
-    if relation_members is not None:
-        outer_geometry_l = []
-        inner_geometry_l = []
-        for member in relation_members:
-            if type(member) == RelationRelation:
-                logger.debug("Found a RelationRelation i.e. a relation in the members of a relation")
-                relation_inside_member = member.resolve(resolve_missing=True)
-                outer_subrelation, inner_subrelation = get_members_from_relation(relation_inside_member)
-                outer_geometry_l += outer_subrelation
-                inner_geometry_l += inner_subrelation
-            elif type(member) == RelationWay:
-                if member.geometry is None or member.role == "":  # Skip if no geometry or no role
-                    continue
-                if member.role == "outer":
-                    outer_geometry_l.append(member.geometry)
-                elif member.role == "inner":
-                    inner_geometry_l.append(member.geometry)
-                else:
-                    logger.warning(f"Unexpected member role in a relation '{member.role}' not in ['inner','outer']")
-            elif type(member) == RelationNode:
+    outer_geometry_l: list[list[RelationWayGeometryValue]] = []
+    inner_geometry_l: list[list[RelationWayGeometryValue]] = []
+    if relation_members is None or recursion_depth >= MAX_RECURSION_DEPTH:
+        if recursion_depth >= MAX_RECURSION_DEPTH:
+            logger.warning("Max Recursion depth exceeded in get_members_from_relation function")
+        return outer_geometry_l, inner_geometry_l
+    for member in relation_members:
+        if type(member) == RelationRelation:
+            logger.debug("Found a RelationRelation i.e. a relation in the members of a relation")
+            relation_inside_member = member.resolve(resolve_missing=True)
+            outer_subrelation, inner_subrelation = get_members_from_relation(relation=relation_inside_member,
+                                                                             recursion_depth=recursion_depth+1)
+            outer_geometry_l += outer_subrelation
+            inner_geometry_l += inner_subrelation
+        elif type(member) == RelationWay:
+            if member.geometry is None:
                 continue
+            if member.role == "outer":
+                outer_geometry_l.append(member.geometry)
+            elif member.role == "inner":
+                inner_geometry_l.append(member.geometry)
             else:
-                raise TypeError(
-                    f"Unexpected member type {type(member)} not in [RelationWay, RelationRelation, RelationNode]")
+                raise ValueError(f"Unexpected member role in a relation {member.role} not in ['inner','outer']")
+        elif type(member) == RelationNode:
+            continue
+        else:
+            raise TypeError(
+                f"Unexpected member type {type(member)} not in [RelationWay, RelationRelation, RelationNode]")
     return outer_geometry_l, inner_geometry_l
 
 
@@ -430,6 +459,7 @@ def get_lat_lon_from_geometry(geom: list[RelationWayGeometryValue]) -> ListLonLa
     point_l = []
     for point in geom:
         point_l.append((float(point.lon), float(point.lat)))
+    point_l = simplify_ways(coordinates=[point_l])[0]
     return point_l
 
 

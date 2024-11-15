@@ -1,12 +1,14 @@
 #!/usr/bin/python3
 """Overpass API."""
 
-import urllib.parse
-import urllib.request
 from dataclasses import dataclass
 from dataclasses import field
+from io import BytesIO
+from typing import Any
+from typing import TypeVar
 
-import ujson
+import orjson
+import requests
 from overpy import Area
 from overpy import Node
 from overpy import Overpass
@@ -119,26 +121,8 @@ class OverpassQuery:
 
         logger.info("Downloading data from OSM API")
         query, array_ordered_list = self.merge_queries()
-        with Profiling.Scope("Download overpass data"):
-            endpoint = 'http://overpass-api.de/api/'
-            request = urllib.request.Request(endpoint + 'interpreter',
-                                             urllib.parse.urlencode({'data': query}).encode('utf-8'))
-            agent = 'Pretty-gpx/ (https://github.com/ThomasParistech/pretty-gpx)'
 
-            if not isinstance(request, urllib.request.Request):
-                request = urllib.request.Request(request)
-            request.headers['User-Agent'] = agent
-            try:
-                response = urllib.request.urlopen(request)
-            except Exception as err:
-                msg = "The requested data could not be downloaded. Please check whether your internet connection."
-                logger.exception(msg)
-                raise Exception(msg, err)
-
-        with Profiling.Scope("Loading data into JSON"):
-            content_bytes = response.read()
-            logger.info(f"Downloaded {convert_bytes(len(content_bytes))}")
-            data = ujson.loads(content_bytes)
+        data = download_query(query=query)
 
         logger.info("Loading overpass data into overpy")
         with Profiling.Scope("Loading overpass data into overpy"):
@@ -184,3 +168,38 @@ class OverpassQuery:
             raise KeyError(f"The specified array name ({array_name})"
                            "has not been added to the query/not been resolved")
         return self.query_unprocessed_results[array_name]
+
+
+T = TypeVar('T')
+
+@profile
+def download_query(query: str) -> dict[str, Any]:
+    """Download the query from Overpass API."""
+    endpoint = 'http://overpass-api.de/api/interpreter'
+    headers = {
+        'User-Agent': 'Pretty-gpx/ (https://github.com/ThomasParistech/pretty-gpx)'
+    }
+    params = {'data': query}
+
+    with Profiling.Scope("Download overpass data"):
+        try:
+            response = requests.get(endpoint, headers=headers, params=params, stream=True)
+            response.raise_for_status()
+        except requests.RequestException as err:
+            msg = "The requested data could not be downloaded. Please check your internet connection."
+            logger.exception(msg)
+            raise Exception(msg, err)
+
+    with Profiling.Scope("Reading data in chunks"):
+        content_bytes = BytesIO()
+        chunk_size = 8192
+        for chunk in response.iter_content(chunk_size=chunk_size):
+            content_bytes.write(chunk)
+        content_bytes.seek(0)
+
+    with Profiling.Scope("Loading data into JSON"):
+        logger.info(f"Downloaded {convert_bytes(content_bytes.getbuffer().nbytes)}")
+        data = orjson.loads(content_bytes.getvalue())
+
+    return data
+
