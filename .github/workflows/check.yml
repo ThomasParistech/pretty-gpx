@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  lint_and_typecheck:
+  ruff_mypy_pytest:
     runs-on: ubuntu-latest
 
     steps:
