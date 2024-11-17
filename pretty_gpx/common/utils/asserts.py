@@ -170,3 +170,17 @@ def assert_same_keys(a: dict[Any, Any] | Iterable[Any],
 
     if sorted:
         assert_eq(list(a), list(b))
+
+
+def assert_subset(a: dict[Any, Any] | Iterable[Any],
+                  b: dict[Any, Any] | Iterable[Any],
+                  *, msg: str = "") -> None:
+    """Assert an iterable is a subset of another. A dictionary can be passed as well to check its keys."""
+    m = _clean_msg(msg)
+
+    keys_a = set(a.keys()) if isinstance(a, dict) else set(a)
+    keys_b = set(b.keys()) if isinstance(b, dict) else set(b)
+
+    new_values = list(keys_a - keys_b)
+
+    assert len(new_values) == 0, m+f"Not a subset.\n Values in A but not in B: [{','.join(map(str, new_values))}]\n"
