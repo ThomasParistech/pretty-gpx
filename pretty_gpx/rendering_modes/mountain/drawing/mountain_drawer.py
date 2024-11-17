@@ -231,7 +231,7 @@ def annotation_line_to_arrow(line: PlotData,
     assert_len(line.y, 2)
     begin_lat, begin_lon = line.y[0], line.x[0]
     end_lat, end_lon = line.y[1], line.x[1]
-    line_norm_m = get_distance_m((begin_lat, begin_lon), (end_lat, end_lon))
+    line_norm_m = get_distance_m(lonlat_1=(begin_lon, begin_lat), lonlat_2=(end_lon, end_lat))
     line_norm_mm = line_norm_m / scale_m_per_mm
     line_norm_point = mm_to_point(line_norm_mm)
     ratio = msize_point / line_norm_point  # Avoid overlap with the marker

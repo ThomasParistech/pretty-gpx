@@ -70,13 +70,14 @@ class GpxBounds:
     @property
     def latlon_aspect_ratio(self) -> float:
         """Aspect ratio of the lat/lon map."""
-        return latlon_aspect_ratio(self.lat_center)
+        return latlon_aspect_ratio(lat=self.lat_center)
 
     @property
     def dx_dy_m(self) -> tuple[float, float]:
         """Delta x and delta y."""
-        return get_delta_xy((self.lat_min, self.lon_min),
-                            (self.lat_max, self.lon_max))
+        diff_xy = np.abs(get_delta_xy(lonlat_1=np.array((self.lon_max, self.lon_max)),
+                                      lonlat_2=np.array((self.lon_min, self.lon_min))))
+        return float(diff_xy[0]), float(diff_xy[1])
 
     @property
     def area_m2(self) -> float:

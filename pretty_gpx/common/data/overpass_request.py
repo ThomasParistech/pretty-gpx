@@ -21,8 +21,6 @@ from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import convert_bytes
 
-ListLonLat = list[tuple[float, float]]
-
 
 @dataclass
 class OverpassQuery:

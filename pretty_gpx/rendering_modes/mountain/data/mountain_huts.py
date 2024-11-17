@@ -40,7 +40,7 @@ def prepare_download_mountain_huts(query: OverpassQuery, bounds: GpxBounds) -> N
                              query_elements=["nw['tourism'='alpine_hut']",
                                              "nw['tourism'='wilderness_hut']",
                                              "nw['tourism'='camp_site']"],
-                             tags=True,
+                             include_tags=True,
                              return_center_only=True,
                              bounds=bounds,
                              add_relative_margin=0.05)

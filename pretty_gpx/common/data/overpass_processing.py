@@ -22,7 +22,7 @@ from shapely import Point as ShapelyPoint
 from shapely import Polygon as ShapelyPolygon
 from shapely.prepared import prep
 
-from pretty_gpx.common.data.overpass_request import ListLonLat
+from pretty_gpx.common.gpx.gpx_distance import ListLonLat
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import are_close
@@ -64,12 +64,19 @@ def get_ways_coordinates_from_results(api_result: Result) -> list[ListLonLat]:
     """Get the lat/lon nodes coordinates of the ways from the overpass API result."""
     ways_coords = []
     for way in api_result.ways:
-        road = [(float(node.lon), float(node.lat))
-                for node in way.get_nodes(resolve_missing=True)]
+        road = get_way_coordinates(way)
         if len(road) > 0:
             ways_coords.append(road)
     # ways_coords = merge_ways(ways_coords)
     return ways_coords
+
+
+@profile
+def get_way_coordinates(way: Way) -> ListLonLat:
+    """Get the lat/lon nodes coordinates of a ways."""
+    return [(float(node.lon), float(node.lat))
+            for node in way.get_nodes(resolve_missing=True)
+            if node.lon is not None and node.lat is not None]
 
 
 @profile
@@ -203,14 +210,14 @@ def get_members_from_relation(relation: Relation) -> tuple[list[list[RelationWay
                 outer_geometry_l += outer_subrelation
                 inner_geometry_l += inner_subrelation
             elif type(member) == RelationWay:
-                if member.geometry is None:
+                if member.geometry is None or member.role == "":  # Skip if no geometry or no role
                     continue
                 if member.role == "outer":
                     outer_geometry_l.append(member.geometry)
                 elif member.role == "inner":
                     inner_geometry_l.append(member.geometry)
                 else:
-                    raise ValueError(f"Unexpected member role in a relation {member.role} not in ['inner','outer']")
+                    logger.warning(f"Unexpected member role in a relation '{member.role}' not in ['inner','outer']")
             elif type(member) == RelationNode:
                 continue
             else:

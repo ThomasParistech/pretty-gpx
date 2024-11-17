@@ -139,6 +139,14 @@ def assert_np_shape(x: np.ndarray, shape: OptionalShape, *, msg: str = "") -> No
     assert np.all([n1 == n2 or n2 is None for n1, n2 in zip(x.shape, shape)]), m
 
 
+def assert_np_shape_endswith(x: np.ndarray, shape: OptionalShape, *, msg: str = "") -> None:
+    """Assert Numpy array shape."""
+    m = _clean_msg(msg)
+    m += f"Invalid tensor. Must end with shape ({_shape_to_str(shape)}), but got {x.shape}"
+    assert len(x.shape) >= len(shape), m
+    assert np.all([n1 == n2 or n2 is None for n1, n2 in zip(x.shape[-len(shape):], shape)]), m
+
+
 def assert_same_keys(a: dict[Any, Any] | Iterable[Any],
                      b: dict[Any, Any] | Iterable[Any],
                      *, sorted: bool = False, msg: str = "") -> None:

@@ -8,6 +8,7 @@ from gpxpy.gpx import GPXTrackPoint
 
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_distance import get_distance_m
+from pretty_gpx.common.gpx.gpx_distance import latlon_aspect_ratio
 from pretty_gpx.common.gpx.gpx_io import load_gpxpy
 from pretty_gpx.common.utils.asserts import assert_close
 from pretty_gpx.common.utils.asserts import assert_not_empty
@@ -76,8 +77,8 @@ class GpxTrack:
 
     def is_closed(self, ths_m: float) -> bool:
         """Estimate if the track is closed."""
-        distance_m = get_distance_m((self.list_lat[0], self.list_lon[0]),
-                                    (self.list_lat[-1], self.list_lon[-1]))
+        distance_m = get_distance_m(lonlat_1=(self.list_lon[0], self.list_lat[0]),
+                                    lonlat_2=(self.list_lon[-1], self.list_lat[-1]))
         return distance_m < ths_m
 
     @staticmethod
@@ -104,6 +105,13 @@ class GpxTrack:
                         list_cumul_dist_km=list_cumul_d,
                         uphill_m=sum(gpx.uphill_m for gpx in list_gpx_track),
                         duration_s=total_duration)
+
+    def plot(self, style: str = ".:") -> None:
+        """Plot the track."""
+        plt.plot(self.list_lon, self.list_lat, style)
+        plt.xlabel('Longitude (in °)')
+        plt.ylabel('Latitude (in °)')
+        plt.gca().set_aspect(latlon_aspect_ratio(lat=self.list_lat[0]))
 
 
 def append_track_to_gpx_track(gpx_track: GpxTrack, track_points: list[GPXTrackPoint]) -> None:

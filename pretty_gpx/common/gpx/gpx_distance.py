@@ -1,57 +1,133 @@
 #!/usr/bin/python3
 """GPX Distance."""
+from dataclasses import dataclass
 from typing import overload
+from typing import TYPE_CHECKING
 
 import numpy as np
+from shapely.geometry import LineString
+from shapely.geometry import Point as ShapelyPoint
 
+from pretty_gpx.common.utils.asserts import assert_eq
 from pretty_gpx.common.utils.asserts import assert_np_shape
+from pretty_gpx.common.utils.asserts import assert_np_shape_endswith
+from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.utils import EARTH_RADIUS_M
 
+if TYPE_CHECKING:
+    from pretty_gpx.common.gpx.gpx_track import GpxTrack
 
-def latlon_aspect_ratio(lat: float) -> float:
+ListLonLat = list[tuple[float, float]]
+
+
+@dataclass
+class LocalProjectionXY:
+    """Projection of lon/lat points to local XY coordinates."""
+    lonlat_ref: np.ndarray  # (2,)
+
+    @staticmethod
+    def fit(*, lon_lat: np.ndarray) -> 'LocalProjectionXY':
+        """Use the mean of the lon/lat points as the reference point."""
+        assert_np_shape(lon_lat, (None, 2))
+        return LocalProjectionXY(lonlat_ref=np.mean(lon_lat, axis=0))
+
+    @overload
+    def transform(self, *, lon_lat: tuple[float, float]) -> tuple[float, float]: ...
+    @overload
+    def transform(self, *,  lon_lat: np.ndarray) -> np.ndarray: ...
+
+    def transform(self, *,  lon_lat: np.ndarray | tuple[float, float]) -> np.ndarray | tuple[float, float]:
+        """Transform lon/lat points to local XY coordinates."""
+        if isinstance(lon_lat, np.ndarray):
+            assert_np_shape(lon_lat, (None, 2))
+
+        lon_lat_np = np.asarray(lon_lat)
+        local_xy = get_delta_xy(lonlat_1=lon_lat_np, lonlat_2=self.lonlat_ref[None, :])
+        # N.B. We need the signed difference, because we can get points below the reference point
+
+        if isinstance(lon_lat, tuple):
+            return float(local_xy[0]), float(local_xy[1])
+
+        return local_xy
+
+
+@overload
+def latlon_aspect_ratio(*, lat: float) -> float: ...
+@overload
+def latlon_aspect_ratio(*, lat: np.ndarray) -> np.ndarray: ...
+
+
+def latlon_aspect_ratio(*, lat: float | np.ndarray) -> float | np.ndarray:
     """Aspect ratio of the lat/lon map."""
-    return 1.0/np.cos(np.deg2rad(lat))
+    res = 1.0/np.cos(np.deg2rad(lat))
+    return res if isinstance(lat, np.ndarray) else float(res)
+
+
+def get_delta_xy(*, lonlat_1: np.ndarray, lonlat_2: np.ndarray) -> np.ndarray:
+    """Signed Difference X/Y between two lon/lat arrays of points in meters, i.e. lonlat_1 - lonlat_2."""
+    assert_np_shape_endswith(lonlat_1, (2,))
+    assert_np_shape_endswith(lonlat_2, (2,))
+    assert_eq(lonlat_2.ndim, lonlat_1.ndim)
+
+    diffs_xy = EARTH_RADIUS_M*np.deg2rad(lonlat_1 - lonlat_2)
+    diffs_xy[..., 0] /= latlon_aspect_ratio(lat=lonlat_1[..., 0])
+
+    return diffs_xy
+
+
+def get_distances_to_track_m(gpx_track: 'GpxTrack', targets_lon_lat: ListLonLat) -> list[float]:
+    """Get the distances in meters between a GPX track and a list of lon/lat points."""
+    # N.B. Since the GpxTrack might be sparse, espcially along linear segments, it's more accurate to convert it
+    # to a Shapely LineString and compute the distances to the points using Shapely.
+    gpx_lonlat = np.stack([gpx_track.list_lon, gpx_track.list_lat], axis=-1)
+    local_xy = LocalProjectionXY.fit(lon_lat=gpx_lonlat)
+
+    gpx_xy = local_xy.transform(lon_lat=gpx_lonlat)
+    targets_xy = local_xy.transform(lon_lat=np.array(targets_lon_lat, dtype=float))
+
+    gpx_xy_shapely = LineString(gpx_xy)
+
+    return [ShapelyPoint(target).distance(gpx_xy_shapely) for target in targets_xy]
 
 
 @overload
-def get_delta_xy(latlon_1: tuple[float, float], latlon_2: tuple[float, float]) -> tuple[float, float]: ...
-
-
+def get_distance_m(*, lonlat_1: tuple[float, float], lonlat_2: tuple[float, float]) -> float: ...
 @overload
-def get_delta_xy(latlon_1: tuple[float, float], latlon_2: np.ndarray) -> tuple[np.ndarray, np.ndarray]: ...
-
-
-def get_delta_xy(latlon_1: tuple[float, float],
-                 latlon_2: tuple[float, float] | np.ndarray) -> tuple[float, float] | tuple[np.ndarray, np.ndarray]:
-    """Difference X/Y between two lat/lon points in meters."""
-    if isinstance(latlon_2, np.ndarray):
-        assert_np_shape(latlon_2, (None, 2))
-
-    latlon_1_np = np.array(latlon_1).reshape(-1, 2)
-    latlon_2_np = np.array(latlon_2).reshape(-1, 2)
-
-    dy = EARTH_RADIUS_M*np.deg2rad(np.abs(latlon_1_np[:, 0]-latlon_2_np[:, 0]))
-    dx = EARTH_RADIUS_M*np.deg2rad(np.abs(latlon_1_np[:, 1]-latlon_2_np[:, 1])) / latlon_aspect_ratio(latlon_1[0])
-
-    if isinstance(latlon_2, tuple):
-        return float(dx[0]), float(dy[0])
-
-    return dx, dy
-
-
+def get_distance_m(*, lonlat_1: np.ndarray, lonlat_2: tuple[float, float]) -> np.ndarray: ...
 @overload
-def get_distance_m(latlon_1: tuple[float, float], latlon_2: tuple[float, float]) -> float: ...
-
-
+def get_distance_m(*, lonlat_1: tuple[float, float], lonlat_2: np.ndarray) -> np.ndarray: ...
 @overload
-def get_distance_m(latlon_1: tuple[float, float], latlon_2: np.ndarray) -> np.ndarray: ...
+def get_distance_m(*, lonlat_1: np.ndarray, lonlat_2: np.ndarray) -> np.ndarray: ...
 
 
-def get_distance_m(latlon_1: tuple[float, float], latlon_2: tuple[float, float] | np.ndarray) -> float | np.ndarray:
-    """XY Distance between two lat/lon points in meters."""
-    if isinstance(latlon_2, tuple):
-        dx, dy = get_delta_xy(latlon_1, latlon_2)
-        return float(np.linalg.norm([dx, dy]))
+def get_distance_m(*,
+                   lonlat_1: tuple[float, float] | np.ndarray,
+                   lonlat_2: tuple[float, float] | np.ndarray) -> float | np.ndarray:
+    """Element-wise XY Distance between two lon/lat points in meters."""
+    lonlat_1_np = np.array(lonlat_1).reshape(-1, 2)  # (N, 2)
+    lonlat_2_np = np.array(lonlat_2).reshape(-1, 2)  # (N, 2)
+    assert_same_len((lonlat_1_np, lonlat_2_np))
 
-    dx_np, dy_np = get_delta_xy(latlon_1, latlon_2)
-    return np.linalg.norm(np.stack((dx_np, dy_np), axis=-1), axis=-1)
+    diffs_xy = get_delta_xy(lonlat_1=lonlat_1_np, lonlat_2=lonlat_2_np)  # (N, 2)
+
+    distances_m = np.linalg.norm(diffs_xy, axis=-1)  # (N,)
+
+    if isinstance(lonlat_1, tuple) and isinstance(lonlat_2, tuple):  # (1, 1)
+        return float(distances_m[0])
+
+    return distances_m  # (N,)
+
+
+def get_pairwise_distance_m(*, lonlat_1: np.ndarray, lonlat_2: np.ndarray | None = None) -> np.ndarray:
+    """Pairwise distance between two sets of lon/lat points in meters."""
+    if lonlat_2 is None:
+        lonlat_2 = lonlat_1
+    assert_np_shape(lonlat_1, (None, 2))  # (N, 2)
+    assert_np_shape(lonlat_2, (None, 2))  # (M, 2)
+
+    diffs_xy = get_delta_xy(lonlat_1=lonlat_1[:, None, :], lonlat_2=lonlat_2[None, :, :])  # (N, M,2)
+
+    grid_dist_m = np.linalg.norm(diffs_xy, axis=-1)  # (N, M)
+    assert_np_shape(grid_dist_m, (len(lonlat_1), len(lonlat_2)))
+
+    return grid_dist_m  # (N, M)
