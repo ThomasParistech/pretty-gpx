@@ -47,7 +47,7 @@ def prepare_download_mountain_passes(query: OverpassQuery, bounds: GpxBounds) ->
                                              "node['mountain_pass'='yes']",
                                              "node['hiking'='yes']['tourism'='information']",
                                              "node['hiking'='yes']['information'='guidepost']"],
-                             tags=True,
+                             include_tags=True,
                              return_center_only=True,
                              bounds=bounds,
                              add_relative_margin=0.05)

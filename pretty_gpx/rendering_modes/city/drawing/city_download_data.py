@@ -3,10 +3,10 @@
 from dataclasses import dataclass
 
 from pretty_gpx.common.data.overpass_processing import SurfacePolygons
-from pretty_gpx.common.data.overpass_request import ListLonLat
 from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
+from pretty_gpx.common.gpx.gpx_distance import ListLonLat
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.structure import AugmentedGpxData
 from pretty_gpx.common.structure import DownloadData

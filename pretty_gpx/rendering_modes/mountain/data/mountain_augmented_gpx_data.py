@@ -116,7 +116,7 @@ def get_close_mountain_passes(gpx: GpxTrack,
                               query: OverpassQuery,
                               bounds: GpxBounds) -> tuple[list[int], list[MountainPass]]:
     """Get mountain passes close to a GPX track."""
-    gpx_curve = np.stack((gpx.list_lat, gpx.list_lon), axis=-1)
+    gpx_lonlat = np.stack((gpx.list_lon, gpx.list_lat), axis=-1)
 
     candidate_passes = process_mountain_passes(query, bounds)
 
@@ -124,7 +124,8 @@ def get_close_mountain_passes(gpx: GpxTrack,
     passes: list[MountainPass] = []
     for mpass in candidate_passes:
         # Check if close to the GPX track
-        distances_m = get_distance_m((mpass.lat, mpass.lon), gpx_curve)
+        # TODO (upgrade): Use get_distances_to_track_m?
+        distances_m = get_distance_m(lonlat_1=(mpass.lon, mpass.lat), lonlat_2=gpx_lonlat)
         closest_idx = int(np.argmin(distances_m))
         closest_distance_m = distances_m[closest_idx]
 
@@ -147,7 +148,7 @@ def is_close_to_a_mountain_pass(lon: float, lat: float,
     """Check if a point is close to a mountain pass."""
     if len(mountain_passes) == 0:
         return False
-    distances_m = get_distance_m((lat, lon), np.array([[m.lat, m.lon] for m in mountain_passes]))
+    distances_m = get_distance_m(lonlat_1=(lon, lat), lonlat_2=np.array([[m.lon, m.lat] for m in mountain_passes]))
     return np.min(distances_m) < max_dist_m
 
 
@@ -162,8 +163,8 @@ def load_and_merge_tracks(list_gpx_path: list[str] | list[bytes]) -> tuple[GpxTr
         crt_track = list_gpx_track[i]
         next_track = list_gpx_track[i+1]
 
-        distance_m = get_distance_m((crt_track.list_lat[-1], crt_track.list_lon[-1]),
-                                    (next_track.list_lat[0], next_track.list_lon[0]))
+        distance_m = get_distance_m(lonlat_1=(crt_track.list_lon[-1], crt_track.list_lat[-1]),
+                                    lonlat_2=(next_track.list_lon[0], next_track.list_lat[0]))
 
         if distance_m > 5000:  # 5km Tolerance
             raise AssertionError("Too large gap between consecutive GPX tracks. "
@@ -194,11 +195,11 @@ def find_huts_between_daily_tracks(full_gpx_track: GpxTrack,
 
     # Estimate the huts locations
     huts: list[MountainHut] = []
-    candidates_lat_lon_np = np.array([[h.lat, h.lon] for h in candidate_huts])
+    candidates_lonlat_np = np.array([[h.lon, h.lat] for h in candidate_huts])
     for hut_id in huts_ids:
         hut_lat, hut_lon = full_gpx_track.list_lat[hut_id], full_gpx_track.list_lon[hut_id]
 
-        distances_m = get_distance_m((hut_lat, hut_lon), candidates_lat_lon_np)
+        distances_m = get_distance_m(lonlat_1=(hut_lon, hut_lat), lonlat_2=candidates_lonlat_np)
         closest_idx = int(np.argmin(distances_m))
         closest_distance = distances_m[closest_idx]
         if closest_distance < max_dist_m:
