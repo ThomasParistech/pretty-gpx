@@ -11,7 +11,6 @@ from shapely.geometry import Point as ShapelyPoint
 from pretty_gpx.common.utils.asserts import assert_eq
 from pretty_gpx.common.utils.asserts import assert_np_shape
 from pretty_gpx.common.utils.asserts import assert_np_shape_endswith
-from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.utils import EARTH_RADIUS_M
 
 if TYPE_CHECKING:
@@ -70,7 +69,7 @@ def get_delta_xy(*, lonlat_1: np.ndarray, lonlat_2: np.ndarray) -> np.ndarray:
     assert_eq(lonlat_2.ndim, lonlat_1.ndim)
 
     diffs_xy = EARTH_RADIUS_M*np.deg2rad(lonlat_1 - lonlat_2)
-    diffs_xy[..., 0] /= latlon_aspect_ratio(lat=lonlat_1[..., 0])
+    diffs_xy[..., 0] /= latlon_aspect_ratio(lat=lonlat_1[..., 1])
 
     return diffs_xy
 
