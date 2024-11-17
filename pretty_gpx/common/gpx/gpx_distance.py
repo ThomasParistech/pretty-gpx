@@ -104,9 +104,9 @@ def get_distance_m(*,
                    lonlat_1: tuple[float, float] | np.ndarray,
                    lonlat_2: tuple[float, float] | np.ndarray) -> float | np.ndarray:
     """Element-wise XY Distance between two lon/lat points in meters."""
+    # Reshape to allow broadcasting
     lonlat_1_np = np.array(lonlat_1).reshape(-1, 2)  # (N, 2)
     lonlat_2_np = np.array(lonlat_2).reshape(-1, 2)  # (N, 2)
-    assert_same_len((lonlat_1_np, lonlat_2_np))
 
     diffs_xy = get_delta_xy(lonlat_1=lonlat_1_np, lonlat_2=lonlat_2_np)  # (N, 2)
 
