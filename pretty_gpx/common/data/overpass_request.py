@@ -39,7 +39,7 @@ class OverpassQuery:
                            include_relation_members_nodes: bool = False,
                            return_geometry: bool = False,
                            return_center_only: bool = False,
-                           tags: bool = False,
+                           include_tags: bool = False,
                            add_relative_margin: float | None = None) -> None:
         """Add a query to the list so that all queries can be launch simultaneously."""
         if isinstance(bounds, GpxTrack):
@@ -52,6 +52,7 @@ class OverpassQuery:
 
         query_body = "\n".join([f"{element}{bounds_str};" for element in query_elements])
 
+        # See https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL#Standalone_statements
         if return_center_only:
             out_param = "center"
         elif return_geometry:
@@ -59,8 +60,12 @@ class OverpassQuery:
         else:
             out_param = ""
 
-        if tags:
-            out_param += " tags"
+        if not include_tags:
+            verbose_params = "skel"
+        elif include_relation_members_nodes or include_way_nodes:
+            verbose_params = "body"
+        else:
+            verbose_params = "tags"
 
         if include_relation_members_nodes:
             # If include_relation_members_nodes and include_way_nodes as
@@ -76,7 +81,7 @@ class OverpassQuery:
 {query_body}
 )->.{array_name};
 {recursion_param}
-.{array_name} out skel {out_param};"""
+.{array_name} out {verbose_params} {out_param};"""
 
         self.query_dict[array_name] = query
         logger.info(f"A query {array_name} has been added to the total query")
