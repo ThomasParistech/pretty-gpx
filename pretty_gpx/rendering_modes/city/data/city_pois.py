@@ -111,7 +111,7 @@ def process_city_pois(query: OverpassQuery,
                                                       poly_lonlat=lon_lat))
 
     cache_pkl = CITY_POINTS_OF_INTEREST_CACHE.get_path(bounds)
-    write_pickle(cache_pkl, city_pois)  # FIXME
+    write_pickle(cache_pkl, city_pois)
     query.add_cached_result(CITY_POINTS_OF_INTEREST_CACHE.name, cache_file=cache_pkl)
     return city_pois
 
