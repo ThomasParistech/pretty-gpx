@@ -80,7 +80,8 @@ class MountainAugmentedGpxData(AugmentedGpxData):
         huts_names = find_huts_between_daily_tracks(gpx_track, huts_ids, total_query, bounds)
 
         is_closed = gpx_track.is_closed(LOOSE_THS_M)
-        passes_ids, mountain_passes = get_close_mountain_passes(gpx_track, STRICT_THS_M, total_query, bounds)
+        candidate_passes = process_mountain_passes(total_query, bounds)
+        passes_ids, mountain_passes = get_close_mountain_passes(gpx_track, candidate_passes)
         close_to_start = is_close_to_a_mountain_pass(lon=gpx_track.list_lon[0],
                                                      lat=gpx_track.list_lat[0],
                                                      mountain_passes=mountain_passes,
@@ -111,14 +112,10 @@ class MountainAugmentedGpxData(AugmentedGpxData):
 
 
 @profile
-def get_close_mountain_passes(gpx: GpxTrack,
-                              max_dist_m: float,
-                              query: OverpassQuery,
-                              bounds: GpxBounds) -> tuple[list[int], list[MountainPass]]:
+def get_close_mountain_passes(gpx: GpxTrack, candidate_passes: list[MountainPass]) -> tuple[list[int],
+                                                                                            list[MountainPass]]:
     """Get mountain passes close to a GPX track."""
     gpx_lonlat = np.stack((gpx.list_lon, gpx.list_lat), axis=-1)
-
-    candidate_passes = process_mountain_passes(query, bounds)
 
     ids: list[int] = []
     passes: list[MountainPass] = []
@@ -129,7 +126,7 @@ def get_close_mountain_passes(gpx: GpxTrack,
         closest_idx = int(np.argmin(distances_m))
         closest_distance_m = distances_m[closest_idx]
 
-        if closest_distance_m > max_dist_m:
+        if closest_distance_m > STRICT_THS_M:
             continue
 
         # Check if the mountain pass is not already in the list
