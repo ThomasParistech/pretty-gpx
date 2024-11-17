@@ -1,12 +1,14 @@
 #!/usr/bin/python3
 """Overpass API."""
 
-import urllib.parse
-import urllib.request
 from dataclasses import dataclass
 from dataclasses import field
+from io import BytesIO
+from typing import Any
+from typing import TypeVar
 
-import ujson
+import orjson
+import requests
 from overpy import Area
 from overpy import Node
 from overpy import Overpass
@@ -16,10 +18,13 @@ from overpy import Way
 
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
+from pretty_gpx.common.utils.asserts import assert_same_keys
+from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import convert_bytes
+from pretty_gpx.common.utils.utils import generate_unique_strings
 
 ListLonLat = list[tuple[float, float]]
 
@@ -116,26 +121,8 @@ class OverpassQuery:
 
         logger.info("Downloading data from OSM API")
         query, array_ordered_list = self.merge_queries()
-        with Profiling.Scope("Download overpass data"):
-            endpoint = 'http://overpass-api.de/api/'
-            request = urllib.request.Request(endpoint + 'interpreter',
-                                             urllib.parse.urlencode({'data': query}).encode('utf-8'))
-            agent = 'Pretty-gpx/ (https://github.com/ThomasParistech/pretty-gpx)'
 
-            if not isinstance(request, urllib.request.Request):
-                request = urllib.request.Request(request)
-            request.headers['User-Agent'] = agent
-            try:
-                response = urllib.request.urlopen(request)
-            except Exception as err:
-                msg = "The requested data could not be downloaded. Please check whether your internet connection."
-                logger.exception(msg)
-                raise Exception(msg, err)
-
-        with Profiling.Scope("Loading data into JSON"):
-            content_bytes = response.read()
-            logger.info(f"Downloaded {convert_bytes(len(content_bytes))}")
-            data = ujson.loads(content_bytes)
+        data = download_query(query=query)
 
         logger.info("Loading overpass data into overpy")
         with Profiling.Scope("Loading overpass data into overpy"):
@@ -181,3 +168,78 @@ class OverpassQuery:
             raise KeyError(f"The specified array name ({array_name})"
                            "has not been added to the query/not been resolved")
         return self.query_unprocessed_results[array_name]
+
+
+T = TypeVar('T')
+
+@profile
+def download_query(query: str) -> dict[str, Any]:
+    """Download the query from Overpass API."""
+    endpoint = 'http://overpass-api.de/api/interpreter'
+    headers = {
+        'User-Agent': 'Pretty-gpx/ (https://github.com/ThomasParistech/pretty-gpx)'
+    }
+    params = {'data': query}
+
+    with Profiling.Scope("Download overpass data"):
+        try:
+            response = requests.get(endpoint, headers=headers, params=params, stream=True)
+            response.raise_for_status()
+        except requests.RequestException as err:
+            msg = "The requested data could not be downloaded. Please check your internet connection."
+            logger.exception(msg)
+            raise Exception(msg, err)
+
+    with Profiling.Scope("Reading data in chunks"):
+        content_bytes = BytesIO()
+        chunk_size = 8192
+        for chunk in response.iter_content(chunk_size=chunk_size):
+            content_bytes.write(chunk)
+        content_bytes.seek(0)
+
+    with Profiling.Scope("Loading data into JSON"):
+        logger.info(f"Downloaded {convert_bytes(content_bytes.getbuffer().nbytes)}")
+        data = orjson.loads(content_bytes.getvalue())
+
+    return data
+
+
+@profile
+def get_count(query_elements: dict[T, list[str]],
+              bounds: GpxBounds | GpxTrack,
+              include_way_nodes: bool = False) -> dict[T, dict[str, int]]:
+    """Query the overpass API for a single request."""
+    if isinstance(bounds, GpxTrack):
+        bounds = bounds.get_bounds()
+
+    bounds_str = f"({bounds.lat_min:.5f}, {bounds.lon_min:.5f}, {bounds.lat_max:.5f}, {bounds.lon_max:.5f})"
+
+    unique_strings = generate_unique_strings(n_min=len(query_elements))
+
+    query = f"""[timeout:{30:.0f}][maxsize:{100000000:.0f}][out:json];"""
+
+    for queries_l in query_elements.values():
+        query += "("
+        result_tag = next(unique_strings)
+        query += "\n".join([f"{q}{bounds_str}->.{result_tag};" for q in queries_l])
+        query += ");\n"
+        if include_way_nodes:
+            query += f"(.{result_tag};>>;)->.{result_tag};\n"
+        query += f".{result_tag} out count;\n"
+
+    data = download_query(query=query)
+
+    elements = data.get("elements", [])
+    query_elements_keys = list(query_elements.keys())
+    assert_same_len([query_elements_keys, elements])
+
+    output = dict()
+
+    for i in range(len(elements)):
+        output_str_i = elements[i].get("tags", {})
+        assert_same_keys(output_str_i, ["nodes", "ways", "relations", "total"])
+        output_int = dict()
+        for key, value in output_str_i.items():
+            output_int[key] = int(value)
+        output[query_elements_keys[i]] = output_int
+    return output

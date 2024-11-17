@@ -18,6 +18,7 @@ from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
 from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_rivers
 from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
 from pretty_gpx.rendering_modes.city.data.roads import CityRoadType
+from pretty_gpx.rendering_modes.city.data.roads import get_downloadable_road_types
 from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
 from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
 
@@ -52,16 +53,25 @@ class CityDownloadData(DownloadData):
         logger.info(f"Domain diagonal is {caracteristic_distance_m/1000.:.1f}km")
 
         total_query = OverpassQuery()
-        for prepare_func in [prepare_download_city_roads,
-                             prepare_download_city_rivers,
+
+        roads_to_plot = get_downloadable_road_types(bounds=download_bounds)
+        downloaded_road_types = prepare_download_city_roads(query=total_query,
+                                                            bounds=download_bounds,
+                                                            roads_to_plot=roads_to_plot)
+
+        for prepare_func in [prepare_download_city_rivers,
                              prepare_download_city_forests]:
-            prepare_func(total_query, download_bounds)
+
+            prepare_func(query=total_query, bounds=download_bounds)
 
         # Merge and run all queries
         total_query.launch_queries()
 
         # Retrieve the data
-        roads = process_city_roads(total_query, download_bounds)
+        roads = process_city_roads(query=total_query,
+                                   bounds=download_bounds,
+                                   city_roads_downloaded=downloaded_road_types)
+
         rivers = process_city_rivers(total_query, download_bounds)
         forests, farmlands = process_city_forests(total_query, download_bounds)
         forests.interior_polygons = []

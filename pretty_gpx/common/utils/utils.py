@@ -1,10 +1,14 @@
 #!/usr/bin/python3
 """Utils."""
 
+import itertools
 import os
+import string
+from collections.abc import Iterator
 from typing import TypeVar
 
 EARTH_RADIUS_M = 6371000
+MAX_RECURSION_DEPTH = 100 #sys.getrecursionlimit() - 10
 
 T = TypeVar('T')
 
@@ -89,3 +93,11 @@ def convert_bytes(size_bytes: int) -> str:
         return f"{size_bytes / (1000 ** 2):.2f} MB"
     else:
         return f"{size_bytes / (1000 ** 3):.2f} GB"
+
+
+def generate_unique_strings(n_min: int) -> Iterator[str]:
+    """Generate a unique string iteration with more than n_min entries a,b,...,z,aa,ab....,az,ba..."""
+    q = n_min // len(string.ascii_lowercase) + 1
+    for size in itertools.count(q):
+        for s in itertools.product(string.ascii_lowercase, repeat=size):
+            yield "".join(s)
