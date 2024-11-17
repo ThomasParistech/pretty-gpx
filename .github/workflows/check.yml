@@ -34,3 +34,7 @@ jobs:
       - name: Type-checker
         if: always()
         run: sh ./scripts/run_mypy.sh
+
+      - name: Pytest
+        if: always()
+        run: sh ./scripts/run_pytest.sh
