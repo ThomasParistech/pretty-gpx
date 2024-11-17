@@ -18,12 +18,10 @@ from pretty_gpx.common.gpx.gpx_distance import get_distances_to_track_m
 from pretty_gpx.common.gpx.gpx_distance import get_pairwise_distance_m
 from pretty_gpx.common.gpx.gpx_distance import ListLonLat
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
-from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
-from pretty_gpx.rendering_modes.city.drawing.city_drawer import CityDrawingInputs
 
 CITY_POINTS_OF_INTEREST_CACHE = GpxDataCacheHandler(name='city_pois', extension='.pkl')
 
