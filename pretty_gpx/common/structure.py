@@ -24,12 +24,12 @@ class AugmentedGpxData:
     @classmethod
     def from_path(cls, path: str | bytes) -> Self:
         """Create an AugmentedGpxData from a GPX file."""
-        raise NotImplementedError
+        raise NotImplementedError("`from_path` is not implemented. Try `from_paths` instead.")
 
     @classmethod
     def from_paths(cls, paths: str | bytes | list[str] | list[bytes]) -> Self:
         """Create an AugmentedGpxData from GPX files."""
-        raise NotImplementedError
+        raise NotImplementedError("`from_paths` is not implemented. Try `from_path` instead.")
 
     #########################################
 

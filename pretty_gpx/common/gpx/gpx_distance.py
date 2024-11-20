@@ -2,19 +2,13 @@
 """GPX Distance."""
 from dataclasses import dataclass
 from typing import overload
-from typing import TYPE_CHECKING
 
 import numpy as np
-from shapely.geometry import LineString
-from shapely.geometry import Point as ShapelyPoint
 
 from pretty_gpx.common.utils.asserts import assert_eq
 from pretty_gpx.common.utils.asserts import assert_np_shape
 from pretty_gpx.common.utils.asserts import assert_np_shape_endswith
 from pretty_gpx.common.utils.utils import EARTH_RADIUS_M
-
-if TYPE_CHECKING:
-    from pretty_gpx.common.gpx.gpx_track import GpxTrack
 
 ListLonLat = list[tuple[float, float]]
 
@@ -72,21 +66,6 @@ def get_delta_xy(*, lonlat_1: np.ndarray, lonlat_2: np.ndarray) -> np.ndarray:
     diffs_xy[..., 0] /= latlon_aspect_ratio(lat=lonlat_1[..., 1])
 
     return diffs_xy
-
-
-def get_distances_to_track_m(gpx_track: 'GpxTrack', targets_lon_lat: ListLonLat) -> list[float]:
-    """Get the distances in meters between a GPX track and a list of lon/lat points."""
-    # N.B. Since the GpxTrack might be sparse, espcially along linear segments, it's more accurate to convert it
-    # to a Shapely LineString and compute the distances to the points using Shapely.
-    gpx_lonlat = np.stack([gpx_track.list_lon, gpx_track.list_lat], axis=-1)
-    local_xy = LocalProjectionXY.fit(lon_lat=gpx_lonlat)
-
-    gpx_xy = local_xy.transform(lon_lat=gpx_lonlat)
-    targets_xy = local_xy.transform(lon_lat=np.array(targets_lon_lat, dtype=float))
-
-    gpx_xy_shapely = LineString(gpx_xy)
-
-    return [ShapelyPoint(target).distance(gpx_xy_shapely) for target in targets_xy]
 
 
 @overload

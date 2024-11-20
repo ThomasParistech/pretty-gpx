@@ -121,7 +121,7 @@ def get_close_mountain_passes(gpx: GpxTrack, candidate_passes: list[MountainPass
     passes: list[MountainPass] = []
     for mpass in candidate_passes:
         # Check if close to the GPX track
-        # TODO (upgrade): Use get_distances_to_track_m?
+        # TODO (upgrade): Use get_distances_to_track_m? but need index closest point
         distances_m = get_distance_m(lonlat_1=(mpass.lon, mpass.lat), lonlat_2=gpx_lonlat)
         closest_idx = int(np.argmin(distances_m))
         closest_distance_m = distances_m[closest_idx]

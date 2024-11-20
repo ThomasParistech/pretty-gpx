@@ -4,11 +4,15 @@ from dataclasses import dataclass
 from dataclasses import field
 
 import matplotlib.pyplot as plt
+import numpy as np
 from gpxpy.gpx import GPXTrackPoint
+from shapely.geometry import LineString
+from shapely.geometry import Point as ShapelyPoint
 
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_distance import get_distance_m
 from pretty_gpx.common.gpx.gpx_distance import latlon_aspect_ratio
+from pretty_gpx.common.gpx.gpx_distance import LocalProjectionXY
 from pretty_gpx.common.gpx.gpx_io import load_gpxpy
 from pretty_gpx.common.utils.asserts import assert_close
 from pretty_gpx.common.utils.asserts import assert_not_empty
@@ -112,6 +116,20 @@ class GpxTrack:
         plt.xlabel('Longitude (in °)')
         plt.ylabel('Latitude (in °)')
         plt.gca().set_aspect(latlon_aspect_ratio(lat=self.list_lat[0]))
+
+    def get_distances_m(self, targets_lon_lat: list[tuple[float, float]]) -> list[float]:
+        """Get the distances in meters between the track and a list of lon/lat points."""
+        # N.B. Since the GpxTrack might be sparse, espcially along linear segments, it's more accurate to convert it
+        # to a Shapely LineString and compute the distances to the points using Shapely.
+        gpx_lonlat = np.stack([self.list_lon, self.list_lat], axis=-1)
+        local_xy = LocalProjectionXY.fit(lon_lat=gpx_lonlat)
+
+        gpx_xy = local_xy.transform(lon_lat=gpx_lonlat)
+        targets_xy = local_xy.transform(lon_lat=np.array(targets_lon_lat, dtype=float))
+
+        gpx_xy_shapely = LineString(gpx_xy)
+
+        return [ShapelyPoint(target).distance(gpx_xy_shapely) for target in targets_xy]
 
 
 def append_track_to_gpx_track(gpx_track: GpxTrack, track_points: list[GPXTrackPoint]) -> None:

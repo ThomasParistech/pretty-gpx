@@ -14,7 +14,6 @@ from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
-from pretty_gpx.common.gpx.gpx_distance import get_distances_to_track_m
 from pretty_gpx.common.gpx.gpx_distance import get_pairwise_distance_m
 from pretty_gpx.common.gpx.gpx_distance import ListLonLat
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
@@ -180,7 +179,7 @@ def __filter_close_gpx(city_pois: list[CandidateCityPoi], gpx: GpxTrack) -> list
     filtered_city_pois: list[CandidateCityPoi] = []
 
     for city_poi in city_pois:
-        min_distance = np.min(get_distances_to_track_m(gpx, city_poi.poly_lonlat))
+        min_distance = np.min(gpx.get_distances_m(city_poi.poly_lonlat))
 
         if city_poi.importance > 70:
             ths_m = 800

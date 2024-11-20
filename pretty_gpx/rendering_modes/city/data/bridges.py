@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
-from pretty_gpx.common.gpx.gpx_distance import get_distances_to_track_m
 from pretty_gpx.common.gpx.gpx_distance import ListLonLat
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.utils.pickle_io import read_pickle
@@ -72,7 +71,7 @@ def get_gpx_track_bridges(bridges_lon_lat: ListLonLat,
     if len(bridges_lon_lat) == 0:
         return []
 
-    distances = get_distances_to_track_m(gpx, bridges_lon_lat)
+    distances = gpx.get_distances_m(bridges_lon_lat)
 
     return [CityBridge(name=name, lon=lon, lat=lat)
             for (lon, lat), name, dist in zip(bridges_lon_lat, bridges_name, distances)
