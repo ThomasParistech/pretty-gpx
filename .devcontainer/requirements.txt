@@ -15,7 +15,7 @@ pytest==8.3.3
 svgpathtools==1.6.1
 svgpath2mpl==1.0.0
 ruff==0.4.6
-textalloc==1.1.3
+textalloc==1.1.4
 shapely==2.0.6
 types-shapely==2.0.0.20240820
 orjson==3.10.7
