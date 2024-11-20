@@ -11,15 +11,18 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.path import Path
 
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
-from pretty_gpx.common.drawing.drawing_data import PlotData
+from pretty_gpx.common.drawing.drawing_data import ArrowData
 from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
+from pretty_gpx.common.gpx.gpx_distance import get_distance_m
+from pretty_gpx.common.utils.asserts import assert_in_strict_range
 from pretty_gpx.common.utils.asserts import assert_len
 from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.paths import DATA_DIR
 from pretty_gpx.common.utils.plt import MatplotlibBackend
 from pretty_gpx.common.utils.profile import profile
+from pretty_gpx.common.utils.utils import mm_to_point
 
 DEBUG_TEXT_ALLOCATION = False
 
@@ -37,7 +40,7 @@ def allocate_text(base_fig: BaseDrawingFigure,
                   margin: float = 0.008,
                   nbr_candidates: int = 300,
                   ha: str = 'center',
-                  va: str = 'center') -> tuple[list[TextData], list[PlotData]]:
+                  va: str = 'center') -> tuple[list[TextData], list[ArrowData]]:
     """Allocate text-boxes in imshow plot while avoiding overlap with other annotations."""
     matplotlib.use('Agg')
     fig, ax = plt.subplots()
@@ -85,19 +88,27 @@ def allocate_text(base_fig: BaseDrawingFigure,
                                                     fontproperties=fontproperties)
 
     list_text_data: list[TextData] = []
-    list_plot_data: list[PlotData] = []
-    for i, (text, line) in enumerate(zip(result_text_xy, result_line)):
+    list_arrow_data: list[ArrowData] = []
+    scale_m_per_mm = base_fig.get_scale()
+    assert_same_len((result_text_xy, result_line, scatters.list_text_s, scatters.list_text_markersize))
+    for text, line, s, msize_point in zip(result_text_xy,
+                                          result_line,
+                                          scatters.list_text_s,
+                                          scatters.list_text_markersize):
         assert text is not None, "Failed to allocate text, consider using larger margins in VerticalLayout " \
             "or larger `max_distance` when calling `allocate_text`"
         assert_len(text, 3)
         text_x, text_y, _ = text
-        list_text_data.append(TextData(x=text_x, y=text_y, s=scatters.list_text_s[i],
+        list_text_data.append(TextData(x=text_x, y=text_y, s=s,
                                        fontsize=fontsize, fontproperties=fontproperties, ha=ha, va=va))
 
         assert line is not None
         assert_len(line, 3)
         line_x, line_y, _ = line
-        list_plot_data.append(PlotData(x=list(line_x), y=list(line_y), linewidth=output_linewidth))
+        list_arrow_data.append(annotation_line_to_arrow(line_x, line_y,
+                                                        msize_point=msize_point,
+                                                        scale_m_per_mm=scale_m_per_mm,
+                                                        linewidth=output_linewidth))
 
     logger.info("Succesful Text Allocation")
 
@@ -116,7 +127,7 @@ def allocate_text(base_fig: BaseDrawingFigure,
             plt.savefig(os.path.join(DATA_DIR, "text_after.svg"))
             plt.show()
 
-    return list_text_data, list_plot_data
+    return list_text_data, list_arrow_data
 
 
 @dataclass
@@ -181,3 +192,23 @@ class AnnotatedScatterDataCollection:
         return [s
                 for scatter_data in self.list_scatter_data
                 for s in [scatter_data.markersize]*len(scatter_data.x)]
+
+
+def annotation_line_to_arrow(line_x: tuple[float, float],
+                             line_y: tuple[float, float],
+                             msize_point: float,
+                             scale_m_per_mm: float,
+                             linewidth: float) -> ArrowData:
+    """Convert an annotation line to an arrow pointing to the corresponding marker."""
+    begin_lat, begin_lon = line_y[0], line_x[0]
+    end_lat, end_lon = line_y[1], line_x[1]
+    line_norm_m = get_distance_m(lonlat_1=(begin_lon, begin_lat), lonlat_2=(end_lon, end_lat))
+    line_norm_mm = line_norm_m / scale_m_per_mm
+    line_norm_point = mm_to_point(line_norm_mm)
+    ratio = msize_point / line_norm_point  # Avoid overlap with the marker
+    assert_in_strict_range(ratio, 0., 1.)
+
+    return ArrowData(x=begin_lon, y=begin_lat,
+                     dx=(1.0-ratio) * (end_lon - begin_lon),
+                     dy=(1.0-ratio) * (end_lat - begin_lat),
+                     linewidth=linewidth)

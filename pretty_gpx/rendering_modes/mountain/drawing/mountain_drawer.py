@@ -7,7 +7,6 @@ import numpy as np
 
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
 from pretty_gpx.common.drawing.color_theme import hex_to_rgb
-from pretty_gpx.common.drawing.drawing_data import ArrowData
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import PlotData
 from pretty_gpx.common.drawing.drawing_data import PolyFillData
@@ -18,18 +17,13 @@ from pretty_gpx.common.drawing.fonts import FontEnum
 from pretty_gpx.common.drawing.text_allocation import allocate_text
 from pretty_gpx.common.drawing.text_allocation import AnnotatedScatterDataCollection
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.common.gpx.gpx_distance import get_distance_m
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.structure import Drawer
 from pretty_gpx.common.structure import DrawingInputs
-from pretty_gpx.common.utils.asserts import assert_in_strict_range
-from pretty_gpx.common.utils.asserts import assert_len
 from pretty_gpx.common.utils.asserts import assert_lt
-from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import mm_to_inch
-from pretty_gpx.common.utils.utils import mm_to_point
 from pretty_gpx.rendering_modes.mountain.data.elevation_map import rescale_elevation
 from pretty_gpx.rendering_modes.mountain.data.mountain_augmented_gpx_data import MountainAugmentedGpxData
 from pretty_gpx.rendering_modes.mountain.drawing.hillshading import CachedHillShading
@@ -158,13 +152,13 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
         plots_x_to_avoid.append([b.lon_min, b.lon_max])
         plots_y_to_avoid.append([y, y])
 
-    texts, lines = allocate_text(base_fig=paper_fig,
-                                 scatters=scatters,
-                                 plots_x_to_avoid=plots_x_to_avoid,
-                                 plots_y_to_avoid=plots_y_to_avoid,
-                                 output_linewidth=drawing_size_config.text_arrow_linewidth,
-                                 fontsize=drawing_size_config.text_fontsize,
-                                 fontproperties=FontEnum.ANNOTATION.value)
+    texts, arrows = allocate_text(base_fig=paper_fig,
+                                  scatters=scatters,
+                                  plots_x_to_avoid=plots_x_to_avoid,
+                                  plots_y_to_avoid=plots_y_to_avoid,
+                                  output_linewidth=drawing_size_config.text_arrow_linewidth,
+                                  fontsize=drawing_size_config.text_fontsize,
+                                  fontproperties=FontEnum.ANNOTATION.value)
 
     # Draw the elevation profile
     draw_start = gpx_data.start_name is not None
@@ -198,16 +192,7 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
 
     track_data.append(ele_fill_poly)
 
-    # Convert an annotation line to an arrow pointing to the corresponding marker
-    assert_same_len((scatters.list_text_markersize, lines))
-    scale_m_per_mm = paper_fig.get_scale()
-    annotation_arrows = [annotation_line_to_arrow(line, msize_point, scale_m_per_mm)
-                         for msize_point, line in zip(scatters.list_text_markersize, lines)]
-
-    peak_data: list[BaseDrawingData] = (ele_scatter
-                                        + scatters.list_scatter_data
-                                        + texts
-                                        + annotation_arrows)  # type:ignore
+    peak_data: list[BaseDrawingData] = ele_scatter + scatters.list_scatter_data + texts + arrows  # type:ignore
 
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * layout.title_relative_h,
                      s="", fontsize=drawing_size_config.title_fontsize,
@@ -221,26 +206,6 @@ def init_and_populate_drawing_figure(gpx_data: MountainAugmentedGpxData,
                                  title=title,
                                  stats=stats,
                                  img_gpx_bounds=img_gpx_bounds)
-
-
-def annotation_line_to_arrow(line: PlotData,
-                             msize_point: float,
-                             scale_m_per_mm: float) -> ArrowData:
-    """Convert an annotation line to an arrow pointing to the corresponding marker."""
-    assert_len(line.x, 2)
-    assert_len(line.y, 2)
-    begin_lat, begin_lon = line.y[0], line.x[0]
-    end_lat, end_lon = line.y[1], line.x[1]
-    line_norm_m = get_distance_m(lonlat_1=(begin_lon, begin_lat), lonlat_2=(end_lon, end_lat))
-    line_norm_mm = line_norm_m / scale_m_per_mm
-    line_norm_point = mm_to_point(line_norm_mm)
-    ratio = msize_point / line_norm_point  # Avoid overlap with the marker
-    assert_in_strict_range(ratio, 0., 1.)
-
-    return ArrowData(x=begin_lon, y=begin_lat,
-                     dx=(1.0-ratio) * (end_lon - begin_lon),
-                     dy=(1.0-ratio) * (end_lat - begin_lat),
-                     linewidth=line.linewidth)
 
 
 def init_annotated_scatter_collection(gpx_data: MountainAugmentedGpxData,
