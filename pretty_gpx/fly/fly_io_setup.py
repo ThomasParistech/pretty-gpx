@@ -83,6 +83,6 @@ def fly_io_setup() -> bool:
     app.config.socket_io_js_query_params['fly_instance_id'] = fly_instance_id  # for websocket (FlyReplayMiddleware)
 
     import dns.resolver  # NOTE only import on fly where we have it installed to look up if instance is still available
-    app.add_middleware(FlyReplayMiddleware)
+    app.add_middleware(FlyReplayMiddleware)  # type: ignore
 
     return True

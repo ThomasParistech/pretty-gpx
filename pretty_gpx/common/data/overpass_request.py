@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from dataclasses import field
 from io import BytesIO
 from typing import Any
-from typing import TypeVar
 
 import orjson
 import requests
@@ -170,8 +169,6 @@ class OverpassQuery:
         return self.query_unprocessed_results[array_name]
 
 
-T = TypeVar('T')
-
 @profile
 def download_query(query: str) -> dict[str, Any]:
     """Download the query from Overpass API."""
@@ -202,4 +199,3 @@ def download_query(query: str) -> dict[str, Any]:
         data = orjson.loads(content_bytes.getvalue())
 
     return data
-
