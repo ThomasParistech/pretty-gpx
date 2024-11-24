@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 """Overpass Processing."""
 
-import random
 from dataclasses import dataclass
 from typing import cast
 from typing import Generic
@@ -68,7 +67,8 @@ def simplify_ways(coordinates: list[ListLonLat],
     """Simplify a list of ways using Douglas-Peucker algorithm from shapely."""
     tolerance = np.rad2deg(tolerance_m/EARTH_RADIUS_M)
     total_hausdorff_distance = 0
-    coordinates = merge_ways(coordinates, eps=tolerance, verbose=False)
+    logger.debug("Merge ways")
+    coordinates = merge_ways(coordinates, eps=tolerance, verbose=DEBUG_DISTANCE)
     simplified_ways = []
     for way in coordinates:
         line = LineString(way)
@@ -77,7 +77,7 @@ def simplify_ways(coordinates: list[ListLonLat],
         if DEBUG_DISTANCE:
             total_hausdorff_distance += EARTH_RADIUS_M*np.deg2rad(line.hausdorff_distance(simplified_line))
     if DEBUG_DISTANCE:
-        logger.info(f"Hausdorff distance simplfied {total_hausdorff_distance:.2e}m")
+        logger.info(f"Hausdorff distance simplified {total_hausdorff_distance:.2e}m")
     return simplified_ways
 
 
@@ -168,16 +168,22 @@ def get_polygons_from_relation(relation: Relation) -> list[ShapelyPolygon]:
         outer_geometry_relation_i, inner_geometry_relation_i = get_members_from_relation(relation=relation,
                                                                                          recursion_depth=0)
 
-        # Tolerance is 2m near the point (converted to lon/lat)
-        eps = 2/EARTH_RADIUS_M*180/np.pi
+        # Tolerance is 5m near the point (converted to lon/lat)
+        eps = 5./EARTH_RADIUS_M*180/np.pi
 
         # To avoid the max_reccursion_depth system error on very large relations
         depth_outer = min(max(len(outer_geometry_relation_i)//50, 4), MAX_RECURSION_DEPTH)
         depth_inner = min(max(len(inner_geometry_relation_i)//50, 4), MAX_RECURSION_DEPTH)
-        outer_geometry_relation_i = merge_ways_closed_shapes(outer_geometry_relation_i, eps=eps, max_depth=depth_outer)
-        inner_geometry_relation_i = merge_ways_closed_shapes(inner_geometry_relation_i, eps=eps, max_depth=depth_inner)
+        outer_geometry_relation_i = merge_ways_closed_shapes(outer_geometry_relation_i,
+                                                             eps=eps,
+                                                             max_depth=depth_outer,
+                                                             id=relation.id)
+        inner_geometry_relation_i = merge_ways_closed_shapes(inner_geometry_relation_i,
+                                                             eps=eps,
+                                                             max_depth=depth_inner,
+                                                             id=relation.id)
 
-        polygon_l += create_polygons_from_geom(outer_geometry_relation_i, inner_geometry_relation_i)
+        polygon_l += create_polygons_from_geom(outer_geometry_relation_i, inner_geometry_relation_i, id=relation.id)
 
     return polygon_l
 
@@ -192,7 +198,8 @@ def is_a_closed_shape(geometry: list[RelationWayGeometryValue], eps: float = 1e-
 @profile
 def merge_ways_closed_shapes(segments: list[list[RelationWayGeometryValue]],
                              eps: float = 1e-5,
-                             max_depth: int = 2) -> list[list[RelationWayGeometryValue]]:
+                             max_depth: int = 2,
+                             id: int = -1) -> list[list[RelationWayGeometryValue]]:
     """Merge ways until all ways create only closed shape or the max_depth is reached.
 
     This is needed because for closed shapes the algorithm sometimes miss complex/multiple merges
@@ -201,20 +208,32 @@ def merge_ways_closed_shapes(segments: list[list[RelationWayGeometryValue]],
     the O(nlog(n)) complexity in the large majority of cases, we add extra checks only for closed shapes. 
     """
     depth = 0
-    all_closed = False
+    all_closed = False if len(segments) > 1 else True
+    nb_open_geom = 0
+    nb_open_geom_prev = -1
 
-    while depth < max_depth and not all_closed:
+    while depth < max_depth and not all_closed and len(segments) > 1:
         segments = merge_ways(segments, eps=eps, verbose=False)
-        random.shuffle(segments)
-        nb_open_geom = sum(not is_a_closed_shape(segment, eps) for segment in segments)
+        for segment in segments:
+            if not is_a_closed_shape(segment, eps):
+                nb_open_geom += 1          
+
         all_closed = nb_open_geom == 0
         depth += 1
+        if len(segments) == 1 and nb_open_geom == 1:
+            segments.append(segments[0])
+            all_closed = True
+            break
+
+        if nb_open_geom == nb_open_geom_prev:
+            break
+        nb_open_geom_prev = nb_open_geom
 
     if depth > 1 and all_closed:
         logger.debug(f"Merging closed shapes used {depth} tries to obtain only closed shapes")
 
     if not all_closed:
-        logger.warning(f"Despite {max_depth} retries, there are still {nb_open_geom} unclosed geometry")
+        logger.warning(f"Relation {id} Despite {depth} retries, there are still {nb_open_geom} unclosed geometries")
 
     return segments
 
@@ -300,6 +319,77 @@ def remove_segment_from_hash(hash_table: HashTable, segment_index: int, point_ha
     """Remove a segment from the hash table."""
     if point_hash in hash_table:
         hash_table[point_hash] = [entry for entry in hash_table[point_hash] if entry[0] != segment_index]
+        if not hash_table[point_hash]:
+                del hash_table[point_hash]
+
+
+def get_neighbor_hashes(point_hash: tuple[int, int]) -> list[tuple[int, int]]:
+    """Get neighbor hashes of a point."""
+    return [
+         point_hash,
+        (point_hash[0]-1, point_hash[1]),
+        (point_hash[0]+1, point_hash[1]),
+        (point_hash[0], point_hash[1]-1),
+        (point_hash[0], point_hash[1]+1),
+        (point_hash[0]-1, point_hash[1]-1),
+        (point_hash[0]-1, point_hash[1]+1),
+        (point_hash[0]+1, point_hash[1]-1),
+        (point_hash[0]+1, point_hash[1]+1)
+    ]
+
+def try_merge_at_point(current_segment: Segment,
+                       point_type: str,
+                       hash_table: HashTable,
+                       segments: list[Segment],
+                       merged_geom: list,
+                       eps: float) -> tuple[bool, list, Segment]:
+    """Try to merge segments at either start or end point. Returns (success, updated_merged_geometry, next_segment)."""
+    is_end_point = point_type == 'end'
+    current_point = current_segment.end if is_end_point else current_segment.start
+    point_hash = hash_point(current_point, eps)
+    neighbor_hashes = get_neighbor_hashes(point_hash)
+    
+    for neighbor_hash in neighbor_hashes:
+        if neighbor_hash not in hash_table:
+            continue
+            
+        for j, end_type in hash_table[neighbor_hash]:
+            next_segment = segments[j]
+            if next_segment.merged:
+                continue
+                
+            compare_point = next_segment.start if end_type == 'start' else next_segment.end
+            if not points_are_close(current_point, compare_point, eps=eps):
+                continue
+                
+            next_segment.merged = True
+            next_start_hash = hash_point(next_segment.start, eps)
+            next_end_hash = hash_point(next_segment.end, eps)
+            remove_segment_from_hash(hash_table, j, next_start_hash)
+            remove_segment_from_hash(hash_table, j, next_end_hash)
+            
+            # Update geometry and segment depending on the typology of the merge
+            if is_end_point:
+                if end_type == 'end':
+                    next_segment.geom.reverse()
+                merged_geom.extend(next_segment.geom[1:])
+                current_segment_start = current_segment.start
+                current_segment_end = next_segment.end if end_type == 'start' else next_segment.start
+            else:
+                if end_type == 'start':
+                    next_segment.geom.reverse()
+                merged_geom = next_segment.geom[:-1] + merged_geom
+                current_segment_start = next_segment.end if end_type == 'start' else next_segment.start
+                current_segment_end = current_segment.end
+            
+            next_segment.start = current_segment_start
+            next_segment.end = current_segment_end
+            
+            return True, merged_geom, next_segment
+
+    # If no success return a dummy segment
+    return False, merged_geom, Segment((0,0),(0,0),[])
+
 
 
 def merge_segments_from_hash(segments: list[Segment],
@@ -312,78 +402,40 @@ def merge_segments_from_hash(segments: list[Segment],
         if segment.merged:
             continue
 
-        current_segment = segment
+        current_segment: Segment = segment
         current_segment.merged = True
         merged_geom = current_segment.geom[:]
 
+        # Remove segment from hash table
         start_hash = hash_point(current_segment.start, eps)
         end_hash = hash_point(current_segment.end, eps)
+        remove_segment_from_hash(hash_table, i, start_hash)
+        remove_segment_from_hash(hash_table, i, end_hash)
 
-        remove_segment_from_hash(hash_table=hash_table, segment_index=i, point_hash=start_hash)
-        remove_segment_from_hash(hash_table=hash_table, segment_index=i, point_hash=end_hash)
-
-        while True:
-            end_hash = hash_point(current_segment.end, eps)
-            found_next = False
-
-            neighbors_hashes = [end_hash,
-                                (end_hash[0]-1, end_hash[1]),
-                                (end_hash[0]+1, end_hash[1]),
-                                (end_hash[0], end_hash[1]-1),
-                                (end_hash[0], end_hash[1]+1)]
-
-            for neighbor_hash in neighbors_hashes:
-
-                hash_table.setdefault(neighbor_hash, [])
-
-                for j, end_type in hash_table[neighbor_hash]:
-                    next_segment = segments[j]
-                    if next_segment.merged:
-                        continue
-
-                    if points_are_close(current_segment.end,
-                                        next_segment.start if end_type == 'start' else next_segment.end,
-                                        eps=eps):
-                        next_segment.merged = True
-
-                        next_start_hash = hash_point(next_segment.start, eps)
-                        next_end_hash = hash_point(next_segment.end, eps)
-
-                        remove_segment_from_hash(hash_table=hash_table, segment_index=j, point_hash=next_start_hash)
-                        remove_segment_from_hash(hash_table=hash_table, segment_index=j, point_hash=next_end_hash)
-
-                        if end_type == 'end':
-                            next_segment.geom.reverse()
-
-                        merged_geom.extend(next_segment.geom[1:])
-                        current_segment = next_segment
-                        found_next = True
-
-                        new_start_hash = hash_point(current_segment.start, eps)
-                        new_end_hash = hash_point(current_segment.end, eps)
-
-                        hash_table.setdefault(new_start_hash, []).append((i, 'start'))
-                        hash_table.setdefault(new_end_hash, []).append((i, 'end'))
-
-                        break
-
-                if found_next:
-                    break
-
-            if not found_next:
-                break
-
+        # Continue merging until no more connected segments are found
+        keep_merging = True
+        while keep_merging:
+            keep_merging = False
+            
+            # Try merging at both end and start points
+            for point_type in ['end', 'start']:
+                success, merged_geom, next_segment = try_merge_at_point(current_segment=current_segment,
+                                                                        point_type=point_type,
+                                                                        hash_table=hash_table,
+                                                                        segments=segments,
+                                                                        merged_geom=merged_geom,
+                                                                        eps=eps)
+                
+                if success:
+                    current_segment = next_segment
+                    keep_merging = True
+                    break  #Restart the start/end loop to recheck both edges
+        
         new_start_hash = hash_point(current_segment.start, eps)
         new_end_hash = hash_point(current_segment.end, eps)
-
-        if new_start_hash not in hash_table:
-            hash_table[new_start_hash] = []
-        if new_end_hash not in hash_table:
-            hash_table[new_end_hash] = []
-
-        hash_table[new_start_hash].append((i, 'start'))
-        hash_table[new_end_hash].append((i, 'end'))
-
+        hash_table.setdefault(new_start_hash, []).append((i, 'start'))
+        hash_table.setdefault(new_end_hash, []).append((i, 'end'))
+        
         merged_segments.append(merged_geom)
 
     return merged_segments
@@ -391,7 +443,7 @@ def merge_segments_from_hash(segments: list[Segment],
 
 def merge_ways(geometry_l: list[T],
                eps: float = 1e-5,
-               verbose: bool = True) -> list[T]:
+               verbose: bool = False) -> list[T]:
     """Merge the connected ways obtained by overpass together."""
     segments_l = [Segment(*get_first_and_last_coords(geom), geom) for geom in geometry_l]
     hash_table = create_hash_table(segments=segments_l,
@@ -407,7 +459,8 @@ def merge_ways(geometry_l: list[T],
 
 @profile
 def create_polygons_from_geom(outer_geoms: list[list[RelationWayGeometryValue]],
-                              inner_geoms: list[list[RelationWayGeometryValue]]) -> list[ShapelyPolygon]:
+                              inner_geoms: list[list[RelationWayGeometryValue]],
+                              id:int=0) -> list[ShapelyPolygon]:
     """Create shapely polygons (defined by the exterior shell and the holes) for a single relation."""
     # If multiple outer shells are there, creates multiple polygons instead of a shapely.MultiPolygons
     # Therefore for all relations, the area are described using only ShapelyPolygons
@@ -420,14 +473,16 @@ def create_polygons_from_geom(outer_geoms: list[list[RelationWayGeometryValue]],
     for geom in inner_geoms:
         points = get_lat_lon_from_geometry(geom)
         if len(points) >= 4:
-            inner_rings.append((ShapelyLinearRing(points), ShapelyPoint(points[0])))
+            inner_rings.append((ShapelyLinearRing(points),
+                                ShapelyPoint(points[0]),
+                                ShapelyPoint(points[len(points)//2])))
         else:
             skipped_inners += 1
 
     inner_points = []
     for outer_geom in outer_geoms:
         point_l = get_lat_lon_from_geometry(outer_geom)
-        if len(point_l) <= 4:
+        if len(point_l) < 4:
             continue
         if point_l[0] != point_l[-1]:
             not_closed += 1
@@ -437,8 +492,9 @@ def create_polygons_from_geom(outer_geoms: list[list[RelationWayGeometryValue]],
 
         holes_i = []
         other_holes = []
-        for hole, first_point in inner_rings:
-            if prepared_polygon_i.contains(first_point):
+        for hole, first_point, middle_point in inner_rings:
+            if prepared_polygon_i.contains(first_point) or prepared_polygon_i.contains(middle_point):
+                # Relaxation of the constraint in order to validate some geometries that are on the border
                 holes_i.append(hole)
             else:
                 other_holes.append((hole, first_point))
@@ -446,7 +502,7 @@ def create_polygons_from_geom(outer_geoms: list[list[RelationWayGeometryValue]],
                                         holes=holes_i))
         inner_points = other_holes
     if len(inner_points) > 0:
-        logger.warning(f"Could not find an outer for all inner geometries, {len(inner_geoms)} "
+        logger.warning(f"Relation {id}. Could not find an outer for all inner geometries, {len(inner_geoms)} "
                        f"inner geometr{'y is' if len(inner_geoms) == 1 else 'ies are'} unused")
     if skipped_inners:
         logger.warning(f"Skipped {skipped_inners} inner geometr{'y' if skipped_inners == 1 else 'ies'} "
@@ -454,13 +510,16 @@ def create_polygons_from_geom(outer_geoms: list[list[RelationWayGeometryValue]],
     return polygon_l
 
 
-def get_lat_lon_from_geometry(geom: list[RelationWayGeometryValue]) -> ListLonLat:
+def get_lat_lon_from_geometry(geom: list[RelationWayGeometryValue],
+                              tolerance_m: float=5) -> ListLonLat:
     """Returns latitude and longitude points in order to create a shapely shape."""
     point_l = []
+    tolerance = np.rad2deg(tolerance_m/EARTH_RADIUS_M)
     for point in geom:
         point_l.append((float(point.lon), float(point.lat)))
-    point_l = simplify_ways(coordinates=[point_l])[0]
-    return point_l
+    line = LineString(point_l)
+    simplified_line = line.simplify(tolerance)
+    return list(simplified_line.coords)
 
 
 @profile

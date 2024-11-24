@@ -11,6 +11,7 @@ from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
 from pretty_gpx.common.gpx.gpx_distance import ListLonLat
+from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
 from pretty_gpx.common.utils.profile import profile
@@ -84,6 +85,7 @@ def process_city_roads(query: OverpassQuery,
     with Profiling.Scope("Process City Roads"):
         roads = dict()
         for city_road_type, query_name in QUERY_NAME_PER_CITY_ROAD_TYPE.items():
+            logger.debug(f"Query name : {query_name}")
             result = query.get_query_result(query_name)
             roads[city_road_type] = get_ways_coordinates_from_results(result)
 
