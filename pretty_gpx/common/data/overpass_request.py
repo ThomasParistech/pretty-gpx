@@ -85,6 +85,53 @@ class OverpassQuery:
         self.query_dict[array_name] = query
         logger.info(f"A query {array_name} has been added to the total query")
 
+
+    def add_around_ways_overpass_query(self,
+                                       array_name: str,
+                                       query_elements: list[str],
+                                       gpx_track: GpxTrack,
+                                       radius_m: float = 25.) -> None:
+        """Add a query that gets nodes along the track with a tolerance of radius_m in meters."""
+        # Build the lat/lon pairs string
+        latlons = gpx_track.get_overpass_lonlat_str()
+
+        # Build the Overpass API query
+        query_body = "\n".join([f"{element}(around:{radius_m},{latlons});" for element in query_elements])
+
+        query = f"""
+(
+{query_body}
+)->.all_items_{array_name};
+foreach .all_items_{array_name} -> .item (
+
+()->.item_nodes;
+()->.valid_nodes;
+// Extract  nodes
+node(w.item)->.item_nodes;
+(.item_nodes;);
+
+(node.item_nodes(around:{radius_m},{latlons});) -> .valid_nodes;
+
+//.valid_nodes -> ._;
+//make count valid = count(nodes)-> .p; //debug
+//.item_nodes -> ._;
+//make count item = count(nodes)-> .q; //debug
+
+(.item_nodes; - .valid_nodes;) -> ._;
+
+ if (count(nodes) == 0)
+ (
+   (.matching_items_{array_name}; .item;) -> .matching_items_{array_name};
+ )
+)
+
+.matching_items_{array_name} out center;"""
+        self.query_dict[array_name] = query
+        logger.info(f"A query {array_name} has been added to the total query")
+
+
+
+
     def add_cached_result(self,
                           array_name: str,
                           cache_file: str) -> None:
@@ -174,13 +221,14 @@ def download_query(query: str) -> dict[str, Any]:
     """Download the query from Overpass API."""
     endpoint = 'http://overpass-api.de/api/interpreter'
     headers = {
-        'User-Agent': 'Pretty-gpx/ (https://github.com/ThomasParistech/pretty-gpx)'
+        'User-Agent': 'Pretty-gpx/ (https://github.com/ThomasParistech/pretty-gpx)',
+        'Content-Type': 'application/x-www-form-urlencoded'
     }
-    params = {'data': query}
+    data = {'data': query}
 
     with Profiling.Scope("Download overpass data"):
         try:
-            response = requests.get(endpoint, headers=headers, params=params, stream=True)
+            response = requests.post(endpoint, headers=headers, data=data, stream=True)
             response.raise_for_status()
         except requests.RequestException as err:
             msg = "The requested data could not be downloaded. Please check your internet connection."

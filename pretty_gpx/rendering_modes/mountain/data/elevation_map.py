@@ -18,7 +18,7 @@ ELEVATION_CACHE = GpxDataCacheHandler(name='elevation', extension='.tif')
 
 def download_elevation_map(bounds: GpxBounds) -> np.ndarray:
     """Download elevation map from Copernicus DEM."""
-    cache_tif = ELEVATION_CACHE.get_path(bounds)
+    cache_tif = ELEVATION_CACHE.get_path_from_bounds(bounds)
 
     if os.path.isfile(cache_tif):
         logger.info(f"Load elevation map from cache for {bounds}")

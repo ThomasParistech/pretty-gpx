@@ -1,12 +1,16 @@
 #!/usr/bin/python3
 """City Drawing Style/Size Config."""
+import os
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
+from matplotlib.path import Path
 
+from pretty_gpx.common.drawing.plt_marker import marker_from_svg
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
+from pretty_gpx.common.utils.paths import ICONS_DIR
+from pretty_gpx.common.utils.utils import mm_to_point
 from pretty_gpx.rendering_modes.city.data.roads import CityRoadType
 
 # Diagonal of the case used to set the reference value
@@ -19,6 +23,7 @@ class CityDrawingStyleConfig:
     """City Drawing Style Config."""
     start_marker: str | Path = "o"
     end_marker: str | Path = "s"
+    bridge_marker: str | Path = marker_from_svg(os.path.join(ICONS_DIR, "bridge.svg"))
 
 
 @dataclass(kw_only=True)
@@ -30,6 +35,11 @@ class CityDrawingSizeConfig:
 
     linewidth_priority: dict[CityRoadType, float]
     linewidth_track: float
+
+    bridge_markersize: float
+
+    text_fontsize: float
+    text_arrow_linewidth: float
 
     @staticmethod
     def default(paper_size: PaperSize, diagonal_distance_m: float) -> 'CityDrawingSizeConfig':
@@ -48,12 +58,17 @@ class CityDrawingSizeConfig:
             CityRoadType.ACCESS_ROAD: 0.1*scale
         }
 
+        bridge_markersize = mm_to_point(7.0) * scale
+
         # Set a maximum track linewidth to avoid masking data
         max_track_linewidth = (linewidth_priority[CityRoadType.SECONDARY_ROAD] +
                                linewidth_priority[CityRoadType.SECONDARY_ROAD])/2.0
         linewidth_track = min(2.0 * scale, max_track_linewidth)
 
-        return CityDrawingSizeConfig(paper_size=paper_size,
+        return CityDrawingSizeConfig(text_fontsize=mm_to_point(3.0) * scale,
+                                     text_arrow_linewidth=mm_to_point(0.3) * scale,
+                                     paper_size=paper_size,
                                      caracteristic_distance=diagonal_distance_m,
                                      linewidth_priority=linewidth_priority,
-                                     linewidth_track=linewidth_track)
+                                     linewidth_track=linewidth_track,
+                                     bridge_markersize=bridge_markersize)
