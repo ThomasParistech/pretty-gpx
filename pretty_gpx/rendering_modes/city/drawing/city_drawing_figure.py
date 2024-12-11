@@ -42,7 +42,7 @@ class CityDrawingFigure(DrawingFigure[CityDrawingParams]):
     forests_data: list[PolygonCollectionData]
     farmland_data: list[PolygonCollectionData]
     elevation_profile: ElevationStatsSection
-    bridges_data: list[BaseDrawingData]
+    annotation_data: list[BaseDrawingData]
 
     title: TextData
     stats: TextData
@@ -79,11 +79,8 @@ class CityDrawingFigure(DrawingFigure[CityDrawingParams]):
         for data5 in self.track_data:
             data5.plot(ax, params.theme_colors.track_color)
 
-        for data6 in self.point_data:
+        for data6 in self.point_data + self.annotation_data:
             data6.plot(ax, params.theme_colors.point_color)
-
-        for data7 in self.bridges_data:
-            data7.plot(ax, params.theme_colors.point_color)
 
         self.elevation_profile.fill_poly.plot(ax, params.theme_colors.track_color)
 

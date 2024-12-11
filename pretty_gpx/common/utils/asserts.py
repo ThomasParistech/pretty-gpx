@@ -56,6 +56,12 @@ def assert_close(val1: Number, val2: Number, *, eps: float, msg: str = "") -> No
     assert np.abs(val1-val2) < eps, m+f" Expect difference to be smaller than {eps}. Got {np.abs(val1-val2)}"
 
 
+def assert_neq(val1: Any, val2: Any, *, msg: str = "") -> None:
+    """Assert non equality between two values."""
+    m = _clean_msg(msg)
+    assert val1 != val2, m+f"{val1 =} and {val2 =} are equal"
+
+
 def assert_eq(val1: Any, val2: Any, *, msg: str = "") -> None:
     """Assert equality between two  values."""
     m = _clean_msg(msg)

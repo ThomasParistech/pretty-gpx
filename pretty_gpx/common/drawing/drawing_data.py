@@ -98,7 +98,7 @@ class ScatterData(BaseDrawingData):
     x: list[float]
     y: list[float]
 
-    marker: str | Path
+    marker: Path
     markersize: float
 
     def _plot(self, ax: Axes, color: str) -> None:

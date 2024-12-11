@@ -216,34 +216,33 @@ def init_annotated_scatter_collection(gpx_data: MountainAugmentedGpxData,
     """Initialize the AnnotatedScatterDataCollection with the mountain passes, huts, start and end markers."""
     scatter_collection = AnnotatedScatterDataCollection()
 
-    scatter_collection.add_scatter_data(global_x=global_list_x, global_y=global_list_y,
-                                        scatter_ids=gpx_data.passes_ids,
-                                        scatter_texts=[f" {mountain_pass.name} \n({int(mountain_pass.ele)} m)"
-                                                       for mountain_pass in gpx_data.mountain_passes],
-                                        marker=drawing_style_config.peak_marker,
-                                        markersize=drawing_size_config.peak_markersize)
-
-    scatter_collection.add_scatter_data(global_x=global_list_x, global_y=global_list_y,
-                                        scatter_ids=gpx_data.hut_ids,
-                                        scatter_texts=[f" {mountain_hut.name} "
-                                                       if mountain_hut.name is not None else None
-                                                       for mountain_hut in gpx_data.huts],
-                                        marker=drawing_style_config.hut_marker,
-                                        markersize=drawing_size_config.hut_markersize)
+    scatter_collection.add_scatter_data_on_track(global_x=global_list_x, global_y=global_list_y,
+                                                 scatter_ids=gpx_data.passes_ids,
+                                                 scatter_texts=[f" {mountain_pass.name} \n({int(mountain_pass.ele)} m)"
+                                                                for mountain_pass in gpx_data.mountain_passes],
+                                                 marker=drawing_style_config.peak_marker,
+                                                 markersize=drawing_size_config.peak_markersize)
+    scatter_collection.add_scatter_data_on_track(global_x=global_list_x, global_y=global_list_y,
+                                                 scatter_ids=gpx_data.hut_ids,
+                                                 scatter_texts=[f" {mountain_hut.name} "
+                                                                if mountain_hut.name is not None else None
+                                                                for mountain_hut in gpx_data.huts],
+                                                 marker=drawing_style_config.hut_marker,
+                                                 markersize=drawing_size_config.hut_markersize)
 
     if gpx_data.start_name is not None:
-        scatter_collection.add_scatter_data(global_x=global_list_x, global_y=global_list_y,
-                                            scatter_ids=[0],
-                                            scatter_texts=[f" {gpx_data.start_name} "],
-                                            marker=drawing_style_config.start_marker,
-                                            markersize=drawing_size_config.start_markersize)
+        scatter_collection.add_scatter_data_on_track(global_x=global_list_x, global_y=global_list_y,
+                                                     scatter_ids=[0],
+                                                     scatter_texts=[f" {gpx_data.start_name} "],
+                                                     marker=drawing_style_config.start_marker,
+                                                     markersize=drawing_size_config.start_markersize)
 
     if gpx_data.end_name is not None:
-        scatter_collection.add_scatter_data(global_x=global_list_x, global_y=global_list_y,
-                                            scatter_ids=[len(global_list_x)-1],
-                                            scatter_texts=[f" {gpx_data.end_name} "],
-                                            marker=drawing_style_config.end_marker,
-                                            markersize=drawing_size_config.end_markersize)
+        scatter_collection.add_scatter_data_on_track(global_x=global_list_x, global_y=global_list_y,
+                                                     scatter_ids=[len(global_list_x)-1],
+                                                     scatter_texts=[f" {gpx_data.end_name} "],
+                                                     marker=drawing_style_config.end_marker,
+                                                     markersize=drawing_size_config.end_markersize)
     return scatter_collection
 
 

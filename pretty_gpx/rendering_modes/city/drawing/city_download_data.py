@@ -16,6 +16,10 @@ from pretty_gpx.rendering_modes.city.data.bridges import CityBridge
 from pretty_gpx.rendering_modes.city.data.bridges import prepare_download_city_bridges
 from pretty_gpx.rendering_modes.city.data.bridges import process_city_bridges
 from pretty_gpx.rendering_modes.city.data.city_augmented_gpx_data import CityAugmentedGpxData
+from pretty_gpx.rendering_modes.city.data.city_pois import CityPoi
+from pretty_gpx.rendering_modes.city.data.city_pois import get_gpx_track_city_pois
+from pretty_gpx.rendering_modes.city.data.city_pois import prepare_download_city_pois
+from pretty_gpx.rendering_modes.city.data.city_pois import process_city_pois
 from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_forests
 from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
 from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_rivers
@@ -38,6 +42,7 @@ class CityDownloadData(DownloadData):
     forests: SurfacePolygons
     farmlands: SurfacePolygons
     bridges: list[CityBridge]
+    pois: list[CityPoi]
 
     @staticmethod
     def from_gpx_and_paper_size(gpx_data: AugmentedGpxData, paper: PaperSize) -> 'CityDownloadData':
@@ -58,7 +63,8 @@ class CityDownloadData(DownloadData):
         total_query = OverpassQuery()
         for prepare_func in [prepare_download_city_roads,
                              prepare_download_city_rivers,
-                             prepare_download_city_forests]:
+                             prepare_download_city_forests,
+                             prepare_download_city_pois]:
             prepare_func(total_query, download_bounds)
 
         prepare_download_city_bridges(total_query, gpx_data.track)
@@ -72,6 +78,7 @@ class CityDownloadData(DownloadData):
         forests, farmlands = process_city_forests(total_query, download_bounds)
         bridges = process_city_bridges(total_query, gpx_data.track)
         forests.interior_polygons = []
+        pois = get_gpx_track_city_pois(process_city_pois(total_query, download_bounds), gpx_data.track, paper_fig)
 
         return CityDownloadData(bounds=download_bounds,
                                 layout=layout,
@@ -81,4 +88,5 @@ class CityDownloadData(DownloadData):
                                 rivers=rivers,
                                 forests=forests,
                                 farmlands=farmlands,
-                                bridges=bridges)
+                                bridges=bridges,
+                                pois=pois)

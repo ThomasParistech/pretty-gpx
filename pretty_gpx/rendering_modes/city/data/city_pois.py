@@ -4,14 +4,19 @@ import os
 import re
 from dataclasses import dataclass
 from dataclasses import field
+from enum import auto
+from enum import Enum
+from typing import Final
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.path import Path
 
 from pretty_gpx.common.data.overpass_processing import get_polygons_from_relation
 from pretty_gpx.common.data.overpass_processing import get_way_coordinates
 from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
+from pretty_gpx.common.drawing.plt_marker import MarkerType
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
 from pretty_gpx.common.gpx.gpx_distance import get_pairwise_distance_m
@@ -28,9 +33,15 @@ CITY_POINTS_OF_INTEREST_WAYS_ARRAY_NAME = "city_pois_ways"
 CITY_POINTS_OF_INTEREST_RELATIONS_ARRAY_NAME = "city_pois_relations"
 
 
+class CityPoiCategory(Enum):
+    """City Point of Interest Category."""
+    DEFAULT = auto()
+
+
 @dataclass
 class CandidateCityPoi:
     """Candidate City Point of Interest Data."""
+    category: CityPoiCategory
     name: str
     importance: int
     poly_lonlat: ListLonLat
@@ -44,9 +55,16 @@ class CandidateCityPoi:
 @dataclass
 class CityPoi:
     """City Point of Interest Data."""
+    category: CityPoiCategory
     name: str
     lat: float
     lon: float
+
+    # TODO: actually use this marker
+    def get_marker(self) -> Path:
+        """Get the marker for the city poi."""
+        markers: Final[dict[CityPoiCategory, MarkerType]] = {}
+        return markers.get(self.category, MarkerType.MUSEUM).path()
 
 
 @profile
@@ -92,7 +110,8 @@ def process_city_pois(query: OverpassQuery,
                 lon_lat = get_way_coordinates(way)
                 if len(lon_lat) > 0:
                     assert way.tags.get("name") is not None, way.tags
-                    city_pois.append(CandidateCityPoi(name=str(way.tags.get("name")),
+                    city_pois.append(CandidateCityPoi(category=CityPoiCategory.DEFAULT,
+                                                      name=str(way.tags.get("name")),
                                                       importance=importance,
                                                       poly_lonlat=lon_lat))
 
@@ -105,7 +124,8 @@ def process_city_pois(query: OverpassQuery,
                            for lon, lat in zip(*poly.exterior.xy)]
                 if len(lon_lat) > 0:
                     assert rel.tags.get("name") is not None, rel.tags
-                    city_pois.append(CandidateCityPoi(name=str(rel.tags.get("name")),
+                    city_pois.append(CandidateCityPoi(category=CityPoiCategory.DEFAULT,
+                                                      name=str(rel.tags.get("name")),
                                                       importance=importance,
                                                       poly_lonlat=lon_lat))
 
@@ -196,14 +216,16 @@ def __filter_close_gpx(city_pois: list[CandidateCityPoi], gpx: GpxTrack) -> list
 
 def __get_nms_ths(paper_fig: BaseDrawingFigure) -> float:
     """Get the Non-Maximum Suppression threshold."""
-    diag_mm = float(np.linalg.norm((paper_fig.paper_size.w_mm, paper_fig.paper_size.h_mm)))
     m_per_mm = paper_fig.get_scale()
-    diag_m = diag_mm * m_per_mm
+    diag_m = paper_fig.paper_size.diag_mm * m_per_mm
     return 0.02*diag_m
 
 
 def __nms_city_pois(city_pois: list[CandidateCityPoi], paper_fig: BaseDrawingFigure) -> list[CandidateCityPoi]:
     """Apply a Non-Maximum Suppression on the city pois."""
+    if len(city_pois) == 0:
+        return []
+
     ths = __get_nms_ths(paper_fig)
 
     city_pois = sorted(city_pois, key=lambda x: x.importance, reverse=True)
@@ -222,7 +244,8 @@ def __nms_city_pois(city_pois: list[CandidateCityPoi], paper_fig: BaseDrawingFig
 def __take_n_best(city_pois: list[CandidateCityPoi], n: int) -> list[CityPoi]:
     """Take the n best city pois."""
     city_pois = sorted(city_pois, key=lambda x: x.importance, reverse=True)
-    return [CityPoi(name=city_poi.name, lat=city_poi.center_lonlat[1], lon=city_poi.center_lonlat[0])
+    return [CityPoi(category=city_poi.category, name=city_poi.name,
+                    lat=city_poi.center_lonlat[1], lon=city_poi.center_lonlat[0])
             for city_poi in city_pois[:n]]
 
 
