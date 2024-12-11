@@ -145,43 +145,21 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     """Set up and populate the DrawingFigure for the poster."""
     gpx_track = gpx_data.track
 
-    track_data: list[BaseDrawingData] = [PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=2.0)]
-    road_data: list[BaseDrawingData] = []
-    point_data: list[BaseDrawingData] = []
-    rivers_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=download_data.rivers)]
-    forests_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=download_data.forests)]
-    farmland_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=download_data.farmlands)]
-    bridges_l: list[CityBridge] = download_data.bridges
-
-    for priority, way in download_data.roads.items():
-        road_data.append(LineCollectionData(way, linewidth=drawing_size_config.linewidth_priority[priority], zorder=1))
-
+    list_x = gpx_data.track.list_lon
+    list_y = gpx_data.track.list_lat
     b = download_data.paper_fig.gpx_bounds
-    title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * download_data.layout.title_relative_h,
-                     s="Title", fontsize=mm_to_point(20.0),
-                     fontproperties=FontEnum.TITLE.value,
-                     ha="center",
-                     va="center")
 
-    elevation_profile = ElevationStatsSection(download_data.layout, download_data.paper_fig, gpx_track)
-
-    stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * download_data.layout.stats_relative_h,
-                     s=download_data.stats_txt, fontsize=mm_to_point(18.5),
-                     fontproperties=FontEnum.STATS.value,
-                     ha="center",
-                     va="center")
-    point_data.append(ScatterData(x=[gpx_track.list_lon[0]], y=[gpx_track.list_lat[0]],
-                                  marker="o", markersize=mm_to_point(3.5)))
-    point_data.append(ScatterData(x=[gpx_track.list_lon[-1]], y=[gpx_track.list_lat[-1]],
-                                  marker="s", markersize=mm_to_point(3.5)))
-
-    scatters = init_annotated_scatter_collection(city_bridges=bridges_l,
+    # TODO (upgrade): factorize the following text_allocation code with the one in mountain_drawer.py
+    scatters = init_annotated_scatter_collection(gpx_data=gpx_data,
+                                                 global_list_x=list_x,
+                                                 global_list_y=list_y,
+                                                 city_bridges=download_data.bridges,
                                                  drawing_style_config=drawing_style_config,
                                                  drawing_size_config=drawing_size_config)
 
-    plots_x_to_avoid, plots_y_to_avoid = [gpx_track.list_lon], [gpx_track.list_lat]
+    plots_x_to_avoid, plots_y_to_avoid = [list_x], [list_y]
 
-    for y in b.lat_min+b.dlat*np.concatenate((np.linspace(0., download_data.layout.stats_relative_h + 
+    for y in b.lat_min+b.dlat*np.concatenate((np.linspace(0., download_data.layout.stats_relative_h +
                                                           download_data.layout.elevation_relative_h,
                                                           num=10, endpoint=True),  # Stats+Elevation area
                                               np.linspace(1.0-download_data.layout.title_relative_h, 1.0,
@@ -197,7 +175,33 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
                                   fontsize=drawing_size_config.text_fontsize,
                                   fontproperties=FontEnum.ANNOTATION.value)
 
-    bridges_data: list[BaseDrawingData] =  texts + arrows + scatters.list_scatter_data  # type:ignore
+    track_data: list[BaseDrawingData] = [PlotData(x=list_x, y=list_y, linewidth=2.0)]
+    road_data: list[BaseDrawingData] = []
+    point_data: list[BaseDrawingData] = []
+    rivers_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=download_data.rivers)]
+    forests_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=download_data.forests)]
+    farmland_data: list[PolygonCollectionData] = [PolygonCollectionData(polygons=download_data.farmlands)]
+
+    for priority, way in download_data.roads.items():
+        road_data.append(LineCollectionData(way, linewidth=drawing_size_config.linewidth_priority[priority], zorder=1))
+
+    title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * download_data.layout.title_relative_h,
+                     s="Title", fontsize=drawing_size_config.title_fontsize,
+                     fontproperties=FontEnum.TITLE.value,
+                     ha="center",
+                     va="center")
+
+    elevation_profile = ElevationStatsSection(download_data.layout, download_data.paper_fig, gpx_track)
+
+    stats = TextData(x=b.lon_center, y=b.lat_min + 0.5 * b.dlat * download_data.layout.stats_relative_h,
+                     s=download_data.stats_txt, fontsize=drawing_size_config.stats_fontsize,
+                     fontproperties=FontEnum.STATS.value,
+                     ha="center",
+                     va="center")
+    point_data.append(ScatterData(x=[list_x[0]], y=[list_y[0]], marker="o", markersize=mm_to_point(3.5)))
+    point_data.append(ScatterData(x=[list_x[-1]], y=[list_y[-1]], marker="s", markersize=mm_to_point(3.5)))
+
+    annotation_data: list[BaseDrawingData] = texts + arrows + scatters.list_scatter_data  # type:ignore
 
     plotter = CityDrawingFigure(paper_size=download_data.paper_fig.paper_size,
                                 latlon_aspect_ratio=download_data.paper_fig.latlon_aspect_ratio,
@@ -208,7 +212,7 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
                                 rivers_data=rivers_data,
                                 forests_data=forests_data,
                                 farmland_data=farmland_data,
-                                bridges_data=bridges_data,
+                                annotation_data=annotation_data,
                                 elevation_profile=elevation_profile,
                                 title=title,
                                 stats=stats)
@@ -216,26 +220,32 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     return plotter
 
 
-def init_annotated_scatter_collection(city_bridges: list[CityBridge],
+def init_annotated_scatter_collection(gpx_data: CityAugmentedGpxData,
+                                      global_list_x: list[float],
+                                      global_list_y: list[float],
+                                      city_bridges: list[CityBridge],
                                       drawing_style_config: CityDrawingStyleConfig,
                                       drawing_size_config: CityDrawingSizeConfig) -> AnnotatedScatterDataCollection:
     """Initialize the AnnotatedScatterDataCollection with the mountain passes, huts, start and end markers."""
     scatter_collection = AnnotatedScatterDataCollection()
-    list_x_bridges = []
-    list_y_bridges = []
-    list_name_bridges = []
-    for bridge in city_bridges:
-        list_x_bridges.append(bridge.lon)
-        list_y_bridges.append(bridge.lat)
-        list_name_bridges.append(bridge.name)
-    ids = list(range(len(list_name_bridges)))
 
+    scatter_collection.add_scatter_data_around_track(scatter_x=[b.lon for b in city_bridges],
+                                                     scatter_y=[b.lat for b in city_bridges],
+                                                     scatter_texts=[b.name for b in city_bridges],
+                                                     marker=drawing_style_config.bridge_marker,
+                                                     markersize=drawing_size_config.bridge_markersize)
 
-    scatter_collection.add_scatter_data(global_x=list_x_bridges,
-                                        global_y=list_y_bridges,
-                                        scatter_ids=ids,
-                                        scatter_texts=list_name_bridges,
-                                        marker=drawing_style_config.bridge_marker,
-                                        markersize=drawing_size_config.bridge_markersize)
+    if gpx_data.start_name is not None:
+        scatter_collection.add_scatter_data_on_track(global_x=global_list_x, global_y=global_list_y,
+                                                     scatter_ids=[0],
+                                                     scatter_texts=[f" {gpx_data.start_name} "],
+                                                     marker=drawing_style_config.start_marker,
+                                                     markersize=drawing_size_config.start_markersize)
+    if gpx_data.end_name is not None:
+        scatter_collection.add_scatter_data_on_track(global_x=global_list_x, global_y=global_list_y,
+                                                     scatter_ids=[len(global_list_x)-1],
+                                                     scatter_texts=[f" {gpx_data.end_name} "],
+                                                     marker=drawing_style_config.end_marker,
+                                                     markersize=drawing_size_config.end_markersize)
 
     return scatter_collection

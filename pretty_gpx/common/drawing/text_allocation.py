@@ -59,7 +59,7 @@ def allocate_text(base_fig: BaseDrawingFigure,
             for text_x, text_y, text_s in zip(scatters.list_text_x, scatters.list_text_y, scatters.list_text_s):
                 debug_ax.text(text_x, text_y, text_s, ha="center", va="center",
                               fontsize=fontsize, fontproperties=fontproperties)
-            plt.title("Texts to Allocate")
+            plt.title(f"{len(scatters.list_text_s)} Texts to Allocate")
             plt.savefig(os.path.join(DATA_DIR, "text_before.svg"))
             plt.show()
 
@@ -150,19 +150,32 @@ class AnnotatedScatterDataCollection:
 
     list_scatter_data: list[ScatterData] = field(default_factory=list)
 
-    def add_scatter_data(self,
-                         global_x: list[float],
-                         global_y: list[float],
-                         scatter_ids: list[int],
-                         scatter_texts: list[str] | list[str | None],
-                         marker: str | Path,
-                         markersize: float) -> None:
-        """Add scatter data."""
+    def add_scatter_data_on_track(self,
+                                  global_x: list[float],
+                                  global_y: list[float],
+                                  scatter_ids: list[int],
+                                  scatter_texts: list[str] | list[str | None],
+                                  marker: str | Path,
+                                  markersize: float) -> None:
+        """Add scatter data lying on the track."""
         assert_same_len((global_x, global_y))
         assert_same_len((scatter_ids, scatter_texts))
-        scatter_data = ScatterData(x=[global_x[idx] for idx in scatter_ids],
-                                   y=[global_y[idx] for idx in scatter_ids],
-                                   marker=marker, markersize=markersize)
+        self.add_scatter_data_around_track([global_x[idx] for idx in scatter_ids],
+                                           [global_y[idx] for idx in scatter_ids],
+                                           scatter_texts, marker, markersize)
+
+    def add_scatter_data_around_track(self,
+                                      scatter_x: list[float],
+                                      scatter_y: list[float],
+                                      scatter_texts: list[str] | list[str | None],
+                                      marker: str | Path,
+                                      markersize: float) -> None:
+        """Add scatter data lying around the track."""
+        assert_same_len((scatter_x, scatter_y, scatter_texts))
+        scatter_data = ScatterData(x=scatter_x,
+                                   y=scatter_y,
+                                   marker=marker,
+                                   markersize=markersize)
         self.list_scatter_data.append(scatter_data)
 
         for x, y, s in zip(scatter_data.x, scatter_data.y, scatter_texts):

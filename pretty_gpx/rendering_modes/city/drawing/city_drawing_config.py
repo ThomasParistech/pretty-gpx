@@ -1,15 +1,12 @@
 #!/usr/bin/python3
 """City Drawing Style/Size Config."""
-import os
 from dataclasses import dataclass
 
-import numpy as np
 from matplotlib.path import Path
 
-from pretty_gpx.common.drawing.plt_marker import marker_from_svg
+from pretty_gpx.common.drawing.plt_marker import MarkerType
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
-from pretty_gpx.common.utils.paths import ICONS_DIR
 from pretty_gpx.common.utils.utils import mm_to_point
 from pretty_gpx.rendering_modes.city.data.roads import CityRoadType
 
@@ -23,7 +20,7 @@ class CityDrawingStyleConfig:
     """City Drawing Style Config."""
     start_marker: str | Path = "o"
     end_marker: str | Path = "s"
-    bridge_marker: str | Path = marker_from_svg(os.path.join(ICONS_DIR, "bridge.svg"))
+    bridge_marker: str | Path = MarkerType.BRIDGE.path()
 
 
 @dataclass(kw_only=True)
@@ -34,19 +31,24 @@ class CityDrawingSizeConfig:
     caracteristic_distance: float
 
     linewidth_priority: dict[CityRoadType, float]
-    linewidth_track: float
-
-    bridge_markersize: float
+    track_linewidth: float
 
     text_fontsize: float
     text_arrow_linewidth: float
+    title_fontsize: float
+    stats_fontsize: float
+
+    start_markersize: float
+    end_markersize: float
+    bridge_markersize: float
+    poi_markersize: float
 
     @staticmethod
     def default(paper_size: PaperSize, diagonal_distance_m: float) -> 'CityDrawingSizeConfig':
         """Default City Drawing Size Config."""
         # Convert default A4 parameters to paper size
-        ref_diag_mm = np.linalg.norm([REF_PAPER_SIZE.w_mm, REF_PAPER_SIZE.h_mm])
-        new_diag_mm = np.linalg.norm([paper_size.w_mm, paper_size.h_mm])
+        ref_diag_mm = REF_PAPER_SIZE.diag_mm
+        new_diag_mm = paper_size.diag_mm
         scale_paper = float(new_diag_mm/ref_diag_mm)
         scale_bounds = float(REF_DIAGONAL_DISTANCE_M/diagonal_distance_m)
         scale = scale_paper*scale_bounds
@@ -58,17 +60,20 @@ class CityDrawingSizeConfig:
             CityRoadType.ACCESS_ROAD: 0.1*scale
         }
 
-        bridge_markersize = mm_to_point(7.0) * scale
-
         # Set a maximum track linewidth to avoid masking data
         max_track_linewidth = (linewidth_priority[CityRoadType.SECONDARY_ROAD] +
                                linewidth_priority[CityRoadType.SECONDARY_ROAD])/2.0
-        linewidth_track = min(2.0 * scale, max_track_linewidth)
+        track_linewidth = min(2.0 * scale, max_track_linewidth)
 
-        return CityDrawingSizeConfig(text_fontsize=mm_to_point(3.0) * scale,
-                                     text_arrow_linewidth=mm_to_point(0.3) * scale,
-                                     paper_size=paper_size,
+        return CityDrawingSizeConfig(text_fontsize=mm_to_point(3.0) * scale_paper,
+                                     text_arrow_linewidth=mm_to_point(0.3) * scale_paper,
+                                     title_fontsize=mm_to_point(20.0) * scale_paper,
+                                     stats_fontsize=mm_to_point(14) * scale_paper,
+                                     start_markersize=mm_to_point(3.5) * scale_paper,
+                                     end_markersize=mm_to_point(3.5) * scale_paper,
+                                     bridge_markersize=mm_to_point(7.0) * scale_paper,
+                                     poi_markersize=mm_to_point(7.0) * scale_paper,
+                                     track_linewidth=track_linewidth,
                                      caracteristic_distance=diagonal_distance_m,
                                      linewidth_priority=linewidth_priority,
-                                     linewidth_track=linewidth_track,
-                                     bridge_markersize=bridge_markersize)
+                                     paper_size=paper_size)
