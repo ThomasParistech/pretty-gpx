@@ -131,6 +131,11 @@ class GpxTrack:
 
         return [ShapelyPoint(target).distance(gpx_xy_shapely) for target in targets_xy]
 
+    def get_overpass_lonlat_str(self) -> str:
+        """Get the concatenation of points in text to send it to overpass."""
+        return ','.join(f"{lat:.5f},{lon:.5f}" for lat, lon in zip(self.list_lat, self.list_lon))
+
+
 
 def append_track_to_gpx_track(gpx_track: GpxTrack, track_points: list[GPXTrackPoint]) -> None:
     """"Append track points to a GpxTrack. Update cumulative distance like in gpxpy with GPX.length_3d().

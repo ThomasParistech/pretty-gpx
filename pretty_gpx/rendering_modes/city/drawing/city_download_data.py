@@ -12,6 +12,9 @@ from pretty_gpx.common.structure import AugmentedGpxData
 from pretty_gpx.common.structure import DownloadData
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
+from pretty_gpx.rendering_modes.city.data.bridges import CityBridge
+from pretty_gpx.rendering_modes.city.data.bridges import prepare_download_city_bridges
+from pretty_gpx.rendering_modes.city.data.bridges import process_city_bridges
 from pretty_gpx.rendering_modes.city.data.city_augmented_gpx_data import CityAugmentedGpxData
 from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_forests
 from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
@@ -34,6 +37,7 @@ class CityDownloadData(DownloadData):
     rivers: SurfacePolygons
     forests: SurfacePolygons
     farmlands: SurfacePolygons
+    bridges: list[CityBridge]
 
     @staticmethod
     def from_gpx_and_paper_size(gpx_data: AugmentedGpxData, paper: PaperSize) -> 'CityDownloadData':
@@ -57,6 +61,8 @@ class CityDownloadData(DownloadData):
                              prepare_download_city_forests]:
             prepare_func(total_query, download_bounds)
 
+        prepare_download_city_bridges(total_query, gpx_data.track)
+
         # Merge and run all queries
         total_query.launch_queries()
 
@@ -64,6 +70,7 @@ class CityDownloadData(DownloadData):
         roads = process_city_roads(total_query, download_bounds)
         rivers = process_city_rivers(total_query, download_bounds)
         forests, farmlands = process_city_forests(total_query, download_bounds)
+        bridges = process_city_bridges(total_query, gpx_data.track)
         forests.interior_polygons = []
 
         return CityDownloadData(bounds=download_bounds,
@@ -73,4 +80,5 @@ class CityDownloadData(DownloadData):
                                 roads=roads,
                                 rivers=rivers,
                                 forests=forests,
-                                farmlands=farmlands)
+                                farmlands=farmlands,
+                                bridges=bridges)
