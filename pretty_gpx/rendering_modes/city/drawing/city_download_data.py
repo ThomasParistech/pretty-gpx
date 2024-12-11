@@ -12,7 +12,14 @@ from pretty_gpx.common.structure import AugmentedGpxData
 from pretty_gpx.common.structure import DownloadData
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
+from pretty_gpx.rendering_modes.city.data.bridges import CityBridge
+from pretty_gpx.rendering_modes.city.data.bridges import get_gpx_track_bridges
+from pretty_gpx.rendering_modes.city.data.bridges import prepare_download_city_bridges
+from pretty_gpx.rendering_modes.city.data.bridges import process_city_bridges
 from pretty_gpx.rendering_modes.city.data.city_augmented_gpx_data import CityAugmentedGpxData
+from pretty_gpx.rendering_modes.city.data.city_pois import CityPoi
+from pretty_gpx.rendering_modes.city.data.city_pois import get_gpx_track_city_pois
+from pretty_gpx.rendering_modes.city.data.city_pois import process_city_pois, prepare_download_city_pois
 from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_forests
 from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
 from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_rivers
@@ -35,6 +42,9 @@ class CityDownloadData(DownloadData):
     forests: SurfacePolygons
     farmlands: SurfacePolygons
 
+    bridges: list[CityBridge]
+    pois: list[CityPoi]
+
     @staticmethod
     def from_gpx_and_paper_size(gpx_data: AugmentedGpxData, paper: PaperSize) -> 'CityDownloadData':
         """Init the DownloadData from GPX data and Paper Size."""
@@ -54,7 +64,9 @@ class CityDownloadData(DownloadData):
         total_query = OverpassQuery()
         for prepare_func in [prepare_download_city_roads,
                              prepare_download_city_rivers,
-                             prepare_download_city_forests]:
+                             prepare_download_city_forests,
+                             prepare_download_city_pois,
+                             prepare_download_city_bridges]:
             prepare_func(total_query, download_bounds)
 
         # Merge and run all queries
@@ -66,6 +78,9 @@ class CityDownloadData(DownloadData):
         forests, farmlands = process_city_forests(total_query, download_bounds)
         forests.interior_polygons = []
 
+        bridges = get_gpx_track_bridges(process_city_bridges(total_query, download_bounds), gpx_data.track)
+        pois = get_gpx_track_city_pois(process_city_pois(total_query, download_bounds), gpx_data.track, paper_fig)
+
         return CityDownloadData(bounds=download_bounds,
                                 layout=layout,
                                 paper_fig=paper_fig,
@@ -73,4 +88,6 @@ class CityDownloadData(DownloadData):
                                 roads=roads,
                                 rivers=rivers,
                                 forests=forests,
-                                farmlands=farmlands)
+                                farmlands=farmlands,
+                                bridges=bridges,
+                                pois=pois)

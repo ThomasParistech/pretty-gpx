@@ -64,10 +64,9 @@ def process_city_bridges(query: OverpassQuery,
     return named_bridges
 
 
-def get_gpx_track_bridges(bridges_lon_lat: ListLonLat,
-                          bridges_name: list[str],
-                          gpx: GpxTrack) -> list[CityBridge]:
+def get_gpx_track_bridges(named_bridges: tuple[ListLonLat, list[str]], gpx: GpxTrack) -> list[CityBridge]:
     """Filter the city bridge that are close to the gpx track."""
+    bridges_lon_lat, bridges_name = named_bridges
     if len(bridges_lon_lat) == 0:
         return []
 

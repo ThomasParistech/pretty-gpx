@@ -81,6 +81,7 @@ class MountainAugmentedGpxData(AugmentedGpxData):
 
         is_closed = gpx_track.is_closed(LOOSE_THS_M)
         candidate_passes = process_mountain_passes(total_query, bounds)
+        candidate_passes = []  # FIXME
         passes_ids, mountain_passes = get_close_mountain_passes(gpx_track, candidate_passes)
         close_to_start = is_close_to_a_mountain_pass(lon=gpx_track.list_lon[0],
                                                      lat=gpx_track.list_lat[0],

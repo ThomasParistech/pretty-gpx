@@ -196,9 +196,8 @@ def __filter_close_gpx(city_pois: list[CandidateCityPoi], gpx: GpxTrack) -> list
 
 def __get_nms_ths(paper_fig: BaseDrawingFigure) -> float:
     """Get the Non-Maximum Suppression threshold."""
-    diag_mm = float(np.linalg.norm((paper_fig.paper_size.w_mm, paper_fig.paper_size.h_mm)))
     m_per_mm = paper_fig.get_scale()
-    diag_m = diag_mm * m_per_mm
+    diag_m = paper_fig.paper_size.diag_mm * m_per_mm
     return 0.02*diag_m
 
 

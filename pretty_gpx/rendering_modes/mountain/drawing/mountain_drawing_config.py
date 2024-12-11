@@ -3,7 +3,6 @@
 import os
 from dataclasses import dataclass
 
-import numpy as np
 from matplotlib.path import Path
 
 from pretty_gpx.common.drawing.plt_marker import marker_from_svg
@@ -43,8 +42,8 @@ class MountainDrawingSizeConfig:
     def default(paper_size: PaperSize) -> 'MountainDrawingSizeConfig':
         """Default Mountain Drawing Size Config."""
         # Convert default A4 parameters to paper size
-        ref_diag_mm = np.linalg.norm([PAPER_SIZES["A4"].w_mm, PAPER_SIZES["A4"].h_mm])
-        new_diag_mm = np.linalg.norm([paper_size.w_mm, paper_size.h_mm])
+        ref_diag_mm = PAPER_SIZES["A4"].diag_mm
+        new_diag_mm = paper_size.diag_mm
         scale = float(new_diag_mm/ref_diag_mm)
         return MountainDrawingSizeConfig(text_fontsize=mm_to_point(3.0) * scale,
                                          text_arrow_linewidth=mm_to_point(0.3) * scale,
@@ -53,6 +52,6 @@ class MountainDrawingSizeConfig:
                                          start_markersize=mm_to_point(3.5) * scale,
                                          end_markersize=mm_to_point(3.5) * scale,
                                          peak_markersize=mm_to_point(3.5) * scale,
-                                         hut_markersize=mm_to_point(7.0) * scale,
-                                         track_linewidth=mm_to_point(1.0) * scale,
+                                         hut_markersize=mm_to_point(5.0) * scale,
+                                         track_linewidth=mm_to_point(0.3) * scale,
                                          ref_paper_size=paper_size)

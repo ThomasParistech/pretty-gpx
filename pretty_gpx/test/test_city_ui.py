@@ -20,3 +20,7 @@ def __core_test_city_ui(path: str) -> None:
 def test_4_chateaux_city_ui_() -> None:
     """Test Route des 4 Chateaux City UI."""
     __core_test_city_ui(os.path.join(RUNNING_DIR, "route_4_chateaux.gpx"))
+
+
+if __name__ == "__main__":
+    __core_test_city_ui(os.path.join(RUNNING_DIR, "10k_paris.gpx"))

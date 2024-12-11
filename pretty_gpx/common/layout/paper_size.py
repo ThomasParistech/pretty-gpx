@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Paper Size."""
+import math
 from dataclasses import dataclass
 
 
@@ -10,6 +11,11 @@ class PaperSize:
     h_mm: int
     margin_mm: int
     name: str
+
+    @property
+    def diag_mm(self) -> float:
+        """Diagonal in mm."""
+        return math.sqrt(self.w_mm**2 + self.h_mm**2)
 
 
 PAPER_SIZES: dict[str, PaperSize] = {

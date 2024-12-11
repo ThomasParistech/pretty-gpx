@@ -35,12 +35,12 @@ async def run_cpu_bound(msg: str, func: Callable[P, tuple[R, list[ProfilingEvent
     with UiWaitingModal(msg):
         try:
             res, profiling_events = await run.cpu_bound(func, *args, **kwargs)
+            Profiling.push_events(profiling_events)
         except SubprocessException as e:
             logger.error(f"Error while {msg}: {e}")
             ui.notify(f'Error while {msg}:\n{e.original_message}',
                       type='negative', multi_line=True, timeout=0, close_button='OK')
 
-    Profiling.push_events(profiling_events)
     return res
 
 

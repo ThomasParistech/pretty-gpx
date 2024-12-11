@@ -2,14 +2,17 @@
 """City Drawer."""
 from dataclasses import dataclass
 
+import numpy as np
+
 from pretty_gpx.common.drawing.drawing_data import BaseDrawingData
 from pretty_gpx.common.drawing.drawing_data import LineCollectionData
 from pretty_gpx.common.drawing.drawing_data import PlotData
 from pretty_gpx.common.drawing.drawing_data import PolygonCollectionData
-from pretty_gpx.common.drawing.drawing_data import ScatterData
 from pretty_gpx.common.drawing.drawing_data import TextData
 from pretty_gpx.common.drawing.elevation_stats_section import ElevationStatsSection
 from pretty_gpx.common.drawing.fonts import FontEnum
+from pretty_gpx.common.drawing.text_allocation import allocate_text
+from pretty_gpx.common.drawing.text_allocation import AnnotatedScatterDataCollection
 from pretty_gpx.common.structure import Drawer
 from pretty_gpx.common.structure import DrawingInputs
 from pretty_gpx.common.utils.logger import logger
@@ -17,10 +20,13 @@ from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import format_timedelta
 from pretty_gpx.common.utils.utils import mm_to_point
 from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
+from pretty_gpx.rendering_modes.city.data.bridges import CityBridge
 from pretty_gpx.rendering_modes.city.data.city_augmented_gpx_data import CityAugmentedGpxData
+from pretty_gpx.rendering_modes.city.data.city_pois import CityPoi
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CityColors
 from pretty_gpx.rendering_modes.city.drawing.city_download_data import CityDownloadData
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_config import CityDrawingSizeConfig
+from pretty_gpx.rendering_modes.city.drawing.city_drawing_config import CityDrawingStyleConfig
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_figure import CityDrawingFigure
 from pretty_gpx.rendering_modes.city.drawing.city_drawing_figure import CityDrawingParams
 
@@ -91,10 +97,11 @@ class CityDrawer(Drawer[CityAugmentedGpxData,
         # Use default drawing params
         drawing_size_config = CityDrawingSizeConfig.default(download_data.paper_fig.paper_size,
                                                             download_data.paper_fig.gpx_bounds.diagonal_m)
-
+        drawing_style_config = CityDrawingStyleConfig()
         plotter = init_and_populate_drawing_figure(gpx_data=gpx_data,
                                                    download_data=download_data,
-                                                   drawing_size_config=drawing_size_config)
+                                                   drawing_size_config=drawing_size_config,
+                                                   drawing_style_config=drawing_style_config)
 
         logger.info("Successful GPX Processing")
 
@@ -131,9 +138,36 @@ class CityDrawer(Drawer[CityAugmentedGpxData,
 
 def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
                                      download_data: CityDownloadData,
-                                     drawing_size_config: CityDrawingSizeConfig) -> CityDrawingFigure:
+                                     drawing_size_config: CityDrawingSizeConfig,
+                                     drawing_style_config: CityDrawingStyleConfig) -> CityDrawingFigure:
     """Set up and populate the DrawingFigure for the poster."""
     gpx_track = gpx_data.track
+
+    list_x = gpx_data.track.list_lon
+    list_y = gpx_data.track.list_lat
+
+    b = download_data.paper_fig.gpx_bounds
+    # TODO (upgrade): factorize the following text_allocation code with the one in mountain_drawer.py
+    scatters = init_annotated_scatter_collection(download_data.bridges, download_data.pois,
+                                                 drawing_size_config, drawing_style_config)
+
+    plots_x_to_avoid, plots_y_to_avoid = [list_x], [list_y]
+    for y in b.lat_min+b.dlat*np.concatenate((np.linspace(0.,
+                                                          download_data.layout.stats_relative_h
+                                                          + download_data.layout.elevation_relative_h,
+                                                          num=10, endpoint=True),  # Stats+Elevation area
+                                              np.linspace(1.0-download_data.layout.title_relative_h, 1.0,
+                                                          num=10, endpoint=True))):  # Title area
+        plots_x_to_avoid.append([b.lon_min, b.lon_max])
+        plots_y_to_avoid.append([y, y])
+
+    texts, arrows = allocate_text(base_fig=download_data.paper_fig,
+                                  scatters=scatters,
+                                  plots_x_to_avoid=plots_x_to_avoid,
+                                  plots_y_to_avoid=plots_y_to_avoid,
+                                  output_linewidth=drawing_size_config.text_arrow_linewidth,
+                                  fontsize=drawing_size_config.text_fontsize,
+                                  fontproperties=FontEnum.ANNOTATION.value)
 
     track_data: list[BaseDrawingData] = [PlotData(x=gpx_track.list_lon, y=gpx_track.list_lat, linewidth=2.0)]
     road_data: list[BaseDrawingData] = []
@@ -145,9 +179,10 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
     for priority, way in download_data.roads.items():
         road_data.append(LineCollectionData(way, linewidth=drawing_size_config.linewidth_priority[priority], zorder=1))
 
-    b = download_data.paper_fig.gpx_bounds
+    point_data += texts + arrows
+
     title = TextData(x=b.lon_center, y=b.lat_max - 0.8 * b.dlat * download_data.layout.title_relative_h,
-                     s="Title", fontsize=mm_to_point(20.0),
+                     s="Title", fontsize=drawing_size_config.title_fontsize,
                      fontproperties=FontEnum.TITLE.value,
                      ha="center",
                      va="center")
@@ -159,10 +194,6 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
                      fontproperties=FontEnum.STATS.value,
                      ha="center",
                      va="center")
-    point_data.append(ScatterData(x=[gpx_track.list_lon[0]], y=[gpx_track.list_lat[0]],
-                                  marker="o", markersize=mm_to_point(3.5)))
-    point_data.append(ScatterData(x=[gpx_track.list_lon[-1]], y=[gpx_track.list_lat[-1]],
-                                  marker="s", markersize=mm_to_point(3.5)))
 
     plotter = CityDrawingFigure(paper_size=download_data.paper_fig.paper_size,
                                 latlon_aspect_ratio=download_data.paper_fig.latlon_aspect_ratio,
@@ -178,3 +209,41 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
                                 stats=stats)
 
     return plotter
+
+
+def init_annotated_scatter_collection(bridges: list[CityBridge],
+                                      pois: list[CityPoi],
+                                      drawing_size_config: CityDrawingSizeConfig,
+                                      drawing_style_config: CityDrawingStyleConfig) -> AnnotatedScatterDataCollection:
+    """Initialize the AnnotatedScatterDataCollection with the city poids, bridges, start and end markers."""
+    scatter_collection = AnnotatedScatterDataCollection()
+
+    scatter_collection.add_scatter_data_besides_track(scatter_x=[b.lon for b in bridges],
+                                                      scatter_y=[b.lat for b in bridges],
+                                                      scatter_texts=[b.name for b in bridges],
+                                                      marker=drawing_style_config.bridge_marker,
+                                                      markersize=drawing_size_config.bridge_markersize)
+
+    scatter_collection.add_scatter_data_besides_track(scatter_x=[p.lon for p in pois],
+                                                      scatter_y=[p.lat for p in pois],
+                                                      scatter_texts=[p.name for p in pois],
+                                                      marker=drawing_style_config.poi_marker,
+                                                      markersize=drawing_size_config.poi_markersize)
+
+    # FIXME
+
+    # if gpx_data.start_name is not None:
+    #     scatter_collection.add_scatter_data_on_track(global_x=global_list_x, global_y=global_list_y,
+    #                                                  scatter_ids=[0],
+    #                                                  scatter_texts=[f" {gpx_data.start_name} "],
+    #                                                  marker=drawing_style_config.start_marker,
+    #                                                  markersize=drawing_size_config.start_markersize)
+
+    # if gpx_data.end_name is not None:
+    #     scatter_collection.add_scatter_data_on_track(global_x=global_list_x, global_y=global_list_y,
+    #                                                  scatter_ids=[len(global_list_x)-1],
+    #                                                  scatter_texts=[f" {gpx_data.end_name} "],
+    #                                                  marker=drawing_style_config.end_marker,
+    #                                                  markersize=drawing_size_config.end_markersize)
+
+    return scatter_collection
