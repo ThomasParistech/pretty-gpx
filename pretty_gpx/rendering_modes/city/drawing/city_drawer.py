@@ -19,7 +19,6 @@ from pretty_gpx.common.structure import DrawingInputs
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import format_timedelta
-from pretty_gpx.common.utils.utils import mm_to_point
 from pretty_gpx.rendering_modes.city.city_vertical_layout import CityVerticalLayout
 from pretty_gpx.rendering_modes.city.data.bridges import CityBridge
 from pretty_gpx.rendering_modes.city.data.city_augmented_gpx_data import CityAugmentedGpxData
@@ -198,8 +197,12 @@ def init_and_populate_drawing_figure(gpx_data: CityAugmentedGpxData,
                      fontproperties=FontEnum.STATS.value,
                      ha="center",
                      va="center")
-    point_data.append(ScatterData(x=[list_x[0]], y=[list_y[0]], marker="o", markersize=mm_to_point(3.5)))
-    point_data.append(ScatterData(x=[list_x[-1]], y=[list_y[-1]], marker="s", markersize=mm_to_point(3.5)))
+    point_data.append(ScatterData(x=[list_x[0]], y=[list_y[0]],
+                                  marker=drawing_style_config.start_marker,
+                                  markersize=drawing_size_config.start_markersize))
+    point_data.append(ScatterData(x=[list_x[-1]], y=[list_y[-1]],
+                                  marker=drawing_style_config.end_marker,
+                                  markersize=drawing_size_config.end_markersize))
 
     annotation_data: list[BaseDrawingData] = texts + arrows + scatters.list_scatter_data  # type:ignore
 

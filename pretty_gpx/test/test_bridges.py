@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """Test Bridges."""
-
 import os
 
 from pretty_gpx.common.data.overpass_request import OverpassQuery

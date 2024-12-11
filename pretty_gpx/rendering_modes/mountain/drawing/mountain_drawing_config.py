@@ -13,10 +13,10 @@ from pretty_gpx.common.utils.utils import mm_to_point
 @dataclass(kw_only=True)
 class MountainDrawingStyleConfig:
     """Mountain Drawing Style Config."""
-    start_marker: str | Path = "o"
-    end_marker: str | Path = "s"
-    peak_marker: str | Path = "^"
-    hut_marker: str | Path = MarkerType.HOUSE.path()
+    start_marker: Path = MarkerType.DISK.path()
+    end_marker: Path = MarkerType.SQUARE.path()
+    peak_marker: Path = MarkerType.TRIANGLE.path()
+    hut_marker: Path = MarkerType.HOUSE.path()
 
 
 @dataclass(kw_only=True)

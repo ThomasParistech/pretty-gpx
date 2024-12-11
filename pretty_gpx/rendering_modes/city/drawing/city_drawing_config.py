@@ -18,9 +18,9 @@ REF_PAPER_SIZE: PaperSize = PAPER_SIZES["A4"]
 @dataclass(kw_only=True)
 class CityDrawingStyleConfig:
     """City Drawing Style Config."""
-    start_marker: str | Path = "o"
-    end_marker: str | Path = "s"
-    bridge_marker: str | Path = MarkerType.BRIDGE.path()
+    start_marker: Path = MarkerType.DISK.path()
+    end_marker: Path = MarkerType.SQUARE.path()
+    bridge_marker: Path = MarkerType.BRIDGE.path()
 
 
 @dataclass(kw_only=True)

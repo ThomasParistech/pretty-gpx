@@ -36,9 +36,9 @@ def _load_marker(m: MarkerType) -> Path:
     svg_path = os.path.join(ICONS_DIR, f"{m.name.lower()}.svg")
 
     # See https://www.iconfinder.com/
-    _, attributes = svg2paths(svg_path)
+    svg_paths, _ = svg2paths(svg_path)
 
-    image_marker = parse_path(attributes[0]['d'])
+    image_marker = parse_path(" ".join([p.d() for p in svg_paths]))
 
     # Center
     image_marker.vertices -= np.mean(image_marker.vertices, axis=0)

@@ -155,7 +155,7 @@ class AnnotatedScatterDataCollection:
                                   global_y: list[float],
                                   scatter_ids: list[int],
                                   scatter_texts: list[str] | list[str | None],
-                                  marker: str | Path,
+                                  marker: Path,
                                   markersize: float) -> None:
         """Add scatter data lying on the track."""
         assert_same_len((global_x, global_y))
@@ -168,7 +168,7 @@ class AnnotatedScatterDataCollection:
                                       scatter_x: list[float],
                                       scatter_y: list[float],
                                       scatter_texts: list[str] | list[str | None],
-                                      marker: str | Path,
+                                      marker: Path,
                                       markersize: float) -> None:
         """Add scatter data lying around the track."""
         assert_same_len((scatter_x, scatter_y, scatter_texts))
