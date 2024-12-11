@@ -52,9 +52,7 @@ def process_city_bridges(query: OverpassQuery,
     with Profiling.Scope("Process Bridges"):
         res = query.get_query_result(BRIDGES_ARRAY_NAME)
         bridges = process_around_ways_and_relations(api_result=res)
-        bridges_l = []
-        for name, (lon,lat) in bridges.items():
-            bridges_l.append(CityBridge(name, lat, lon))
+        bridges_l = [CityBridge(name, lat, lon) for name, (lon, lat) in bridges.items()]
 
     logger.info(f"Found {len(bridges_l)} bridge(s)")
     cache_pkl = BRIDGES_CACHE.get_path(track)
