@@ -28,7 +28,7 @@ MOUNTAIN_HUTS_ARRAY_NAME = "mountain_huts"
 @profile
 def prepare_download_mountain_huts(query: OverpassQuery, bounds: GpxBounds) -> None:
     """Add the queries for mountain huts inside the global OverpassQuery."""
-    cache_pkl = MOUNTAIN_HUTS_CACHE.get_path_from_bounds(bounds)
+    cache_pkl = MOUNTAIN_HUTS_CACHE.get_path(bounds)
 
     if os.path.isfile(cache_pkl):
         query.add_cached_result(MOUNTAIN_HUTS_CACHE.name, cache_file=cache_pkl)
@@ -70,7 +70,7 @@ def process_mountain_huts(query: OverpassQuery, bounds: GpxBounds) -> list[Mount
         huts = node_huts + way_huts
         logger.info(f"Found {len(huts)} candidate mountain huts")
 
-    cache_pkl = MOUNTAIN_HUTS_CACHE.get_path_from_bounds(bounds)
+    cache_pkl = MOUNTAIN_HUTS_CACHE.get_path(bounds)
     write_pickle(cache_pkl, huts)
     query.add_cached_result(MOUNTAIN_HUTS_CACHE.name, cache_file=cache_pkl)
     return huts

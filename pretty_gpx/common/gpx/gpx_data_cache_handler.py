@@ -20,25 +20,18 @@ class GpxDataCacheHandler:
     def __post_init__(self) -> None:
         assert self.extension.startswith('.')
 
-    def get_path_from_bounds(self, bounds: GpxBounds) -> str:
+    def get_path(self, ref: GpxTrack | GpxBounds) -> str:
         """Get path to the corresponding cache file."""
-        bounds_str = f"{bounds.lon_min:.4f},{bounds.lon_max:.4f},{bounds.lat_min:.4f},{bounds.lat_max:.4f}"
-        bounds_hash = hashlib.sha256(bounds_str.encode('utf-8')).hexdigest()
+        if isinstance(ref, GpxBounds):
+            ref_str = f"{ref.lon_min:.4f},{ref.lon_max:.4f},{ref.lat_min:.4f},{ref.lat_max:.4f}"
+        elif isinstance(ref, GpxTrack):
+            ref_str = ref.get_overpass_lonlat_str()
+        else:
+            raise ValueError(f"Unsupported type {type(ref)}")
 
+        hash_str = hashlib.sha256(ref_str.encode('utf-8')).hexdigest()
         parent_folder = os.path.join(CACHE_DIR, sanitize_filename(self.name.lower()))
-        basename = f"{bounds_hash}{self.extension}"
+        basename = f"{hash_str}{self.extension}"
 
         os.makedirs(parent_folder, exist_ok=True)
-
-        return os.path.join(parent_folder, basename)
-
-    def get_path_from_track(self, track: GpxTrack) -> str:
-        """Get path to the corresponding cache file."""
-        bounds_hash = hashlib.sha256(track.get_overpass_lonlat_str().encode('utf-8')).hexdigest()
-
-        parent_folder = os.path.join(CACHE_DIR, sanitize_filename(self.name.lower()))
-        basename = f"{bounds_hash}{self.extension}"
-
-        os.makedirs(parent_folder, exist_ok=True)
-
         return os.path.join(parent_folder, basename)

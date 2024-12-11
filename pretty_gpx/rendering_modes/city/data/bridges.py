@@ -29,7 +29,7 @@ class CityBridge:
 @profile
 def prepare_download_city_bridges(query: OverpassQuery, track: GpxTrack) -> None:
     """Add the queries for city bridges inside the global OverpassQuery."""
-    cache_pkl = BRIDGES_CACHE.get_path_from_track(track)
+    cache_pkl = BRIDGES_CACHE.get_path(track)
 
     if os.path.isfile(cache_pkl):
         query.add_cached_result(BRIDGES_CACHE.name, cache_file=cache_pkl)
@@ -57,7 +57,7 @@ def process_city_bridges(query: OverpassQuery,
             bridges_l.append(CityBridge(name, lat, lon))
 
     logger.info(f"Found {len(bridges_l)} bridge(s)")
-    cache_pkl = BRIDGES_CACHE.get_path_from_track(track)
+    cache_pkl = BRIDGES_CACHE.get_path(track)
     write_pickle(cache_pkl, bridges_l)
     query.add_cached_result(BRIDGES_CACHE.name, cache_file=cache_pkl)
     return bridges_l

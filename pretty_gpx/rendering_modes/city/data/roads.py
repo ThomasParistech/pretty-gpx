@@ -59,7 +59,7 @@ def prepare_download_city_roads(query: OverpassQuery,
     Returns:
         List of roads (sequence of lon, lat coordinates) for each road type
     """
-    cache_pkl = ROADS_CACHE.get_path_from_bounds(bounds)
+    cache_pkl = ROADS_CACHE.get_path(bounds)
 
     if os.path.isfile(cache_pkl):
         query.add_cached_result(ROADS_CACHE.name, cache_file=cache_pkl)
@@ -89,7 +89,7 @@ def process_city_roads(query: OverpassQuery,
             result = query.get_query_result(query_name)
             roads[city_road_type] = get_ways_coordinates_from_results(result)
 
-    cache_pkl = ROADS_CACHE.get_path_from_bounds(bounds)
+    cache_pkl = ROADS_CACHE.get_path(bounds)
     write_pickle(cache_pkl, roads)
     query.add_cached_result(ROADS_CACHE.name, cache_file=cache_pkl)
 

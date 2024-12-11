@@ -52,7 +52,7 @@ class CityPoi:
 @profile
 def prepare_download_city_pois(query: OverpassQuery, bounds: GpxBounds) -> None:
     """Add the queries for city pois inside the global OverpassQuery."""
-    cache_pkl = CITY_POINTS_OF_INTEREST_CACHE.get_path_from_bounds(bounds)
+    cache_pkl = CITY_POINTS_OF_INTEREST_CACHE.get_path(bounds)
 
     if os.path.isfile(cache_pkl):
         query.add_cached_result(CITY_POINTS_OF_INTEREST_CACHE.name, cache_file=cache_pkl)
@@ -109,7 +109,7 @@ def process_city_pois(query: OverpassQuery,
                                                       importance=importance,
                                                       poly_lonlat=lon_lat))
 
-    cache_pkl = CITY_POINTS_OF_INTEREST_CACHE.get_path_from_bounds(bounds)
+    cache_pkl = CITY_POINTS_OF_INTEREST_CACHE.get_path(bounds)
     write_pickle(cache_pkl, city_pois)
     query.add_cached_result(CITY_POINTS_OF_INTEREST_CACHE.name, cache_file=cache_pkl)
     return city_pois

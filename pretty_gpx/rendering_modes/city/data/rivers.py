@@ -32,7 +32,7 @@ RIVER_LINE_WIDTH = np.rad2deg(RIVER_LINE_WIDTH_M/EARTH_RADIUS_M)
 @profile
 def prepare_download_city_rivers(query: OverpassQuery, bounds: GpxBounds) -> None:
     """Add the queries for city rivers inside the global OverpassQuery."""
-    cache_pkl = RIVERS_CACHE.get_path_from_bounds(bounds)
+    cache_pkl = RIVERS_CACHE.get_path(bounds)
 
     if os.path.isfile(cache_pkl):
         query.add_cached_result(RIVERS_CACHE.name, cache_file=cache_pkl)
@@ -90,7 +90,7 @@ def process_city_rivers(query: OverpassQuery,
                     f" {len(rivers_lines_polygons)} created with river main line")
         rivers_patches = create_patch_collection_from_polygons(rivers)
 
-    cache_pkl = RIVERS_CACHE.get_path_from_bounds(bounds)
+    cache_pkl = RIVERS_CACHE.get_path(bounds)
     write_pickle(cache_pkl, rivers_patches)
     query.add_cached_result(RIVERS_CACHE.name, cache_file=cache_pkl)
     return rivers_patches

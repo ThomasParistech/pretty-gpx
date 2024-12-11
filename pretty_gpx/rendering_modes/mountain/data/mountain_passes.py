@@ -31,7 +31,7 @@ MOUNTAIN_PASS_CACHE = GpxDataCacheHandler(name='mountain_pass', extension='.pkl'
 @profile
 def prepare_download_mountain_passes(query: OverpassQuery, bounds: GpxBounds) -> None:
     """Add the queries for mountain passes inside the global OverpassQuery."""
-    cache_pkl = MOUNTAIN_PASS_CACHE.get_path_from_bounds(bounds)
+    cache_pkl = MOUNTAIN_PASS_CACHE.get_path(bounds)
 
     if os.path.isfile(cache_pkl):
         query.add_cached_result(MOUNTAIN_PASS_CACHE.name, cache_file=cache_pkl)
@@ -79,7 +79,7 @@ def process_mountain_passes(query: OverpassQuery, bounds: GpxBounds) -> list[Mou
                                                lat=float(node.lat)))
         logger.info(f"Found {len(passes)} candidate mountain passes")
 
-    cache_pkl = MOUNTAIN_PASS_CACHE.get_path_from_bounds(bounds)
+    cache_pkl = MOUNTAIN_PASS_CACHE.get_path(bounds)
     write_pickle(cache_pkl, passes)
     query.add_cached_result(MOUNTAIN_PASS_CACHE.name, cache_file=cache_pkl)
 
