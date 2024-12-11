@@ -27,7 +27,7 @@ FARMLAND_RELATION_NAME = "farmland_relation"
 def prepare_download_city_forests(query: OverpassQuery,
                                   bounds: GpxBounds) -> None:
     """Add the queries for city rivers inside the global OverpassQuery."""
-    cache_pkl = FORESTS_CACHE.get_path(bounds)
+    cache_pkl = FORESTS_CACHE.get_path_from_bounds(bounds)
 
     if os.path.isfile(cache_pkl):
         query.add_cached_result(FORESTS_CACHE.name, cache_file=cache_pkl)
@@ -89,7 +89,7 @@ def process_city_forests(query: OverpassQuery,
         farmland = farmland_relations + farmland_ways
         farmland_patches = create_patch_collection_from_polygons(farmland)
 
-    cache_pkl = FORESTS_CACHE.get_path(bounds)
+    cache_pkl = FORESTS_CACHE.get_path_from_bounds(bounds)
     write_pickle(cache_pkl, (forests_patches, farmland_patches))
     query.add_cached_result(FORESTS_CACHE.name, cache_file=cache_pkl)
 

@@ -539,3 +539,19 @@ def create_patch_collection_from_polygons(polygons_l: list[ShapelyPolygon]) -> S
                               interior_polygons=patches_interior)
 
     return surface
+
+
+def process_around_ways_and_relations(api_result: Result) -> dict[str, tuple[float, float]]:
+    """Create a dict of POI with name and coordinates."""
+    ways = api_result.ways
+    relations = api_result.relations
+    output: dict[str, tuple[float, float]] = dict()
+    for way in ways:
+        name = way.tags.get("name","")
+        if name != "":
+            output[name] = (way.center_lon, way.center_lat)
+    for relation in relations:
+        name = relation.tags.get("name","")
+        if name != "":
+            output[name] = (relation.center_lon, relation.center_lat)
+    return output
