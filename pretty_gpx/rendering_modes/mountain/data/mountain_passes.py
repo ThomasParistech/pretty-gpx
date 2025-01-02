@@ -14,6 +14,7 @@ from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
+from pretty_gpx.common.utils.utils import str_to_int
 
 MOUNTAIN_PASSES_ARRAY_NAME = "mountain_passes"
 
@@ -61,13 +62,14 @@ def process_mountain_passes(query: OverpassQuery, gpx_track: GpxTrack) -> list[S
         for node in results.nodes:
             if "name" in node.tags and "ele" in node.tags:
                 ele = str(node.tags["ele"])
-                if ele.isnumeric():
+                ele_m = str_to_int(ele)
+                if ele_m is not None:
                     name = str(node.tags["name"])
                     if "hiking" in node.tags and node.tags["hiking"] == "yes":
                         if not name.lower().startswith(("col ", "golet ", "pic ", "mont ")):
                             continue
 
-                    candidates.append(ScatterPoint(name=f"{name}\n({int(ele)} m)",
+                    candidates.append(ScatterPoint(name=f"{name}\n({ele_m} m)",
                                                    lon=float(node.lon),
                                                    lat=float(node.lat),
                                                    category=ScatterPointCategory.MOUNTAIN_PASS))
