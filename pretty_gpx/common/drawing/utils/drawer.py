@@ -1,4 +1,3 @@
-
 #!/usr/bin/python3
 """Parent class for poster drawers."""
 from abc import ABC

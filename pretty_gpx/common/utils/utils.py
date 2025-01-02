@@ -22,7 +22,7 @@ def safe(value: T | None) -> T:
 
 
 def str_to_float(s: str) -> float | None:
-    """Convert a string to an float."""
+    """Convert a string to a float."""
     try:
         return float(s)
     except ValueError:
