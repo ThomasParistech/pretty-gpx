@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """GPX Bounds."""
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 import numpy as np
@@ -19,6 +20,14 @@ class GpxBounds:
     def __str__(self) -> str:
         """Return a string representation of GpxBounds."""
         return f"Lon [{self.lon_min:.2f}, {self.lon_max:.2f}] and Lat [{self.lat_min:.2f},{self.lat_max:.2f}]"
+
+    @staticmethod
+    def union(list_bounds: Iterable['GpxBounds']) -> 'GpxBounds':
+        """Union of a list of bounds."""
+        return GpxBounds(lon_min=min([b.lon_min for b in list_bounds]),
+                         lon_max=max([b.lon_max for b in list_bounds]),
+                         lat_min=min([b.lat_min for b in list_bounds]),
+                         lat_max=max([b.lat_max for b in list_bounds]))
 
     @staticmethod
     def from_list(*, list_lon: list[float], list_lat: list[float]) -> 'GpxBounds':

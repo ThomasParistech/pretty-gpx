@@ -1,32 +1,73 @@
 #!/usr/bin/python3
-"""Ui Manager."""
+"""UI Manager."""
+from abc import ABC
+from abc import abstractmethod
 from dataclasses import dataclass
+from typing import cast
 from typing import Generic
 from typing import Literal
 from typing import TypeVar
 
+from natsort import index_natsorted
 from nicegui import events
 from nicegui import ui
+from nicegui.elements.upload import Upload
 from pathvalidate import sanitize_filename
 
-from pretty_gpx.common.drawing.color_theme import DarkTheme
-from pretty_gpx.common.drawing.color_theme import LightTheme
+from pretty_gpx.common.drawing.utils.color_theme import DarkTheme
+from pretty_gpx.common.drawing.utils.color_theme import LightTheme
+from pretty_gpx.common.drawing.utils.drawer import DrawerMultiTrack
+from pretty_gpx.common.drawing.utils.drawer import DrawerSingleTrack
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
-from pretty_gpx.ui.pages.template.elements.ui_input import UiInputFloat
-from pretty_gpx.ui.pages.template.elements.ui_input import UiInputStr
-from pretty_gpx.ui.pages.template.elements.ui_toggle import UiToggle
-from pretty_gpx.ui.pages.template.ui_cache import UiCache
+from pretty_gpx.common.utils.profile import profile_parallel
+from pretty_gpx.ui.pages.template.ui_input import UiInputFloat
+from pretty_gpx.ui.pages.template.ui_input import UiInputStr
 from pretty_gpx.ui.pages.template.ui_plot import UiPlot
+from pretty_gpx.ui.pages.template.ui_toggle import UiToggle
+from pretty_gpx.ui.utils.run import run_cpu_bound
+from pretty_gpx.ui.utils.run import run_cpu_bound_safe
 from pretty_gpx.ui.utils.style import DARK_MODE_TEXT
 from pretty_gpx.ui.utils.style import LIGHT_MODE_TEXT
 
-T = TypeVar('T', bound=UiCache)
+T = TypeVar('T', bound=DrawerSingleTrack | DrawerMultiTrack)
+
+
+@profile_parallel
+def _self_change_gpx_multi(drawer: T, b: list[bytes] | list[str], paper: PaperSize) -> T:
+    """Process the GPX files and return the new drawer."""
+    # This function is designed for parallel execution and will be pickled.
+    # Defining it as a global function avoids pickling the entire UiManager class,
+    # which contains non-picklable elements like local lambdas and UI components.
+    assert isinstance(drawer, DrawerMultiTrack)
+    drawer.change_gpx(b, paper)
+    return cast(T, drawer)
+
+
+@profile_parallel
+def _self_change_gpx_single(drawer: T, b: bytes | str, paper: PaperSize) -> T:
+    """Process the GPX file and return the new drawer."""
+    # This function is designed for parallel execution and will be pickled.
+    # Defining it as a global function avoids pickling the entire UiManager class,
+    # which contains non-picklable elements like local lambdas and UI components.
+    assert isinstance(drawer, DrawerSingleTrack)
+    drawer.change_gpx(b, paper)
+    return cast(T, drawer)
+
+
+@profile_parallel
+def _self_change_paper_size(drawer: T, paper: PaperSize) -> T:
+    """Change the paper size and return the new drawer."""
+    # This function is designed for parallel execution and will be pickled.
+    # Defining it as a global function avoids pickling the entire UiManager class,
+    # which contains non-picklable elements like local lambdas and UI components.
+    drawer.change_papersize(paper)
+    return drawer
 
 
 @dataclass(slots=True)
-class UiManager(Generic[T]):
+class UiManager(Generic[T], ABC):
     """Ui Manager.
 
     The UiManager is a template class that manages the layout of the page.
@@ -71,10 +112,9 @@ class UiManager(Generic[T]):
 
     Subclasses must implement:
     - `get_chat_msg`: Return the chat message, introducing the page.
-    - `on_click_update`: Return an async function that updates the poster with the current settings.
-    - `cb_before_download`: Optional callback to run before downloading the poster. If not implemented, it does nothing.
+    - `update_drawer_params`: Update the drawer parameters based on the UI inputs.
     """
-    cache: T
+    drawer: T
 
     plot: UiPlot
     subclass_column: ui.column
@@ -88,26 +128,26 @@ class UiManager(Generic[T]):
 
     hidden: bool
 
-    ######### METHODS TO IMPLEMENT #########
+    ##########################
+    # Abstract Methods
 
     @staticmethod
+    @abstractmethod
     def get_chat_msg() -> list[str]:
-        """Return the chat message."""
-        raise NotImplementedError
+        """Return the chat message, introducing the page."""
+        ...
 
-    async def on_click_update(self) -> None:
-        """Asynchronously update the UiPlot."""
-        raise NotImplementedError
+    @abstractmethod
+    def update_drawer_params(self) -> None:
+        """Update the drawer parameters based on the UI inputs."""
+        ...
 
-    async def render_download_svg_bytes(self) -> bytes:
-        """Asynchronously download bytes of SVG image using UiPlot."""
-        raise NotImplementedError
+    ##########################
+    # Initialization
 
-    #########################################
-
-    def __init__(self, cache: T) -> None:
+    def __init__(self, drawer: T) -> None:
         """When subclassing, add elements inside `subclass_column`."""
-        self.cache = cache
+        self.drawer = drawer
 
         with ui.row().style("height: 100vh; width: 100%; justify-content: center; align-items: center; gap: 20px;"):
             self.plot = UiPlot(visible=False)
@@ -132,16 +172,23 @@ class UiManager(Generic[T]):
             ui.chat_message(self.get_chat_msg()).props('bg-color=blue-2')
 
             # Upload
-            multi_upload = self.cache.multi()
-            if multi_upload:
-                label = "Drag & drop your GPX file(s) here and press upload"
-            else:
+            if isinstance(self.drawer, DrawerMultiTrack):
+                label = "Drag & drop your GPX files here and press upload"
+                multiple = True
+                on_upload = None
+                on_multi_upload = self.on_multi_upload_events
+            elif isinstance(self.drawer, DrawerSingleTrack):
                 label = "Drag & drop your GPX file here and press upload"
+                multiple = False
+                on_upload = self.on_single_upload_events
+                on_multi_upload = None
+            else:
+                raise NotImplementedError
 
             ui.upload(label=label,
-                      multiple=multi_upload,
-                      on_upload=None if multi_upload else self.on_single_upload_events,
-                      on_multi_upload=self.on_multi_upload_events if multi_upload else None,
+                      multiple=multiple,
+                      on_upload=on_upload,
+                      on_multi_upload=on_multi_upload,
                       ).props('accept=.gpx').on('rejected',
                                                 lambda: ui.notify('Please provide a GPX file')).classes('max-w-full')
             # Paper Size
@@ -168,24 +215,42 @@ class UiManager(Generic[T]):
 
         self.hidden = True
 
-        if self.cache.is_initialized():
-            self.make_visible()
+    ##########################
+    # Single/Multi Upload Events
 
     async def on_multi_upload_events(self, e: events.MultiUploadEventArguments) -> None:
         """Sort the uploaded files by name and process them."""
-        res = await self.cache.on_multi_upload_events(e, self.paper_size.value)
-        await self.update_cache_if_sucessful(res)
+        sorted_indices = index_natsorted(e.names)
+        names = [e.names[i] for i in sorted_indices]
+        contents = [e.contents[i].read() for i in sorted_indices]
+        assert isinstance(e.sender, Upload)
+        e.sender.reset()
+
+        if len(contents) == 1:
+            name = names[0]
+        else:
+            name = f'a {len(names)}-days track ({", ".join(names)})'
+
+        res = await run_cpu_bound(f"Download Data for {name}", _self_change_gpx_multi, self.drawer, contents,
+                                  self.paper_size.value)
+        await self.update_drawer_if_sucessful(res)
 
     async def on_single_upload_events(self, e: events.UploadEventArguments) -> None:
         """Process the uploaded file."""
-        res = await self.cache.on_single_upload_events(e, self.paper_size.value)
-        await self.update_cache_if_sucessful(res)
+        name = e.name
+        content = e.content.read()
+        assert isinstance(e.sender, Upload)
+        e.sender.reset()
 
-    async def update_cache_if_sucessful(self, new_cache: T | None) -> None:
-        """Update the cache if successful."""
-        if new_cache is None:
+        res = await run_cpu_bound(f"Download Data for {name}", _self_change_gpx_single,  self.drawer, content,
+                                  self.paper_size.value)
+        await self.update_drawer_if_sucessful(res)
+
+    async def update_drawer_if_sucessful(self, new_drawer: T | None) -> None:
+        """Update the drawer if successful."""
+        if new_drawer is None:
             return
-        self.cache = new_cache
+        self.drawer = new_drawer
         await self.on_click_update()
         if self.hidden:
             self.make_visible()
@@ -196,11 +261,19 @@ class UiManager(Generic[T]):
         self.plot.make_visible()
         self.params_to_hide.visible = True
 
+    ##########################
+    # Paper Size Event
+
     async def on_paper_size_change(self) -> None:
         """Change the paper size and update the poster."""
-        if self.cache.is_initialized():
-            self.cache = await self.cache.on_paper_size_change(self.paper_size.value)
+        if not self.hidden:
+            new_paper = self.paper_size.value
+            self.drawer = await run_cpu_bound_safe(f"Switching to {new_paper.name} Poster",
+                                                   _self_change_paper_size, self.drawer, new_paper)
             await self.on_click_update()
+
+    ##########################
+    # Dark Mode Event
 
     def on_dark_mode_switch_change(self, e: events.ValueChangeEventArguments) -> None:
         """Switch between dark and light mode."""
@@ -212,14 +285,22 @@ class UiManager(Generic[T]):
         else:
             self.theme = self.theme.change(LightTheme.get_mapping())
 
+    ##########################
+    # Drawing
+
+    async def on_click_update(self) -> None:
+        """Asynchronously update the UiPlot."""
+        self.update_drawer_params()
+        await self.plot.update_preview(self.drawer.draw)
+
     async def on_click_download_svg(self) -> None:
         """Asynchronously render the high resolution poster and download it as SVG."""
-        svg_bytes = await self.render_download_svg_bytes()
+        svg_bytes = await self.plot.render_svg(self.drawer.draw)
         self.download(svg_bytes, "svg")
 
     async def on_click_download_pdf(self) -> None:
         """Asynchronously render the high resolution poster and download it as PDF."""
-        svg_bytes = await self.render_download_svg_bytes()
+        svg_bytes = await self.plot.render_svg(self.drawer.draw)
         pdf_bytes = await self.plot.svg_to_pdf_bytes(svg_bytes)
         self.download(pdf_bytes, "pdf")
 

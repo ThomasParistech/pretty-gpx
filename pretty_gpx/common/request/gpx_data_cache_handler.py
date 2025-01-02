@@ -8,6 +8,7 @@ from pathvalidate import sanitize_filename
 
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
+from pretty_gpx.common.gpx.multi_gpx_track import MultiGpxTrack
 from pretty_gpx.common.utils.paths import CACHE_DIR
 
 
@@ -20,12 +21,14 @@ class GpxDataCacheHandler:
     def __post_init__(self) -> None:
         assert self.extension.startswith('.')
 
-    def get_path(self, ref: GpxTrack | GpxBounds) -> str:
+    def get_path(self, ref: MultiGpxTrack | GpxTrack | GpxBounds) -> str:
         """Get path to the corresponding cache file."""
         if isinstance(ref, GpxBounds):
             ref_str = f"{ref.lon_min:.4f},{ref.lon_max:.4f},{ref.lat_min:.4f},{ref.lat_max:.4f}"
         elif isinstance(ref, GpxTrack):
             ref_str = ref.get_overpass_lonlat_str()
+        elif isinstance(ref, MultiGpxTrack):
+            ref_str = "===".join(track.get_overpass_lonlat_str() for track in ref.tracks)
         else:
             raise ValueError(f"Unsupported type {type(ref)}")
 

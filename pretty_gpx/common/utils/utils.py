@@ -5,9 +5,14 @@ import os
 from typing import TypeVar
 
 EARTH_RADIUS_M = 6371000
-MAX_RECURSION_DEPTH = 100 #sys.getrecursionlimit() - 10
+MAX_RECURSION_DEPTH = 100  # sys.getrecursionlimit() - 10
 
 T = TypeVar('T')
+
+
+def get(value: T | None, default: T) -> T:
+    """Get value or default if value is None."""
+    return default if value is None else value
 
 
 def safe(value: T | None) -> T:
@@ -69,9 +74,8 @@ def format_timedelta(total_seconds: float | int) -> str:
             parts.append(f"{minutes:.0f}min")
     # Show seconds if any higher units are shown or seconds are non-zero
     if seconds > 0 or minutes > 0 or hours > 0 or days > 0:
-        if not(days > 0 or hours > 0):
+        if not (days > 0 or hours > 0):
             parts.append(f"{seconds:02.0f}" if seconds != 0 else "00")
-
 
     # Join the parts with commas
     return ''.join(parts) if parts else '0s'

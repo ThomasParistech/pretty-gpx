@@ -2,9 +2,8 @@
 """Ui Plot."""
 import base64
 import io
-from collections.abc import Callable
 from io import BytesIO
-from typing import TypeVar
+from typing import Protocol
 
 import cairosvg
 import matplotlib
@@ -23,7 +22,11 @@ W_DISPLAY_PIX = 800  # Display width of the preview (in pix)
 LOW_RES_DPI = 100  # DPI of the poster's preview
 HIGH_RES_DPI = 400  # DPI of the final poster
 
-T = TypeVar('T')
+
+class DrawFunctionProtocol(Protocol):
+    """Protocol for the Draw Function."""
+
+    def __call__(self, fig: Figure, ax: Axes, *, high_resolution: bool) -> None: ...  # noqa: D102
 
 
 class UiPlot:
@@ -44,32 +47,32 @@ class UiPlot:
 
     @staticmethod
     @profile_parallel
-    def draw_png(func: Callable[[Figure, Axes, T], None], data: T) -> str:
+    def draw_png(func: DrawFunctionProtocol) -> str:
         """Update the plot."""
         matplotlib.use('Agg')
         fig, ax = plt.subplots()
-        func(fig, ax, data)
+        func(fig, ax, high_resolution=False)
         base64_image = fig_to_rasterized_base64(fig, dpi=100)
         return f'data:image/png;base64,{base64_image}'
 
     @staticmethod
     @profile_parallel
-    def draw_svg(func: Callable[[Figure, Axes, T], None], data: T) -> bytes:
+    def draw_svg(func: DrawFunctionProtocol) -> bytes:
         """Update the plot."""
         matplotlib.use('Agg')
         fig, ax = plt.subplots()
-        func(fig, ax, data)
+        func(fig, ax, high_resolution=True)
         return fig_to_svg_bytes(fig, dpi=HIGH_RES_DPI)
 
-    async def update_preview(self, draw_func: Callable[[Figure, Axes, T], None], data: T) -> None:
+    async def update_preview(self, draw_func: DrawFunctionProtocol) -> None:
         """Draw the figure and rasterize it to update the preview."""
         self.svg_bytes = None
-        self.img.source = await run_cpu_bound_safe("Updating Preview", UiPlot.draw_png, draw_func, data)
+        self.img.source = await run_cpu_bound_safe("Updating Preview", UiPlot.draw_png, draw_func)
 
-    async def render_svg(self, draw_func: Callable[[Figure, Axes, T], None], data: T) -> bytes:
+    async def render_svg(self, draw_func: DrawFunctionProtocol) -> bytes:
         """Draw the figure and return the SVG bytes."""
         if self.svg_bytes is None:
-            self.svg_bytes = await run_cpu_bound_safe("Rendering Vectorized Poster", UiPlot.draw_svg, draw_func, data)
+            self.svg_bytes = await run_cpu_bound_safe("Rendering Vectorized Poster", UiPlot.draw_svg, draw_func)
 
         return self.svg_bytes
 

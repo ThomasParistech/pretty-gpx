@@ -62,6 +62,8 @@ def get_delta_xy(*, lonlat_1: np.ndarray, lonlat_2: np.ndarray) -> np.ndarray:
     assert_np_shape_endswith(lonlat_2, (2,))
     assert_eq(lonlat_2.ndim, lonlat_1.ndim)
 
+    lonlat_1 = lonlat_1.astype(float)
+    lonlat_2 = lonlat_2.astype(float)
     diffs_xy = EARTH_RADIUS_M*np.deg2rad(lonlat_1 - lonlat_2)
     diffs_xy[..., 0] /= latlon_aspect_ratio(lat=lonlat_1[..., 1])
 

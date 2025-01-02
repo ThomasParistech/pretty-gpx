@@ -4,28 +4,25 @@ import os
 import re
 from dataclasses import dataclass
 from dataclasses import field
-from enum import auto
-from enum import Enum
-from typing import Final
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.path import Path
 
-from pretty_gpx.common.data.overpass_processing import get_polygons_from_relation
-from pretty_gpx.common.data.overpass_processing import get_way_coordinates
-from pretty_gpx.common.data.overpass_request import OverpassQuery
-from pretty_gpx.common.drawing.base_drawing_figure import BaseDrawingFigure
-from pretty_gpx.common.drawing.plt_marker import MarkerType
+from pretty_gpx.common.drawing.utils.scatter_point import ScatterPoint
+from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
 from pretty_gpx.common.gpx.gpx_distance import get_pairwise_distance_m
 from pretty_gpx.common.gpx.gpx_distance import ListLonLat
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
+from pretty_gpx.common.request.gpx_data_cache_handler import GpxDataCacheHandler
+from pretty_gpx.common.request.overpass_processing import get_polygons_from_relation
+from pretty_gpx.common.request.overpass_processing import get_way_coordinates
+from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
+from pretty_gpx.common.utils.utils import safe
 
 CITY_POINTS_OF_INTEREST_CACHE = GpxDataCacheHandler(name='city_pois', extension='.pkl')
 
@@ -33,15 +30,10 @@ CITY_POINTS_OF_INTEREST_WAYS_ARRAY_NAME = "city_pois_ways"
 CITY_POINTS_OF_INTEREST_RELATIONS_ARRAY_NAME = "city_pois_relations"
 
 
-class CityPoiCategory(Enum):
-    """City Point of Interest Category."""
-    DEFAULT = auto()
-
-
 @dataclass
 class CandidateCityPoi:
     """Candidate City Point of Interest Data."""
-    category: CityPoiCategory
+    category: ScatterPointCategory
     name: str
     importance: int
     poly_lonlat: ListLonLat
@@ -52,25 +44,10 @@ class CandidateCityPoi:
         self.center_lonlat = (float(avg[0]), float(avg[1]))
 
 
-@dataclass
-class CityPoi:
-    """City Point of Interest Data."""
-    category: CityPoiCategory
-    name: str
-    lat: float
-    lon: float
-
-    # TODO: actually use this marker
-    def get_marker(self) -> Path:
-        """Get the marker for the city poi."""
-        markers: Final[dict[CityPoiCategory, MarkerType]] = {}
-        return markers.get(self.category, MarkerType.MUSEUM).path()
-
-
 @profile
-def prepare_download_city_pois(query: OverpassQuery, bounds: GpxBounds) -> None:
+def prepare_download_city_pois(query: OverpassQuery, gpx_track: GpxTrack) -> None:
     """Add the queries for city pois inside the global OverpassQuery."""
-    cache_pkl = CITY_POINTS_OF_INTEREST_CACHE.get_path(bounds)
+    cache_pkl = CITY_POINTS_OF_INTEREST_CACHE.get_path(gpx_track)
 
     if os.path.isfile(cache_pkl):
         query.add_cached_result(CITY_POINTS_OF_INTEREST_CACHE.name, cache_file=cache_pkl)
@@ -87,13 +64,12 @@ def prepare_download_city_pois(query: OverpassQuery, bounds: GpxBounds) -> None:
             include_way_nodes=True,
             include_relation_members_nodes=True,
             return_geometry=True,
-            bounds=bounds,
+            bounds=gpx_track.get_bounds(),
             add_relative_margin=0.05)
 
 
 @profile
-def process_city_pois(query: OverpassQuery,
-                      bounds: GpxBounds) -> list[CandidateCityPoi]:
+def process_city_pois(query: OverpassQuery, gpx_track: GpxTrack) -> list[ScatterPoint]:
     """Process the overpass API result to get the Points of Interest of a city."""
     if query.is_cached(CITY_POINTS_OF_INTEREST_CACHE.name):
         cache_file = query.get_cache_file(CITY_POINTS_OF_INTEREST_CACHE.name)
@@ -102,7 +78,8 @@ def process_city_pois(query: OverpassQuery,
     with Profiling.Scope("Process Points of Interest"):
         res_ways = query.get_query_result(CITY_POINTS_OF_INTEREST_WAYS_ARRAY_NAME)
 
-        city_pois: list[CandidateCityPoi] = []
+        # Get Candidate City Pois
+        candidates: list[CandidateCityPoi] = []
 
         for way in res_ways.ways:
             importance = __get_importance_score(way.tags)
@@ -110,10 +87,10 @@ def process_city_pois(query: OverpassQuery,
                 lon_lat = get_way_coordinates(way)
                 if len(lon_lat) > 0:
                     assert way.tags.get("name") is not None, way.tags
-                    city_pois.append(CandidateCityPoi(category=CityPoiCategory.DEFAULT,
-                                                      name=str(way.tags.get("name")),
-                                                      importance=importance,
-                                                      poly_lonlat=lon_lat))
+                    candidates.append(CandidateCityPoi(category=ScatterPointCategory.CITY_POI_DEFAULT,
+                                                       name=str(way.tags.get("name")),
+                                                       importance=importance,
+                                                       poly_lonlat=lon_lat))
 
         res_relations = query.get_query_result(CITY_POINTS_OF_INTEREST_RELATIONS_ARRAY_NAME)
         for rel in res_relations.relations:
@@ -124,12 +101,28 @@ def process_city_pois(query: OverpassQuery,
                            for lon, lat in zip(*poly.exterior.xy)]
                 if len(lon_lat) > 0:
                     assert rel.tags.get("name") is not None, rel.tags
-                    city_pois.append(CandidateCityPoi(category=CityPoiCategory.DEFAULT,
-                                                      name=str(rel.tags.get("name")),
-                                                      importance=importance,
-                                                      poly_lonlat=lon_lat))
+                    candidates.append(CandidateCityPoi(category=ScatterPointCategory.CITY_POI_DEFAULT,
+                                                       name=str(rel.tags.get("name")),
+                                                       importance=importance,
+                                                       poly_lonlat=lon_lat))
 
-    cache_pkl = CITY_POINTS_OF_INTEREST_CACHE.get_path(bounds)
+        # Keep only the ones close to the GPX track
+        candidates = __filter_close_gpx(candidates, gpx_track)
+
+        # Apply Non-Maximum Suppression
+        candidates = __nms_city_pois(candidates, gpx_track.get_bounds())
+
+        # Take the n best
+        candidates = __take_n_best(candidates, 6)
+
+        # Convert to ScatterPoint
+        city_pois = [ScatterPoint(name=city_poi.name,
+                                  lat=city_poi.center_lonlat[1],
+                                  lon=city_poi.center_lonlat[0],
+                                  category=city_poi.category)
+                     for city_poi in candidates]
+
+    cache_pkl = CITY_POINTS_OF_INTEREST_CACHE.get_path(gpx_track)
     write_pickle(cache_pkl, city_pois)
     query.add_cached_result(CITY_POINTS_OF_INTEREST_CACHE.name, cache_file=cache_pkl)
     return city_pois
@@ -162,16 +155,6 @@ IMPORTANCE_NAME_TAG_PATTERN = re.compile(
 )
 
 
-def get_gpx_track_city_pois(candidate_city_pois: list[CandidateCityPoi],
-                            gpx: GpxTrack,
-                            paper_fig: BaseDrawingFigure) -> list[CityPoi]:
-    """Filter the city pois that are close to the gpx track."""
-    close_pois = __filter_close_gpx(candidate_city_pois, gpx)
-    nms_pois = __nms_city_pois(close_pois, paper_fig)
-    best_pois = __take_n_best(nms_pois, 10)
-    return best_pois
-
-
 def __get_importance_score(tags: dict[str, str]) -> int | None:
     """Returns an importance score based on specific tags and their occurrences."""
     # Count occurrences of relevant tags
@@ -199,7 +182,7 @@ def __filter_close_gpx(city_pois: list[CandidateCityPoi], gpx: GpxTrack) -> list
     filtered_city_pois: list[CandidateCityPoi] = []
 
     for city_poi in city_pois:
-        min_distance = np.min(gpx.get_distances_m(city_poi.poly_lonlat))
+        min_distance = np.min(gpx.get_distances_m(targets_lon_lat=city_poi.poly_lonlat))
 
         if city_poi.importance > 70:
             ths_m = 800
@@ -214,19 +197,12 @@ def __filter_close_gpx(city_pois: list[CandidateCityPoi], gpx: GpxTrack) -> list
     return filtered_city_pois
 
 
-def __get_nms_ths(paper_fig: BaseDrawingFigure) -> float:
-    """Get the Non-Maximum Suppression threshold."""
-    m_per_mm = paper_fig.get_scale()
-    diag_m = paper_fig.paper_size.diag_mm * m_per_mm
-    return 0.02*diag_m
-
-
-def __nms_city_pois(city_pois: list[CandidateCityPoi], paper_fig: BaseDrawingFigure) -> list[CandidateCityPoi]:
+def __nms_city_pois(city_pois: list[CandidateCityPoi], bounds: GpxBounds) -> list[CandidateCityPoi]:
     """Apply a Non-Maximum Suppression on the city pois."""
     if len(city_pois) == 0:
         return []
 
-    ths = __get_nms_ths(paper_fig)
+    ths = 0.02 * bounds.diagonal_m
 
     city_pois = sorted(city_pois, key=lambda x: x.importance, reverse=True)
 
@@ -241,22 +217,20 @@ def __nms_city_pois(city_pois: list[CandidateCityPoi], paper_fig: BaseDrawingFig
     return [city_poi for city_poi, keep_it in zip(city_pois, keep) if keep_it]
 
 
-def __take_n_best(city_pois: list[CandidateCityPoi], n: int) -> list[CityPoi]:
+def __take_n_best(city_pois: list[CandidateCityPoi], n: int) -> list[CandidateCityPoi]:
     """Take the n best city pois."""
     city_pois = sorted(city_pois, key=lambda x: x.importance, reverse=True)
-    return [CityPoi(category=city_poi.category, name=city_poi.name,
-                    lat=city_poi.center_lonlat[1], lon=city_poi.center_lonlat[0])
-            for city_poi in city_pois[:n]]
+    return city_pois[:n]
 
 
-def __debug(city_pois: list[CandidateCityPoi] | list[CityPoi], gpx: GpxTrack) -> None:
+def __debug(city_pois: list[CandidateCityPoi] | list[ScatterPoint], gpx: GpxTrack) -> None:
     plt.figure()
     gpx.plot()
 
     for city_poi in city_pois:
-        if isinstance(city_poi, CityPoi):
+        if isinstance(city_poi, ScatterPoint):
             plt.plot(city_poi.lon, city_poi.lat, 'o')
-            plt.text(city_poi.lon, city_poi.lat, city_poi.name)
+            plt.text(city_poi.lon, city_poi.lat, safe(city_poi.name))
         else:
             plt.plot(*zip(*city_poi.poly_lonlat), '.')
             plt.plot(*city_poi.center_lonlat, 'ok')

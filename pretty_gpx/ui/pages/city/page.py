@@ -1,67 +1,66 @@
 #!/usr/bin/python3
-"""City UI."""
-
+"""City Page."""
 from dataclasses import dataclass
 
+from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CITY_COLOR_THEMES
 from pretty_gpx.rendering_modes.city.drawing.city_drawer import CityDrawer
-from pretty_gpx.rendering_modes.city.drawing.city_drawer import CityDrawingInputs
-from pretty_gpx.ui.pages.template.elements.ui_input import UiInputInt
-from pretty_gpx.ui.pages.template.ui_cache import UiCache
+from pretty_gpx.rendering_modes.city.drawing.city_params import CityParams
+from pretty_gpx.ui.pages.template.ui_input import UiInputInt
 from pretty_gpx.ui.pages.template.ui_manager import UiManager
 
 
 def city_page() -> None:
     """City Page."""
-    CityUiManager()
-
-
-@dataclass
-class CityUiCache(UiCache[CityDrawer]):
-    """City Ui Cache."""
-
-    @staticmethod
-    def get_drawer_cls() -> type[CityDrawer]:
-        """Return the template Drawer class (Because Python doesn't allow to use T as a type)."""
-        return CityDrawer
+    NewCityUiManager()
 
 
 @dataclass(slots=True)
-class CityUiManager(UiManager[CityUiCache]):
+class NewCityUiManager(UiManager[CityDrawer]):
     """City Ui Manager."""
     uphill: UiInputInt
-    duration_s: UiInputInt
 
-    def __init__(self, cache: CityUiCache = CityUiCache()) -> None:
+    def __init__(self) -> None:
+        drawer = CityDrawer(params=CityParams.default(), top_ratio=0.18, bot_ratio=0.22, margin_ratio=0.1)
+
         # Dataclass doesn't handle __slots__  correctly and calling super() when slots=True raises an error
-        super(CityUiManager, self).__init__(cache)  # noqa : UP008
+        super(NewCityUiManager, self).__init__(drawer)  # noqa : UP008
 
         with self.subclass_column:
             self.uphill = UiInputInt.create(label='D+ (m)', value="", on_enter=self.on_click_update,
-                                            tooltip="Press Enter to override elevation from GPX",)
-            self.duration_s = UiInputInt.create(label='Duration (s)', value="", on_enter=self.on_click_update,
-                                                tooltip="Press Enter to override duration from GPX",)
+                                            tooltip="Press Enter to override elevation from GPX")
 
     @staticmethod
     def get_chat_msg() -> list[str]:
-        """Return the chat message."""
+        """Return the chat message, introducing the page."""
         return ['Welcome 😀\nCreate a custom poster from\n'
                 'your cycling/running GPX file! 🚵 🥾',
                 'Customize your poster below and download\n']
 
-    async def on_click_update(self) -> None:
-        """Asynchronously update the UiPlot."""
-        await self.plot.update_preview(self.cache.safe_drawer.draw, self.get_inputs())
+    def update_drawer_params(self) -> None:
+        """Update the drawer parameters based on the UI inputs."""
+        theme = CITY_COLOR_THEMES[self.theme.value]
 
-    async def render_download_svg_bytes(self) -> bytes:
-        """Asynchronously download bytes of SVG image using UiPlot."""
-        return await self.plot.render_svg(self.cache.safe_drawer.draw, self.get_inputs())
+        self.drawer.params.track_color = theme.track_color
 
-    def get_inputs(self) -> CityDrawingInputs:
-        """Return the inputs."""
-        colors = CITY_COLOR_THEMES[self.theme.value]
-        return CityDrawingInputs(theme_colors=colors,
-                                 title_txt=self.title.value,
-                                 uphill_m=self.uphill.value,
-                                 dist_km=self.dist_km.value,
-                                 duration_s=self.duration_s.value)
+        self.drawer.params.city_background_color = theme.background_color
+        self.drawer.params.city_farmland_color = theme.farmland_color
+        self.drawer.params.city_rivers_color = theme.rivers_color
+        self.drawer.params.city_forests_color = theme.forests_color
+        self.drawer.params.city_dark_mode = theme.dark_mode
+
+        self.drawer.params.profile_fill_color = theme.track_color
+        self.drawer.params.profile_font_color = theme.background_color
+        self.drawer.params.centered_title_font_color = theme.point_color
+
+        for cat in [ScatterPointCategory.CITY_BRIDGE,
+                    ScatterPointCategory.CITY_POI_DEFAULT,
+                    ScatterPointCategory.CITY_POI_GREAT,
+                    ScatterPointCategory.START,
+                    ScatterPointCategory.END]:
+            self.drawer.params.scatter_params[cat].color = theme.point_color
+            self.drawer.params.profile_scatter_params[cat].color = theme.point_color
+
+        self.drawer.params.user_dist_km = self.dist_km.value
+        self.drawer.params.user_uphill_m = self.uphill.value
+        self.drawer.params.user_title = self.title.value

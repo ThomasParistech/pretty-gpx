@@ -2,8 +2,8 @@
 """Test Bridges."""
 import os
 
-from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
+from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.asserts import assert_same_keys
 from pretty_gpx.common.utils.paths import RUNNING_DIR
 from pretty_gpx.rendering_modes.city.data.bridges import prepare_download_city_bridges

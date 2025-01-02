@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """Test Markers."""
-from pretty_gpx.common.drawing.plt_marker import MarkerType
+from pretty_gpx.common.drawing.utils.plt_marker import MarkerType
 from pretty_gpx.common.utils.asserts import assert_not_empty
 
 
