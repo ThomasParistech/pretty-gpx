@@ -21,6 +21,20 @@ def safe(value: T | None) -> T:
     return value
 
 
+def str_to_float(s: str) -> float | None:
+    """Convert a string to an float."""
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def str_to_int(s: str) -> int | None:
+    """Convert a string to an integer."""
+    f = str_to_float(s)
+    return None if f is None else int(f)
+
+
 def mm_to_inch(mm: float) -> float:
     """Convert Millimeters to Inches."""
     return mm/25.4
