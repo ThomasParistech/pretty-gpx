@@ -4,8 +4,8 @@
 from dataclasses import dataclass
 from typing import Final
 
-from pretty_gpx.common.drawing.color_theme import DarkTheme
-from pretty_gpx.common.drawing.color_theme import LightTheme
+from pretty_gpx.common.drawing.utils.color_theme import DarkTheme
+from pretty_gpx.common.drawing.utils.color_theme import LightTheme
 
 
 @dataclass

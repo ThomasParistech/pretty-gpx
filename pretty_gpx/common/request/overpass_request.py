@@ -85,7 +85,6 @@ class OverpassQuery:
         self.query_dict[array_name] = query
         logger.info(f"A query {array_name} has been added to the total query")
 
-
     def add_around_ways_overpass_query(self,
                                        array_name: str,
                                        query_elements: list[str],
@@ -128,9 +127,6 @@ node(w.item)->.item_nodes;
 .matching_items_{array_name} out center;"""
         self.query_dict[array_name] = query
         logger.info(f"A query {array_name} has been added to the total query")
-
-
-
 
     def add_cached_result(self,
                           array_name: str,

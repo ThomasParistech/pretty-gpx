@@ -4,6 +4,10 @@
 from geopy.geocoders import Nominatim
 from geopy.location import Location
 
+from pretty_gpx.common.drawing.utils.scatter_point import ScatterPoint
+from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
+from pretty_gpx.common.gpx.gpx_distance import get_distance_m
+from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.utils.profile import profile
 
 
@@ -27,3 +31,26 @@ def get_place_name(*, lon: float, lat: float) -> str:
     #         return place_name
 
     raise RuntimeError(f"Place Not found at {lat:.3f}, {lon:.3f}. Got {address}")
+
+
+def get_start_end_named_points(gpx_track: GpxTrack) -> list[ScatterPoint]:
+    """Get the start and end names of a GPX track."""
+    start_lon, start_lat = gpx_track.list_lon[0], gpx_track.list_lat[0]
+    end_lon, end_lat = gpx_track.list_lon[-1], gpx_track.list_lat[-1]
+
+    start = ScatterPoint(name=get_place_name(lon=start_lon, lat=start_lat),
+                         lon=start_lon,
+                         lat=start_lat,
+                         category=ScatterPointCategory.START)
+    end = ScatterPoint(name=None,
+                       lon=start_lon,
+                       lat=start_lat,
+                       category=ScatterPointCategory.END)
+
+    if get_distance_m(lonlat_1=(start_lon, start_lat),
+                      lonlat_2=(end_lon, end_lat)) < 1000:
+        name = get_place_name(lon=end_lon, lat=end_lat)
+        if name != start.name:
+            end.name = name
+
+    return [start, end]

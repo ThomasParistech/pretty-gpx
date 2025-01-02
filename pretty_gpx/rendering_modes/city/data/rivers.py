@@ -4,14 +4,14 @@ import os
 
 import numpy as np
 
-from pretty_gpx.common.data.overpass_processing import create_patch_collection_from_polygons
-from pretty_gpx.common.data.overpass_processing import get_polygons_from_closed_ways
-from pretty_gpx.common.data.overpass_processing import get_polygons_from_relations
-from pretty_gpx.common.data.overpass_processing import get_rivers_polygons_from_lines
-from pretty_gpx.common.data.overpass_processing import SurfacePolygons
-from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
+from pretty_gpx.common.request.gpx_data_cache_handler import GpxDataCacheHandler
+from pretty_gpx.common.request.overpass_processing import create_patch_collection_from_polygons
+from pretty_gpx.common.request.overpass_processing import get_polygons_from_closed_ways
+from pretty_gpx.common.request.overpass_processing import get_polygons_from_relations
+from pretty_gpx.common.request.overpass_processing import get_rivers_polygons_from_lines
+from pretty_gpx.common.request.overpass_processing import SurfacePolygons
+from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle

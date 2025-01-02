@@ -1,12 +1,10 @@
 #!/usr/bin/python3
 """Matplotlib Marker."""
-
 import os
 from enum import auto
 from enum import Enum
 from typing import Final
 
-import matplotlib as mpl
 import numpy as np
 from matplotlib.path import Path
 from svgpath2mpl import parse_path
@@ -21,6 +19,7 @@ class MarkerType(Enum):
     HOUSE = auto()
     BRIDGE = auto()
     MUSEUM = auto()
+    CAMPING = auto()
 
     TRIANGLE = auto()
     SQUARE = auto()
@@ -33,19 +32,21 @@ class MarkerType(Enum):
 
 def _load_marker(m: MarkerType) -> Path:
     """Generate a Matplotlib marker from an SVG path."""
-    svg_path = os.path.join(ICONS_DIR, f"{m.name.lower()}.svg")
+    # See examples at https://www.iconfinder.com/
 
-    # See https://www.iconfinder.com/
-    svg_paths, _ = svg2paths(svg_path)
-
+    # Load SVG
+    svg_filepath = os.path.join(ICONS_DIR, f"{m.name.lower()}.svg")
+    svg_paths, _ = svg2paths(svg_filepath)
     image_marker = parse_path(" ".join([p.d() for p in svg_paths]))
 
     # Center
-    image_marker.vertices -= np.mean(image_marker.vertices, axis=0)
+    min_xy = np.min(image_marker.vertices, axis=0)
+    max_xy = np.max(image_marker.vertices, axis=0)
+    center_xy = 0.5 * (min_xy + max_xy)
+    image_marker.vertices -= center_xy
 
-    # Rotate 180° and flip horizontally
-    image_marker = image_marker.transformed(mpl.transforms.Affine2D().rotate_deg(180))
-    image_marker = image_marker.transformed(mpl.transforms.Affine2D().scale(-1, 1))
+    # Flip vertically
+    image_marker.vertices[:, 1] *= -1
 
     # No need to scale, Matplotlib will normalized it to the box (-0.5, 0.5)x(-0.5, 0.5)
     return image_marker

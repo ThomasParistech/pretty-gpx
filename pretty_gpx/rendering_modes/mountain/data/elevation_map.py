@@ -8,9 +8,10 @@ import rasterio
 from dem_stitcher import stitch_dem
 
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
+from pretty_gpx.common.request.gpx_data_cache_handler import GpxDataCacheHandler
 from pretty_gpx.common.utils.asserts import assert_close
 from pretty_gpx.common.utils.logger import logger
+from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
 
 ELEVATION_CACHE = GpxDataCacheHandler(name='elevation', extension='.tif')
@@ -44,6 +45,7 @@ def download_elevation_map(bounds: GpxBounds) -> np.ndarray:
     return elevation
 
 
+@profile
 def rescale_elevation(elevation: np.ndarray, scale: float) -> np.ndarray:
     """Upscale/Downscale elevation map."""
     new_h = int(scale*elevation.shape[0])

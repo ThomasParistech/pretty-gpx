@@ -15,7 +15,6 @@ from pretty_gpx.common.gpx.gpx_distance import latlon_aspect_ratio
 from pretty_gpx.common.gpx.gpx_distance import LocalProjectionXY
 from pretty_gpx.common.gpx.gpx_io import load_gpxpy
 from pretty_gpx.common.utils.asserts import assert_close
-from pretty_gpx.common.utils.asserts import assert_not_empty
 from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.utils import safe
@@ -36,6 +35,14 @@ class GpxTrack:
 
     def __post_init__(self) -> None:
         assert_same_len((self.list_lon, self.list_lat, self.list_ele_m, self.list_cumul_dist_km))
+
+    def __len__(self) -> int:
+        return len(self.list_lon)
+
+    @property
+    def dist_km(self) -> float:
+        """Get total distance in km."""
+        return self.list_cumul_dist_km[-1]
 
     def get_bounds(self) -> GpxBounds:
         """Get the bounds of the track."""
@@ -85,31 +92,6 @@ class GpxTrack:
                                     lonlat_2=(self.list_lon[-1], self.list_lat[-1]))
         return distance_m < ths_m
 
-    @staticmethod
-    def merge(list_gpx_track: list['GpxTrack']) -> 'GpxTrack':
-        """Merge multiple GpxTrack into one."""
-        assert_not_empty(list_gpx_track)
-
-        list_cumul_d = list_gpx_track[0].list_cumul_dist_km
-        for gpx in list_gpx_track[1:]:
-            list_cumul_d.extend([cumul_d + list_cumul_d[-1] for cumul_d in gpx.list_cumul_dist_km])
-
-        durations = [gpx.duration_s for gpx in list_gpx_track if gpx.duration_s is not None]
-        total_duration = sum(durations) if len(durations) == len(list_gpx_track) else None
-
-        return GpxTrack(list_lon=[lon
-                                  for gpx in list_gpx_track
-                                  for lon in gpx.list_lon],
-                        list_lat=[lat
-                                  for gpx in list_gpx_track
-                                  for lat in gpx.list_lat],
-                        list_ele_m=[ele
-                                    for gpx in list_gpx_track
-                                    for ele in gpx.list_ele_m],
-                        list_cumul_dist_km=list_cumul_d,
-                        uphill_m=sum(gpx.uphill_m for gpx in list_gpx_track),
-                        duration_s=total_duration)
-
     def plot(self, style: str = ".:") -> None:
         """Plot the track."""
         plt.plot(self.list_lon, self.list_lat, style)
@@ -117,7 +99,7 @@ class GpxTrack:
         plt.ylabel('Latitude (in °)')
         plt.gca().set_aspect(latlon_aspect_ratio(lat=self.list_lat[0]))
 
-    def get_distances_m(self, targets_lon_lat: list[tuple[float, float]]) -> list[float]:
+    def get_distances_m(self, *, targets_lon_lat: list[tuple[float, float]]) -> list[float]:
         """Get the distances in meters between the track and a list of lon/lat points."""
         # N.B. Since the GpxTrack might be sparse, espcially along linear segments, it's more accurate to convert it
         # to a Shapely LineString and compute the distances to the points using Shapely.
@@ -134,7 +116,6 @@ class GpxTrack:
     def get_overpass_lonlat_str(self) -> str:
         """Get the concatenation of points in text to send it to overpass."""
         return ','.join(f"{lat:.5f},{lon:.5f}" for lat, lon in zip(self.list_lat, self.list_lon))
-
 
 
 def append_track_to_gpx_track(gpx_track: GpxTrack, track_points: list[GPXTrackPoint]) -> None:

@@ -4,6 +4,8 @@ from typing import Final
 
 import numpy as np
 
+from pretty_gpx.common.utils.profile import profile
+
 AZIMUTHS: Final[dict[str, int]] = {
     "North": 0,
     "East": 90,
@@ -21,7 +23,7 @@ class CachedHillShading:
 
     The sun is forced at altitude zero to increase the contrast.
     """
-
+    @profile
     def __init__(self, elevation: np.ndarray) -> None:
         x, y = np.gradient(elevation)
         slope = np.pi / 2.0 - np.arctan(np.sqrt(x*x + y*y))
@@ -31,6 +33,7 @@ class CachedHillShading:
         self.last_azimuth: int = -1
         self.last_img: np.ndarray = self.render_grey(0)
 
+    @profile
     def render_grey(self, azimuth: int) -> np.ndarray:
         """Render floating-point grayscale hillshade (inside [0., 1.])."""
         if self.last_azimuth == azimuth:

@@ -153,6 +153,15 @@ def assert_np_shape_endswith(x: np.ndarray, shape: OptionalShape, *, msg: str = 
     assert np.all([n1 == n2 or n2 is None for n1, n2 in zip(x.shape[-len(shape):], shape)]), m
 
 
+def assert_in(val: Any, a: dict[Any, Any] | Iterable[Any], *, msg: str = "") -> None:
+    """Assert value is contained in sequence."""
+    m = _clean_msg(msg)
+    if isinstance(a, dict):
+        a = a.keys()
+    list_str = ',\n'.join(map(str, a))
+    assert val in a, m+f"{val} is not in:\n{list_str}"
+
+
 def assert_same_keys(a: dict[Any, Any] | Iterable[Any],
                      b: dict[Any, Any] | Iterable[Any],
                      *, sorted: bool = False, msg: str = "") -> None:

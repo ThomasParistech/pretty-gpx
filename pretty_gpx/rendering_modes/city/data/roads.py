@@ -6,11 +6,11 @@ from enum import Enum
 
 from tqdm import tqdm
 
-from pretty_gpx.common.data.overpass_processing import get_ways_coordinates_from_results
-from pretty_gpx.common.data.overpass_request import OverpassQuery
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
-from pretty_gpx.common.gpx.gpx_data_cache_handler import GpxDataCacheHandler
 from pretty_gpx.common.gpx.gpx_distance import ListLonLat
+from pretty_gpx.common.request.gpx_data_cache_handler import GpxDataCacheHandler
+from pretty_gpx.common.request.overpass_processing import get_ways_coordinates_from_results
+from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
