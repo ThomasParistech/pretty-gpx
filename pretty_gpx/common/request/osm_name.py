@@ -48,7 +48,7 @@ def get_shortest_name(nwr: Node | Way | Relation) -> str | None:
     # https://www.openstreetmap.org/way/56131470
     # "name"      : École normale supérieure - Université PSL
     # "short_name": ENS
-    # "alt_name"  :	École normale supérieure;Ulm;ENS Ulm;Normale sup';Normale sup' Ulm;ENS Campus d'Ulm
+    # "alt_name"  : École normale supérieure;Ulm;ENS Ulm;Normale sup';Normale sup' Ulm;ENS Campus d'Ulm
     # "wikipedia" : fr:École normale supérieure (Paris)
 
     tags = nwr.tags
