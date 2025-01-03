@@ -72,14 +72,14 @@ def process_mountain_huts(query: OverpassQuery, multi_gpx_track: MultiGpxTrack) 
 
         # Get Huts
         huts: list[ScatterPoint] = []
-        candidates_lonlat_np = np.array([[h.lon, h.lat] for h in candidates])
         for i in range(len(multi_gpx_track) - 1):
             crt_track = multi_gpx_track.tracks[i]
             next_track = multi_gpx_track.tracks[i+1]
             hut_lon = 0.5*(crt_track.list_lon[-1] + next_track.list_lon[0])
             hut_lat = 0.5*(crt_track.list_lat[-1] + next_track.list_lat[0])
 
-            distances_m = get_distance_m(lonlat_1=(hut_lon, hut_lat), lonlat_2=candidates_lonlat_np)
+            distances_m = get_distance_m(lonlat_1=(hut_lon, hut_lat),
+                                         lonlat_2=np.array([[h.lon, h.lat] for h in candidates]))
             closest_idx = int(np.argmin(distances_m))
             closest_distance = distances_m[closest_idx]
             if closest_distance < 300:

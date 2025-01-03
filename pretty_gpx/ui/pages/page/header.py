@@ -38,7 +38,7 @@ def add_header(body: Callable[[], None], mode_name: str | None) -> Callable[[], 
                         svg_to_html(mode.icon_svg).classes(f"{icon_shape} fill-black")
                     else:
                         with ui.link(target=mode.page_path).classes('mx-2'):
-                            ui.tooltip(mode.name.capitalize()).classes('text-lg')
+                            ui.tooltip(mode.name.title()).classes('text-lg')
                             svg_to_html(mode.icon_svg).classes(f"{icon_shape} fill-white")
         body()
 

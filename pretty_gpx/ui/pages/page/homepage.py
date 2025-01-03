@@ -19,7 +19,7 @@ def homepage() -> None:
                                                                      f"{BOX_SHADOW_STYLE};"):
                         ui.image(mode.example_svg).style("max-width: 100%; height: auto;")
 
-                ui.label(mode.name.capitalize()).style('font-family: "Roboto", sans-serif; font-size: 24px;')
+                ui.label(mode.name.title()).style('font-family: "Roboto", sans-serif; font-size: 24px;')
 
 
 def create_homepage() -> None:

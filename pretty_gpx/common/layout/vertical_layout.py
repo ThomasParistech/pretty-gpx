@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
+from pretty_gpx.common.gpx.multi_gpx_track import MultiGpxTrack
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.asserts import assert_in_range
@@ -62,7 +63,7 @@ class VerticalLayout:
                          lat_min=self.background_bounds.lat_min, lat_max=bot_mid_lat)
 
     @staticmethod
-    def from_track(gpx_track: GpxTrack,
+    def from_track(gpx_track: GpxTrack | MultiGpxTrack,
                    paper: PaperSize,
                    top_ratio: float,
                    bot_ratio: float,
@@ -113,7 +114,7 @@ class VerticalLayoutUnion:
     union_bounds: GpxBounds
 
     @staticmethod
-    def from_track(gpx_track: GpxTrack,
+    def from_track(gpx_track: GpxTrack | MultiGpxTrack,
                    *,
                    top_ratio: float,
                    bot_ratio: float,
