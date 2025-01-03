@@ -15,6 +15,7 @@ from pretty_gpx.common.gpx.gpx_distance import get_pairwise_distance_m
 from pretty_gpx.common.gpx.gpx_distance import ListLonLat
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.request.gpx_data_cache_handler import GpxDataCacheHandler
+from pretty_gpx.common.request.osm_name import get_shortest_name
 from pretty_gpx.common.request.overpass_processing import get_polygons_from_relation
 from pretty_gpx.common.request.overpass_processing import get_way_coordinates
 from pretty_gpx.common.request.overpass_request import OverpassQuery
@@ -86,9 +87,8 @@ def process_city_pois(query: OverpassQuery, gpx_track: GpxTrack) -> list[Scatter
             if importance is not None:
                 lon_lat = get_way_coordinates(way)
                 if len(lon_lat) > 0:
-                    assert way.tags.get("name") is not None, way.tags
                     candidates.append(CandidateCityPoi(category=ScatterPointCategory.CITY_POI_DEFAULT,
-                                                       name=str(way.tags.get("name")),
+                                                       name=safe(get_shortest_name(way)),
                                                        importance=importance,
                                                        poly_lonlat=lon_lat))
 
@@ -100,9 +100,8 @@ def process_city_pois(query: OverpassQuery, gpx_track: GpxTrack) -> list[Scatter
                            for poly in get_polygons_from_relation(rel)
                            for lon, lat in zip(*poly.exterior.xy)]
                 if len(lon_lat) > 0:
-                    assert rel.tags.get("name") is not None, rel.tags
                     candidates.append(CandidateCityPoi(category=ScatterPointCategory.CITY_POI_DEFAULT,
-                                                       name=str(rel.tags.get("name")),
+                                                       name=safe(get_shortest_name(rel)),
                                                        importance=importance,
                                                        poly_lonlat=lon_lat))
 
