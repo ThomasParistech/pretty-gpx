@@ -239,8 +239,9 @@ def merge_ways_closed_shapes(segments: list[list[RelationWayGeometryValue]],
 
 
 @profile
-def get_members_from_relation(relation: Relation, recursion_depth: int = 0) -> tuple[list[list[RelationWayGeometryValue]],
-                                                                                     list[list[RelationWayGeometryValue]]]:
+def get_members_from_relation(relation: Relation,
+                              recursion_depth: int = 0) -> tuple[list[list[RelationWayGeometryValue]],
+                                                                 list[list[RelationWayGeometryValue]]]:
     """Get the members from a relation and classify them by their role."""
     relation_members = relation.members
     outer_geometry_l: list[list[RelationWayGeometryValue]] = []
