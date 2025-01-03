@@ -85,6 +85,7 @@ class AnnotatedScatterAll:
                      points: list[ScatterPoint],
                      params: AnnotatedScatterAllParamsProtocol) -> 'AnnotatedScatterAll':
         """Initialize Annotated Scatter All."""
+        ScatterPoint.log(points)
         input = setup_text_allocation(paper_size, points, params)
         output = allocate_text(input, paper_size, background_bounds, mid_bounds)
         scatters = finalize_text_allocation(paper_size, points, input, output)

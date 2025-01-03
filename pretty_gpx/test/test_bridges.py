@@ -28,7 +28,7 @@ def test_chicago_bridges() -> None:
     """Test Chicago Bridges."""
     __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_chicago.gpx"),
                         {'William P. Fahey Bridge',
-                         'Bataan-Corregidor Memorial Bridge',
+                         'State Street Bridge (Chicago)',
                          'Marshall Suloway Bridge',
                          'Wells Street Bridge',
                          'Adams Street Bridge',
@@ -45,9 +45,9 @@ def test_paris_bridges() -> None:
 def test_new_york_bridges() -> None:
     """Test New York Bridges."""
     # TODO: Fix the bridge extraction
-    # Current solution misses "Verrazzano-Narrows Bridge" and incorrectly includes "Robert F. Kennedy Bridge"
+    # Current solution misses "Verrazzano-Narrows Bridge" and incorrectly includes "RFK Bridge"
     __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_new_york.gpx"),
-                        {"Robert F. Kennedy Bridge",
+                        {"RFK Bridge",
                          "Madison Avenue Bridge",
                          "Pulaski Bridge",
                          "Willis Avenue Bridge",

@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """Overpass Processing."""
-
 from dataclasses import dataclass
 from typing import cast
 from typing import Generic
@@ -23,6 +22,7 @@ from shapely import Polygon as ShapelyPolygon
 from shapely.prepared import prep
 
 from pretty_gpx.common.gpx.gpx_distance import ListLonLat
+from pretty_gpx.common.request.osm_name import get_shortest_name
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.utils import are_close
@@ -63,7 +63,7 @@ class Segment(Generic[T]):
 
 
 def simplify_ways(coordinates: list[ListLonLat],
-                  tolerance_m: float=5) -> list[ListLonLat]:
+                  tolerance_m: float = 5) -> list[ListLonLat]:
     """Simplify a list of ways using Douglas-Peucker algorithm from shapely."""
     tolerance = np.rad2deg(tolerance_m/EARTH_RADIUS_M)
     total_hausdorff_distance = 0
@@ -216,7 +216,7 @@ def merge_ways_closed_shapes(segments: list[list[RelationWayGeometryValue]],
         segments = merge_ways(segments, eps=eps, verbose=False)
         for segment in segments:
             if not is_a_closed_shape(segment, eps):
-                nb_open_geom += 1          
+                nb_open_geom += 1
 
         all_closed = nb_open_geom == 0
         depth += 1
@@ -239,8 +239,9 @@ def merge_ways_closed_shapes(segments: list[list[RelationWayGeometryValue]],
 
 
 @profile
-def get_members_from_relation(relation: Relation, recursion_depth: int=0) -> tuple[list[list[RelationWayGeometryValue]],
-                                                                                  list[list[RelationWayGeometryValue]]]:
+def get_members_from_relation(relation: Relation,
+                              recursion_depth: int = 0) -> tuple[list[list[RelationWayGeometryValue]],
+                                                                 list[list[RelationWayGeometryValue]]]:
     """Get the members from a relation and classify them by their role."""
     relation_members = relation.members
     outer_geometry_l: list[list[RelationWayGeometryValue]] = []
@@ -320,13 +321,13 @@ def remove_segment_from_hash(hash_table: HashTable, segment_index: int, point_ha
     if point_hash in hash_table:
         hash_table[point_hash] = [entry for entry in hash_table[point_hash] if entry[0] != segment_index]
         if not hash_table[point_hash]:
-                del hash_table[point_hash]
+            del hash_table[point_hash]
 
 
 def get_neighbor_hashes(point_hash: tuple[int, int]) -> list[tuple[int, int]]:
     """Get neighbor hashes of a point."""
     return [
-         point_hash,
+        point_hash,
         (point_hash[0]-1, point_hash[1]),
         (point_hash[0]+1, point_hash[1]),
         (point_hash[0], point_hash[1]-1),
@@ -336,6 +337,7 @@ def get_neighbor_hashes(point_hash: tuple[int, int]) -> list[tuple[int, int]]:
         (point_hash[0]+1, point_hash[1]-1),
         (point_hash[0]+1, point_hash[1]+1)
     ]
+
 
 def try_merge_at_point(current_segment: Segment,
                        point_type: str,
@@ -348,26 +350,26 @@ def try_merge_at_point(current_segment: Segment,
     current_point = current_segment.end if is_end_point else current_segment.start
     point_hash = hash_point(current_point, eps)
     neighbor_hashes = get_neighbor_hashes(point_hash)
-    
+
     for neighbor_hash in neighbor_hashes:
         if neighbor_hash not in hash_table:
             continue
-            
+
         for j, end_type in hash_table[neighbor_hash]:
             next_segment = segments[j]
             if next_segment.merged:
                 continue
-                
+
             compare_point = next_segment.start if end_type == 'start' else next_segment.end
             if not points_are_close(current_point, compare_point, eps=eps):
                 continue
-                
+
             next_segment.merged = True
             next_start_hash = hash_point(next_segment.start, eps)
             next_end_hash = hash_point(next_segment.end, eps)
             remove_segment_from_hash(hash_table, j, next_start_hash)
             remove_segment_from_hash(hash_table, j, next_end_hash)
-            
+
             # Update geometry and segment depending on the typology of the merge
             if is_end_point:
                 if end_type == 'end':
@@ -381,15 +383,14 @@ def try_merge_at_point(current_segment: Segment,
                 merged_geom = next_segment.geom[:-1] + merged_geom
                 current_segment_start = next_segment.end if end_type == 'start' else next_segment.start
                 current_segment_end = current_segment.end
-            
+
             next_segment.start = current_segment_start
             next_segment.end = current_segment_end
-            
+
             return True, merged_geom, next_segment
 
     # If no success return a dummy segment
-    return False, merged_geom, Segment((0,0),(0,0),[])
-
+    return False, merged_geom, Segment((0, 0), (0, 0), [])
 
 
 def merge_segments_from_hash(segments: list[Segment],
@@ -416,7 +417,7 @@ def merge_segments_from_hash(segments: list[Segment],
         keep_merging = True
         while keep_merging:
             keep_merging = False
-            
+
             # Try merging at both end and start points
             for point_type in ['end', 'start']:
                 success, merged_geom, next_segment = try_merge_at_point(current_segment=current_segment,
@@ -425,17 +426,17 @@ def merge_segments_from_hash(segments: list[Segment],
                                                                         segments=segments,
                                                                         merged_geom=merged_geom,
                                                                         eps=eps)
-                
+
                 if success:
                     current_segment = next_segment
                     keep_merging = True
-                    break  #Restart the start/end loop to recheck both edges
-        
+                    break  # Restart the start/end loop to recheck both edges
+
         new_start_hash = hash_point(current_segment.start, eps)
         new_end_hash = hash_point(current_segment.end, eps)
         hash_table.setdefault(new_start_hash, []).append((i, 'start'))
         hash_table.setdefault(new_end_hash, []).append((i, 'end'))
-        
+
         merged_segments.append(merged_geom)
 
     return merged_segments
@@ -460,7 +461,7 @@ def merge_ways(geometry_l: list[T],
 @profile
 def create_polygons_from_geom(outer_geoms: list[list[RelationWayGeometryValue]],
                               inner_geoms: list[list[RelationWayGeometryValue]],
-                              id:int=0) -> list[ShapelyPolygon]:
+                              id: int = 0) -> list[ShapelyPolygon]:
     """Create shapely polygons (defined by the exterior shell and the holes) for a single relation."""
     # If multiple outer shells are there, creates multiple polygons instead of a shapely.MultiPolygons
     # Therefore for all relations, the area are described using only ShapelyPolygons
@@ -511,7 +512,7 @@ def create_polygons_from_geom(outer_geoms: list[list[RelationWayGeometryValue]],
 
 
 def get_lat_lon_from_geometry(geom: list[RelationWayGeometryValue],
-                              tolerance_m: float=5) -> ListLonLat:
+                              tolerance_m: float = 5) -> ListLonLat:
     """Returns latitude and longitude points in order to create a shapely shape."""
     point_l = []
     tolerance = np.rad2deg(tolerance_m/EARTH_RADIUS_M)
@@ -547,11 +548,11 @@ def process_around_ways_and_relations(api_result: Result) -> dict[str, tuple[flo
     relations = api_result.relations
     output: dict[str, tuple[float, float]] = dict()
     for way in ways:
-        name = way.tags.get("name","")
-        if name != "":
+        name = get_shortest_name(way)
+        if name is not None:
             output[name] = (way.center_lon, way.center_lat)
     for relation in relations:
-        name = relation.tags.get("name","")
-        if name != "":
+        name = get_shortest_name(relation)
+        if name is not None:
             output[name] = (relation.center_lon, relation.center_lat)
     return output

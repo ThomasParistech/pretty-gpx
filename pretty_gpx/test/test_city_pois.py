@@ -30,8 +30,9 @@ def test_london_city_pois() -> None:
     """Test London City Points of Interest."""
     __core_test_city_pois(os.path.join(RUNNING_DIR, "marathon_london.gpx"),
                           {"Tower of London",
-                           "St Paul's Cathedral",
+                           "Saint Paul's",
                            "Westminster Abbey",
+                           "The Monument",
                            "Buckingham Palace"})
 
 

@@ -10,12 +10,14 @@ from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
 from pretty_gpx.common.gpx.gpx_distance import get_distance_m
 from pretty_gpx.common.gpx.multi_gpx_track import MultiGpxTrack
 from pretty_gpx.common.request.gpx_data_cache_handler import GpxDataCacheHandler
+from pretty_gpx.common.request.osm_name import get_shortest_name
 from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
+from pretty_gpx.common.utils.utils import safe
 
 MOUNTAIN_HUTS_CACHE = GpxDataCacheHandler(name='huts', extension='.pkl')
 MOUNTAIN_HUTS_ARRAY_NAME = "mountain_huts"
@@ -53,14 +55,14 @@ def process_mountain_huts(query: OverpassQuery, multi_gpx_track: MultiGpxTrack) 
         results = query.get_query_result(MOUNTAIN_HUTS_ARRAY_NAME)
 
         # Get Candidate Mountain Huts
-        node_candidates = [ScatterPoint(name=str(node.tags.get("name")),
+        node_candidates = [ScatterPoint(name=safe(get_shortest_name(node)),
                                         lon=float(node.lon),
                                         lat=float(node.lat),
                                         category=ScatterPointCategory.MOUNTAIN_HUT)
                            for node in results.nodes
                            if "name" in node.tags]
 
-        way_candidates = [ScatterPoint(name=str(way.tags.get("name")),
+        way_candidates = [ScatterPoint(name=safe(get_shortest_name(way)),
                                        lon=float(way.center_lon),
                                        lat=float(way.center_lat),
                                        category=ScatterPointCategory.MOUNTAIN_HUT)
