@@ -12,11 +12,11 @@ from pretty_gpx.ui.pages.template.ui_manager import UiManager
 
 def city_page() -> None:
     """City Page."""
-    NewCityUiManager()
+    CityUiManager()
 
 
 @dataclass(slots=True)
-class NewCityUiManager(UiManager[CityDrawer]):
+class CityUiManager(UiManager[CityDrawer]):
     """City Ui Manager."""
     uphill: UiInputInt
 
@@ -24,7 +24,7 @@ class NewCityUiManager(UiManager[CityDrawer]):
         drawer = CityDrawer(params=CityParams.default(), top_ratio=0.18, bot_ratio=0.22, margin_ratio=0.1)
 
         # Dataclass doesn't handle __slots__  correctly and calling super() when slots=True raises an error
-        super(NewCityUiManager, self).__init__(drawer)  # noqa : UP008
+        super(CityUiManager, self).__init__(drawer)  # noqa : UP008
 
         with self.subclass_column:
             self.uphill = UiInputInt.create(label='D+ (m)', value="", on_enter=self.on_click_update,

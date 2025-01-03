@@ -9,6 +9,7 @@ from typing import Final
 from pretty_gpx.common.utils.asserts import assert_eq
 from pretty_gpx.common.utils.asserts import assert_same_keys
 from pretty_gpx.common.utils.paths import MAIN_DIR
+from pretty_gpx.common.utils.utils import snake_case_to_label
 
 PAGE_PY: Final[str] = "page.py"
 EXAMPLE_SVG: Final[str] = "example.svg"
@@ -43,7 +44,6 @@ class RenderingPage:
         """
         assert mode_page.__name__.endswith("_page"), f"Function must be named '<mode>_page'. Got {mode_page.__name__}"
         mode = mode_page.__name__[:-len("_page")]
-        assert "_" not in mode, "Mode name must not contain underscores"
 
         mode_dir = os.path.join(MAIN_DIR, "pretty_gpx", "ui", "pages", mode)
         assert_eq(os.path.abspath(inspect.getfile(mode_page)), os.path.join(mode_dir, PAGE_PY),
@@ -53,7 +53,7 @@ class RenderingPage:
         assert_same_keys(mode_files, {PAGE_PY, EXAMPLE_SVG, ICON_SVG, "__init__.py"},
                          msg=f"Missing files for '{mode}' mode")
 
-        return RenderingPage(name=mode.capitalize(),
+        return RenderingPage(name=snake_case_to_label(mode),
                              ui_page=mode_page,
                              example_svg=os.path.join(mode_dir, EXAMPLE_SVG),
                              icon_svg=os.path.join(mode_dir, ICON_SVG))

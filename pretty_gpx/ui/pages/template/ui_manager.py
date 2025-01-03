@@ -190,7 +190,8 @@ class UiManager(Generic[T], ABC):
                       on_upload=on_upload,
                       on_multi_upload=on_multi_upload,
                       ).props('accept=.gpx').on('rejected',
-                                                lambda: ui.notify('Please provide a GPX file')).classes('max-w-full')
+                                                lambda: ui.notify('Please provide a GPX file', type='negative')
+                                                ).classes('max-w-full')
             # Paper Size
             self.paper_size = UiToggle[PaperSize].create(PAPER_SIZES, on_change=self.on_paper_size_change)
 
@@ -227,12 +228,13 @@ class UiManager(Generic[T], ABC):
         e.sender.reset()
 
         if len(contents) == 1:
-            name = names[0]
+            res = None
+            ui.notify('Please upload at least two GPX files', type='negative')
         else:
             name = f'a {len(names)}-days track ({", ".join(names)})'
+            res = await run_cpu_bound(f"Download Data for {name}", _self_change_gpx_multi, self.drawer, contents,
+                                      self.paper_size.value)
 
-        res = await run_cpu_bound(f"Download Data for {name}", _self_change_gpx_multi, self.drawer, contents,
-                                  self.paper_size.value)
         await self.update_drawer_if_sucessful(res)
 
     async def on_single_upload_events(self, e: events.UploadEventArguments) -> None:

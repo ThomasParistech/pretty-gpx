@@ -33,6 +33,6 @@ class DrawerSingleTrack(DrawerBase, ABC):
 class DrawerMultiTrack(DrawerBase, ABC):
     """Base Drawer class for Multi-Track posters."""
     @abstractmethod
-    def change_gpx(self, gpx_path: list[str] | list[bytes], paper: PaperSize) -> None:
+    def change_gpx(self, gpx_paths: list[str] | list[bytes], paper: PaperSize) -> None:
         """Load several GPX files to create a Multi-Track poster."""
         ...

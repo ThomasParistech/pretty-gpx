@@ -108,3 +108,8 @@ def convert_bytes(size_bytes: int) -> str:
         return f"{size_bytes / (1000 ** 2):.2f} MB"
     else:
         return f"{size_bytes / (1000 ** 3):.2f} GB"
+
+
+def snake_case_to_label(content: str) -> str:
+    """Convert Snake Case String to Label. (hello_world -> Hello World)."""
+    return ' '.join([word.title() for word in content.split("_")])
