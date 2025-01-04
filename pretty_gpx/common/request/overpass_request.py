@@ -89,10 +89,16 @@ class OverpassQuery:
                                        array_name: str,
                                        query_elements: list[str],
                                        gpx_track: GpxTrack,
+                                       relations: bool = False,
                                        radius_m: float = 25.) -> None:
         """Add a query that gets nodes along the track with a tolerance of radius_m in meters."""
         # Build the lat/lon pairs string
         latlons = gpx_track.get_overpass_lonlat_str()
+
+        if relations:
+            reccursion = ">>;"
+        else:
+            reccursion = ">;"
 
         # Build the Overpass API query
         query_body = "\n".join([f"{element}(around:{radius_m},{latlons});" for element in query_elements])
@@ -100,31 +106,10 @@ class OverpassQuery:
         query = f"""
 (
 {query_body}
+{reccursion}
 )->.all_items_{array_name};
-foreach .all_items_{array_name} -> .item (
+.all_items_{array_name} out geom;"""
 
-()->.item_nodes;
-()->.valid_nodes;
-// Extract  nodes
-node(w.item)->.item_nodes;
-(.item_nodes;);
-
-(node.item_nodes(around:{radius_m},{latlons});) -> .valid_nodes;
-
-//.valid_nodes -> ._;
-//make count valid = count(nodes)-> .p; //debug
-//.item_nodes -> ._;
-//make count item = count(nodes)-> .q; //debug
-
-(.item_nodes; - .valid_nodes;) -> ._;
-
- if (count(nodes) == 0)
- (
-   (.matching_items_{array_name}; .item;) -> .matching_items_{array_name};
- )
-)
-
-.matching_items_{array_name} out center;"""
         self.query_dict[array_name] = query
         logger.info(f"A query {array_name} has been added to the total query")
 
