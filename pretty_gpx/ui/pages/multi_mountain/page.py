@@ -2,11 +2,13 @@
 """Multi Mountain Page."""
 from dataclasses import dataclass
 
+from pretty_gpx.common.drawing.utils.plt_marker import MarkerType
 from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
 from pretty_gpx.rendering_modes.mountain.drawing.hillshading import AZIMUTHS
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MOUNTAIN_COLOR_THEMES
 from pretty_gpx.rendering_modes.multi_mountain.drawing.multi_mountain_drawer import MultiMountainDrawer
 from pretty_gpx.rendering_modes.multi_mountain.drawing.multi_mountain_params import MultiMountainParams
+from pretty_gpx.ui.pages.template.ui_icon_toggle import UiIconToggle
 from pretty_gpx.ui.pages.template.ui_input import UiInputInt
 from pretty_gpx.ui.pages.template.ui_manager import UiManager
 from pretty_gpx.ui.pages.template.ui_toggle import UiToggle
@@ -22,6 +24,7 @@ class MultiMountainUiManager(UiManager[MultiMountainDrawer]):
     """Mountain Ui Manager."""
     uphill: UiInputInt
     azimuth: UiToggle[int]
+    hut_icon: UiIconToggle
 
     def __init__(self) -> None:
         drawer = MultiMountainDrawer(params=MultiMountainParams.default(),
@@ -34,6 +37,8 @@ class MultiMountainUiManager(UiManager[MultiMountainDrawer]):
             self.uphill = UiInputInt.create(label='D+ (m)', value="", on_enter=self.on_click_update,
                                             tooltip="Press Enter to override elevation from GPX")
             self.azimuth = UiToggle[int].create(mapping=AZIMUTHS, on_change=self.on_click_update)
+            self.hut_icon = UiIconToggle(markers=[MarkerType.HOUSE, MarkerType.CAMPING],
+                                         on_change=self.on_click_update)
 
     @staticmethod
     def get_chat_msg() -> list[str]:
@@ -64,6 +69,9 @@ class MultiMountainUiManager(UiManager[MultiMountainDrawer]):
                     ScatterPointCategory.END]:
             self.drawer.params.scatter_params[cat].color = theme.peak_color
             self.drawer.params.profile_scatter_params[cat].color = theme.peak_color
+
+        self.drawer.params.scatter_params[ScatterPointCategory.MOUNTAIN_HUT].marker = self.hut_icon.value
+        self.drawer.params.profile_scatter_params[ScatterPointCategory.MOUNTAIN_HUT].marker = self.hut_icon.value
 
         self.drawer.params.user_dist_km = self.dist_km.value
         self.drawer.params.user_uphill_m = self.uphill.value
