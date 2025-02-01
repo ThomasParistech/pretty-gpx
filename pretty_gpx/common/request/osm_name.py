@@ -73,6 +73,11 @@ def get_shortest_name(nwr: Node | Way | Relation) -> str | None:
     if alt_names is not None:
         possible_names.extend(str(alt_names).split(";"))
 
+    bridge_name = tags.get("bridge:name", None)
+    if bridge_name is not None:
+        #This one forces to get the real bridge name and not the street name
+        return bridge_name
+
     if len(possible_names) == 0:
         return None
 

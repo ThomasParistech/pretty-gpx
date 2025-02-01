@@ -2,9 +2,10 @@
 """Utils."""
 
 import os
+from typing import TypeVar
+
 import numpy as np
 from shapely import LineString
-from typing import TypeVar
 
 EARTH_RADIUS_M = 6371000
 MAX_RECURSION_DEPTH = 100  # sys.getrecursionlimit() - 10
