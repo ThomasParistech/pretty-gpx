@@ -73,5 +73,4 @@ def test_bordeaux_bridges() -> None:
     """Test Bordeaux Bridges."""
     __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_bordeaux.gpx"),
                         {"Pont de Pierre",
-                         "Pont Bacalan-Bastide"})
-    #The get_shortest_name function get Pont Bacalan-Bastide instead of Pont Jacques Chaban-Delmas
+                         "Pont Jacques Chaban-Delmas"})
