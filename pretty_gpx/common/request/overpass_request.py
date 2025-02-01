@@ -106,8 +106,8 @@ class OverpassQuery:
         query = f"""
 (
 {query_body}
-{reccursion}
 )->.all_items_{array_name};
+(.all_items_{array_name}; {reccursion})->.all_items_{array_name};
 .all_items_{array_name} out geom;"""
 
         self.query_dict[array_name] = query

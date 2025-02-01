@@ -50,3 +50,28 @@ def test_new_york_bridges() -> None:
                          "Willis Avenue Bridge",
                          "Queensboro Bridge",
                          "Verrazzano-Narrows Bridge"})
+
+def test_berlin_bridges() -> None:
+    """Test Berlin Bridges."""
+    __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_berlin.gpx"),
+                        {"Charlottenburger Brücke",
+                         "Kronprinzenbrücke",
+                         "Marchbrücke",
+                         "Gotzkowskybrücke",
+                         "Moltkebrücke",
+                         "Michaelbrücke",
+                         "Kottbusser Brücke",
+                         "Potsdamer Brücke"})
+
+def test_london_bridges() -> None:
+    """Test London Bridges."""
+    __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_london.gpx"),
+                        {"Tower Bridge"})
+
+
+def test_bordeaux_bridges() -> None:
+    """Test Bordeaux Bridges."""
+    __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_bordeaux.gpx"),
+                        {"Pont de Pierre",
+                         "Pont Bacalan-Bastide"})
+    #The get_shortest_name function get Pont Bacalan-Bastide instead of Pont Jacques Chaban-Delmas
