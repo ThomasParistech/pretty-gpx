@@ -2,6 +2,8 @@
 """Utils."""
 
 import os
+import numpy as np
+from shapely import LineString
 from typing import TypeVar
 
 EARTH_RADIUS_M = 6371000
@@ -113,3 +115,11 @@ def convert_bytes(size_bytes: int) -> str:
 def snake_case_to_label(content: str) -> str:
     """Convert Snake Case String to Label. (hello_world -> Hello World)."""
     return ' '.join([word.title() for word in content.split("_")])
+
+def get_average_straight_line(x_coords: list[float], y_coords: list[float]) -> tuple[LineString, tuple[float, float]]:
+    """Get a 2 points line representation of a line."""
+    p = np.polynomial.Polynomial.fit(x_coords, y_coords, deg=1).convert()
+    direction_vector = (1., p.coef[1])
+    x_min, x_max = min(x_coords), max(x_coords)
+    bridge_2_points = LineString([(x_min, p(x_min)), (x_max, p(x_max))])
+    return bridge_2_points, direction_vector

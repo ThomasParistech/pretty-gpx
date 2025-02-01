@@ -30,6 +30,7 @@ from pretty_gpx.common.utils.pickle_io import write_pickle
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import EARTH_RADIUS_M
+from pretty_gpx.common.utils.utils import get_average_straight_line
 
 BRIDGES_CACHE = GpxDataCacheHandler(name='bridges', extension='.pkl')
 
@@ -45,6 +46,7 @@ class Bridge:
     length: float
     aspect_ratio: float
     center: Point
+    direction: tuple[float, float] | None
 
 
 class BridgeApproximation:
@@ -96,7 +98,9 @@ class BridgeApproximation:
         return ShapelyPolygon(median_line.buffer(buffer_size)), min_aspect_ratio, longest_length
 
     @classmethod
-    def create_bridge(cls, way_or_relation: Way | Relation) -> Bridge | None:
+    def create_bridge(cls,
+                      way_or_relation: Way | Relation,
+                      bridges_stats: dict[str, tuple[tuple[float, float], float]]) -> Bridge | None:
         """Create a Bridge object from a way."""
         try:
             if isinstance(way_or_relation, Way):
@@ -115,18 +119,26 @@ class BridgeApproximation:
                 raise TypeError   
 
             bridge_polygon = ShapelyPolygon(bridge_coords)
-            bridge_simplified, aspect_ratio, longest_length = cls.get_minimum_rectangle(bridge_polygon)
+            bridge_simplified, aspect_ratio, bridge_length = cls.get_minimum_rectangle(bridge_polygon)
             bridge_name = get_shortest_name(way_or_relation)
 
-            if not bridge_simplified or aspect_ratio > cls.MAXIMUM_BRIDGE_ASPECT_RATIO:
+            if (bridge_name is not None and bridges_stats.get(bridge_name, False) 
+                and bridges_stats[bridge_name][1] > 0.25*bridge_length):
+                bridge_dir, bridge_length = bridges_stats[bridge_name]
+            else:
+                bridge_dir = None
+                logger.warning(f"Could not find direction of the bridge {bridge_name}")
+
+            if not bridge_simplified or aspect_ratio > cls.MAXIMUM_BRIDGE_ASPECT_RATIO and bridge_dir is None:
                 logger.warning(f"Skipped bridge {bridge_name}: invalid aspect ratio or length.")
                 return None
 
             return Bridge(name=bridge_name,
                           polygon=bridge_simplified,
-                          length=longest_length,
+                          length=bridge_length,
                           aspect_ratio=aspect_ratio,
-                          center=bridge_polygon.centroid)
+                          center=bridge_polygon.centroid,
+                          direction=bridge_dir)
         except Exception as e:
             logger.error(f"Error processing bridge: {e}")
             return None
@@ -134,20 +146,39 @@ class BridgeApproximation:
 class BridgeCrossingAnalyzer:
     """Bridge and track intersection."""
     INTERSECTION_THRESHOLD = 0.75
+    ANGLE_THRESHOLD = 20
 
     @staticmethod
     def analyze_track_bridge_crossing(track: GpxTrack, bridges: list[Bridge]) -> list[Bridge]:
         """Returns bridges significantly crossed by the track."""
         crossed_bridges = []
-        shapely_track = LineString(list(zip(track.list_lon, track.list_lat)))
+        shapely_track = LineString(zip(track.list_lon, track.list_lat))
 
         for bridge in bridges:
             intersection = shapely_track.intersection(bridge.polygon)
-            if not intersection.is_empty:
-                intersection_length = BridgeCrossingAnalyzer._calculate_length(intersection)
-                if intersection_length > BridgeCrossingAnalyzer.INTERSECTION_THRESHOLD * bridge.length:
-                    logger.debug(f"{bridge.name} crossed")
-                    crossed_bridges.append(bridge)
+            if intersection.is_empty:
+                continue
+
+            intersection_length = BridgeCrossingAnalyzer._calculate_length(intersection)
+            if intersection_length <= BridgeCrossingAnalyzer.INTERSECTION_THRESHOLD * bridge.length:
+                logger.warning(f"Length too small {bridge.name}")
+                continue  # Skip if intersection is too small
+
+            if bridge.direction is None:
+                logger.info(f"{bridge.name} crossed")
+                crossed_bridges.append(bridge)
+                continue
+
+            intersection_direction = BridgeCrossingAnalyzer._get_median_line(intersection)
+            angle = np.degrees(
+                np.arccos(np.clip(np.dot(intersection_direction, bridge.direction) /
+                                  (np.linalg.norm(intersection_direction) * np.linalg.norm(bridge.direction)), -1, 1))
+            )
+            if min(angle, 180-angle) < BridgeCrossingAnalyzer.ANGLE_THRESHOLD:
+                logger.info(f"{bridge.name} crossed {angle}")
+                crossed_bridges.append(bridge)
+            else:
+                logger.info(f"{bridge.name} not crossed {angle}")
         return crossed_bridges
 
     @staticmethod
@@ -156,6 +187,18 @@ class BridgeCrossingAnalyzer:
         if isinstance(geometry, GeometryCollection | MultiLineString):
             return sum(geom.length for geom in geometry.geoms if isinstance(geom, LineString))
         return geometry.length if isinstance(geometry, LineString) else 0
+
+    @staticmethod
+    def _get_median_line(geometry: BaseGeometry) -> tuple[float, float]:
+        """Calculate median line of intersection geometry."""
+        if isinstance(geometry, (GeometryCollection, MultiLineString)):
+            x_coords, y_coords = zip(*[coord for geom in geometry.geoms if isinstance(geom, LineString) 
+                                       for coord in geom.coords]) if geometry.geoms else ([], [])
+        elif isinstance(geometry, LineString):
+            x_coords, y_coords = geometry.xy
+        else:
+            return (1., 1.)
+        return get_average_straight_line(list(x_coords), list(y_coords))[1]
 
 @profile
 def prepare_download_city_bridges(query: OverpassQuery, track: GpxTrack) -> None:
@@ -166,7 +209,8 @@ def prepare_download_city_bridges(query: OverpassQuery, track: GpxTrack) -> None
         return
 
     query.add_around_ways_overpass_query(array_name=BRIDGES_WAYS_ARRAY_NAME,
-                                         query_elements=['way["name"]["wikidata"]["man_made"="bridge"]'],
+                                         query_elements=['way["name"]["wikidata"]["man_made"="bridge"]',
+                                                         'way["name"]["bridge"~"(yes|aqueduct|cantilever|covered|movable|viaduct)"]'],
                                          gpx_track=track,
                                          relations=False,
                                          radius_m=40)
@@ -184,9 +228,27 @@ def process_city_bridges(query: OverpassQuery, track: GpxTrack) -> list[ScatterP
         return read_pickle(query.get_cache_file(BRIDGES_CACHE.name))
 
     with Profiling.Scope("Process Bridges"):
-        bridges = [BridgeApproximation.create_bridge(way)
-                   for way in query.get_query_result(BRIDGES_WAYS_ARRAY_NAME).ways]
-        bridges += [BridgeApproximation.create_bridge(rel)
+        bridges_direction, bridges_stats, bridges_to_process = dict(), dict(), []
+        for way in query.get_query_result(BRIDGES_WAYS_ARRAY_NAME).ways:
+            if way.tags.get("bridge", False) and way.tags.get("man_made", None) is None:
+                line = LineString(get_way_coordinates(way))
+                name = get_shortest_name(way)
+                if bridge_i := bridges_direction.get(name, False):
+                    if line.length > bridge_i[0]:
+                        bridges_direction[name] = (line.length, line)
+                else:
+                    bridges_direction[name] = (line.length, line)
+            if way.tags.get("man_made", None) is not None:
+                bridges_to_process.append(way)
+
+        for name, bridge in bridges_direction.items():
+            x_coords, y_coords = bridge[1].xy
+            line, direction = get_average_straight_line(x_coords, y_coords)
+            bridges_stats[name] = direction, line.length
+
+        bridges = [BridgeApproximation.create_bridge(way, bridges_stats) for way in bridges_to_process]
+        logger.info(f"{len(bridges)} bridges")
+        bridges += [BridgeApproximation.create_bridge(rel, bridges_stats)
                     for rel in query.get_query_result(BRIDGES_RELATIONS_ARRAY_NAME).relations]
         crossed_bridges = BridgeCrossingAnalyzer.analyze_track_bridge_crossing(track, [b for b in bridges if b])
         result = [ScatterPoint(name=b.name, lat=b.center.y, lon=b.center.x, category=ScatterPointCategory.CITY_BRIDGE)
