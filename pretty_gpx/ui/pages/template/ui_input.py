@@ -48,7 +48,9 @@ class UiDropdown:
                tooltip: str,
                on_change: Callable[[], Awaitable[None]]) -> Self:
         """Create NiceGUI Dropdown select element and add a tooltip."""
-        with ui.select(discrete_val, label=label, value=discrete_val[default_idx]).on('update:modelValue', on_change) as input:
+        with ui.select(discrete_val,
+                       label=label,
+                       value=discrete_val[default_idx]).on('update:modelValue', on_change) as input:
             ui.tooltip(tooltip)
         return cls(input)
 

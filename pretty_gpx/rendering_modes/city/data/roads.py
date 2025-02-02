@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 """Roads."""
 import os
+from dataclasses import dataclass
 from enum import auto
 from enum import Enum
-from dataclasses import dataclass
 
 from tqdm import tqdm
 
@@ -72,6 +72,7 @@ def prepare_download_city_roads(query: OverpassQuery,
     Args:
         query: OverpassQuery class that merge all queries into a single one
         bounds: GPX bounds
+        road_precision: string with the road precision desired
 
     Returns:
         List of roads (sequence of lon, lat coordinates) for each road type
