@@ -101,7 +101,7 @@ class BridgeApproximation:
                 bridge_coords = get_way_coordinates(way_or_relation)
             elif isinstance(way_or_relation, Relation) and way_or_relation.members:
                 outer_members = [member.geometry for member in way_or_relation.members
-                               if isinstance(member, RelationWay) and member.geometry 
+                               if isinstance(member, RelationWay) and member.geometry
                                and member.role == "outer"]
                 merged_ways = merge_ways(outer_members)
                 if len(merged_ways) > 1:
@@ -147,7 +147,7 @@ class BridgeCrossingAnalyzer:
     def _extract_intersection_coordinates(intersection: BaseGeometry) -> tuple[list[float], list[float]] | None:
         """Extract x,y coordinates from intersection geometry."""
         if isinstance(intersection, GeometryCollection | MultiLineString):
-            coords = [(x, y) for geom in intersection.geoms 
+            coords = [(x, y) for geom in intersection.geoms
                      if isinstance(geom, LineString) for x, y in geom.coords]
             if not coords:
                 return None
@@ -192,7 +192,7 @@ class BridgeCrossingAnalyzer:
 
             intersection_direction = get_average_straight_line(coords[0], coords[1])[1]
             angle = cls._calculate_crossing_angle(intersection_direction, bridge.direction)
-            
+
             if angle < cls.ANGLE_THRESHOLD:
                 logger.debug(f"{bridge.name} crossed, angle : {angle}")
                 crossed_bridges.append(bridge)
@@ -233,7 +233,7 @@ def process_city_bridges(query: OverpassQuery, track: GpxTrack) -> list[ScatterP
         bridges_direction: dict[str, tuple[float, LineString]] = {}
         bridges_stats = {}
         bridges_to_process = []
-        
+
         for way in query.get_query_result(BRIDGES_WAYS_ARRAY_NAME).ways:
             if way.tags.get("bridge") and "man_made" not in way.tags:
                 line = LineString(get_way_coordinates(way))
@@ -252,7 +252,7 @@ def process_city_bridges(query: OverpassQuery, track: GpxTrack) -> list[ScatterP
         bridges = [BridgeApproximation.create_bridge(way, bridges_stats) for way in bridges_to_process]
         bridges.extend(BridgeApproximation.create_bridge(rel, bridges_stats)
                        for rel in query.get_query_result(BRIDGES_RELATIONS_ARRAY_NAME).relations)
-        
+
         crossed_bridges = BridgeCrossingAnalyzer.analyze_track_bridge_crossing(track, [b for b in bridges if b])
         result = [ScatterPoint(name=b.name, lat=b.center.y, lon=b.center.x, category=ScatterPointCategory.CITY_BRIDGE)
                   for b in crossed_bridges]

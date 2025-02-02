@@ -17,6 +17,7 @@ from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.layout.vertical_layout import VerticalLayoutUnion
 from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.profile import profile
+from pretty_gpx.common.utils.profile import profile_parallel
 from pretty_gpx.rendering_modes.city.data.bridges import prepare_download_city_bridges
 from pretty_gpx.rendering_modes.city.data.bridges import process_city_bridges
 from pretty_gpx.rendering_modes.city.data.city_pois import prepare_download_city_pois
@@ -68,7 +69,7 @@ class CityDrawer(DrawerSingleTrack):
         scatter_points += process_city_pois(total_query, gpx_track)
         # TODO(upgrade): Draw the POIs as well. This is currently disabled because text allocation fails when there
         # are too many overlapping scatter points. Need to filter out the points that are too close to each other.
-        background = CityBackground.from_union_bounds(layouts.union_bounds)
+        background = CityBackground.from_union_bounds(layouts.union_bounds, self.params.user_road_precision)
 
         layout = layouts.layouts[paper]
         background.change_papersize(paper, layout.background_bounds)
@@ -85,6 +86,22 @@ class CityDrawer(DrawerSingleTrack):
                                mid_scatter=scatter_all,
                                mid_track=track_data,
                                paper=paper)
+
+    @profile
+    def update_background(self, paper: PaperSize) -> None:
+        """Update the background (for example when road priority changes)."""
+        assert self.data is not None
+        gpx_track = self.data.mid_track.track
+        assert isinstance(gpx_track, GpxTrack)
+        layouts = VerticalLayoutUnion.from_track(gpx_track,
+                                                 top_ratio=self.top_ratio,
+                                                 bot_ratio=self.bot_ratio,
+                                                 margin_ratio=self.margin_ratio)
+
+        background = CityBackground.from_union_bounds(layouts.union_bounds, self.params.user_road_precision)
+        layout = layouts.layouts[paper]
+        background.change_papersize(paper, layout.background_bounds)
+        self.data.background = background
 
     @profile
     def change_papersize(self, paper: PaperSize) -> None:
@@ -112,3 +129,13 @@ class CityDrawer(DrawerSingleTrack):
             self.data.top.draw(f, self.params)
             self.data.mid_track.draw(f, self.params)
             self.data.mid_scatter.draw(f, self.params)
+
+@profile_parallel
+def _update_city_background(drawer: CityDrawer, paper: PaperSize) -> CityDrawer:
+    """Process the GPX file and return the new drawer."""
+    # This function is designed for parallel execution and will be pickled.
+    # Defining it as a global function avoids pickling the entire UiManager class,
+    # which contains non-picklable elements like local lambdas and UI components.
+    assert isinstance(drawer, DrawerSingleTrack)
+    drawer.update_background(paper)
+    return drawer
