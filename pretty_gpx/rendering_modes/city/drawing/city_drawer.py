@@ -87,6 +87,22 @@ class CityDrawer(DrawerSingleTrack):
                                paper=paper)
 
     @profile
+    def update_background(self, paper: PaperSize) -> None:
+        """Update the background (for example when road priority changes)."""
+        assert self.data is not None
+        gpx_track = self.data.mid_track.track
+        assert isinstance(gpx_track, GpxTrack)
+        layouts = VerticalLayoutUnion.from_track(gpx_track,
+                                                 top_ratio=self.top_ratio,
+                                                 bot_ratio=self.bot_ratio,
+                                                 margin_ratio=self.margin_ratio)
+
+        background = CityBackground.from_union_bounds(layouts.union_bounds, self.params.user_road_precision)
+        layout = layouts.layouts[paper]
+        background.change_papersize(paper, layout.background_bounds)
+        self.data.background = background
+
+    @profile
     def change_papersize(self, paper: PaperSize) -> None:
         """Change Papersize of the poster."""
         assert self.data is not None

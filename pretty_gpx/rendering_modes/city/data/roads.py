@@ -81,9 +81,8 @@ def prepare_download_city_roads(query: OverpassQuery,
 
     assert road_precision in ROAD_PRECISION_LEVEL.keys()
 
-    logger.info(f"Road precision : {road_precision}")
+    logger.debug(f"Road precision : {road_precision}")
     roads_to_plot: list[CityRoadType] = get_city_roads_with_priority_better_than(ROAD_PRECISION_LEVEL[road_precision])
-    logger.info(f"Length of the roads : {len(roads_to_plot)}")
 
     if os.path.isfile(cache_pkl):
         cityroads_cache: dict[CityRoadType, list[ListLonLat]] = read_pickle(file_path=cache_pkl)

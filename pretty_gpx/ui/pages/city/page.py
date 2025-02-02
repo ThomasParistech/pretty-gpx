@@ -35,7 +35,7 @@ class CityUiManager(UiManager[CityDrawer]):
             self.road_precision = UiDropdownStr.create(label='Road precision',
                                                        discrete_val=["Low", "Medium", "High", "Very High"],
                                                        default_idx=1,
-                                                       on_change=self.on_click_update,
+                                                       on_change=self.background_update,
                                                        tooltip="Change the roads level of details")
 
 

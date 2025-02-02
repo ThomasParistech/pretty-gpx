@@ -28,6 +28,11 @@ class DrawerSingleTrack(DrawerBase, ABC):
     def change_gpx(self, gpx_path: str | bytes, paper: PaperSize) -> None:
         """Load a single GPX file to create a Multi-Track poster."""
         ...
+    @abstractmethod
+    def update_background(self, paper: PaperSize) -> None:
+        """Update the background data."""
+        ...
+
 
 
 class DrawerMultiTrack(DrawerBase, ABC):
