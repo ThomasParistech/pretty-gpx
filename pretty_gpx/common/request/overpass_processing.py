@@ -266,7 +266,9 @@ def get_members_from_relation(relation: Relation,
             elif member.role == "inner":
                 inner_geometry_l.append(member.geometry)
             else:
-                raise ValueError(f"Unexpected member role in a relation {member.role} not in ['inner','outer']")
+                logger.error(f"Unexpected member role in a relation {member.role} not in ['inner','outer']"
+                             f"\nSkipped relation {relation.id}")
+                return [], []
         elif type(member) == RelationNode:
             continue
         else:
