@@ -16,6 +16,7 @@ from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_f
 from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
 from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_rivers
 from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
+from pretty_gpx.rendering_modes.city.data.roads import CityRoadPrecision
 from pretty_gpx.rendering_modes.city.data.roads import CityRoadType
 from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
 from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
@@ -50,18 +51,18 @@ class CityBackground:
 
     @staticmethod
     @profile
-    def from_union_bounds(union_bounds: GpxBounds) -> 'CityBackground':
+    def from_union_bounds(union_bounds: GpxBounds,
+                          road_precision: CityRoadPrecision) -> 'CityBackground':
         """Initialize the City Background from the Union Bounds."""
         total_query = OverpassQuery()
-        for prepare_func in [prepare_download_city_roads,
-                             prepare_download_city_rivers,
-                             prepare_download_city_forests]:
-            prepare_func(total_query, union_bounds)
+        roads_downloaded = prepare_download_city_roads(total_query, union_bounds, road_precision)
+        prepare_download_city_rivers(total_query, union_bounds)
+        prepare_download_city_forests(total_query, union_bounds)
 
         total_query.launch_queries()
 
         # Retrieve the data
-        roads = process_city_roads(total_query, union_bounds)
+        roads = process_city_roads(total_query, union_bounds, roads_downloaded, road_precision)
         rivers = process_city_rivers(total_query, union_bounds)
         forests, farmlands = process_city_forests(total_query, union_bounds)
         forests.interior_polygons = []

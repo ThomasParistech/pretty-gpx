@@ -12,6 +12,7 @@ from pretty_gpx.common.drawing.utils.drawing_figure import MetersFloat
 from pretty_gpx.common.drawing.utils.fonts import FontEnum
 from pretty_gpx.common.drawing.utils.plt_marker import MarkerType
 from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
+from pretty_gpx.rendering_modes.city.data.roads import CityRoadPrecision
 from pretty_gpx.rendering_modes.city.data.roads import CityRoadType
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CITY_COLOR_THEMES
 
@@ -48,6 +49,7 @@ class CityParams:
     user_title: str | None = None
     user_uphill_m: int | None = None
     user_dist_km: float | None = None
+    user_road_precision: CityRoadPrecision = CityRoadPrecision.MEDIUM
 
     @staticmethod
     def default() -> "CityParams":
