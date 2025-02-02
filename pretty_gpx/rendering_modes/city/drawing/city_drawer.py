@@ -17,6 +17,7 @@ from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.layout.vertical_layout import VerticalLayoutUnion
 from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.profile import profile
+from pretty_gpx.common.utils.profile import profile_parallel
 from pretty_gpx.rendering_modes.city.data.bridges import prepare_download_city_bridges
 from pretty_gpx.rendering_modes.city.data.bridges import process_city_bridges
 from pretty_gpx.rendering_modes.city.data.city_pois import prepare_download_city_pois
@@ -128,3 +129,13 @@ class CityDrawer(DrawerSingleTrack):
             self.data.top.draw(f, self.params)
             self.data.mid_track.draw(f, self.params)
             self.data.mid_scatter.draw(f, self.params)
+
+@profile_parallel
+def _update_city_background(drawer: CityDrawer, paper: PaperSize) -> CityDrawer:
+    """Process the GPX file and return the new drawer."""
+    # This function is designed for parallel execution and will be pickled.
+    # Defining it as a global function avoids pickling the entire UiManager class,
+    # which contains non-picklable elements like local lambdas and UI components.
+    assert isinstance(drawer, DrawerSingleTrack)
+    drawer.update_background(paper)
+    return drawer

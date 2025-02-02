@@ -55,18 +55,6 @@ def _self_change_gpx_single(drawer: T, b: bytes | str, paper: PaperSize) -> T:
     drawer.change_gpx(b, paper)
     return cast(T, drawer)
 
-
-@profile_parallel
-def _self_update_background(drawer: T, paper: PaperSize) -> T:
-    """Process the GPX file and return the new drawer."""
-    # This function is designed for parallel execution and will be pickled.
-    # Defining it as a global function avoids pickling the entire UiManager class,
-    # which contains non-picklable elements like local lambdas and UI components.
-    assert isinstance(drawer, DrawerSingleTrack)
-    drawer.update_background(paper)
-    return cast(T, drawer)
-
-
 @profile_parallel
 def _self_change_paper_size(drawer: T, paper: PaperSize) -> T:
     """Change the paper size and return the new drawer."""
@@ -300,12 +288,6 @@ class UiManager(Generic[T], ABC):
 
     ##########################
     # Drawing
-
-    async def background_update(self) -> None:
-        """Asynchronously update the UiPlot."""
-        self.update_drawer_params()
-        res = await run_cpu_bound(f"Update background", _self_update_background,  self.drawer, self.paper_size.value)
-        await self.update_drawer_if_sucessful(res)
 
     async def on_click_update(self) -> None:
         """Asynchronously update the UiPlot."""
