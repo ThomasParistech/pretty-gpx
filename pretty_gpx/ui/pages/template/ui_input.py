@@ -23,7 +23,7 @@ class UiInput:
                tooltip: str,
                on_enter: Callable[[], Awaitable[None]]) -> Self:
         """Create NiceGUI Input element and add a tooltip."""
-        with ui.input(label=label, value=value).on('keydown.enter', on_enter) as input:
+        with ui.input(label=label, value=value).on('keydown.enter', on_enter).style('width: 100%') as input:
             ui.tooltip(tooltip)
         return cls(input)
 
@@ -50,7 +50,7 @@ class UiDropdown:
         """Create NiceGUI Dropdown select element and add a tooltip."""
         with ui.select(discrete_val,
                        label=label,
-                       value=discrete_val[default_idx]).on('update:modelValue', on_change) as input:
+                       value=discrete_val[default_idx]).on('update:modelValue', on_change).style('width:100%') as input:
             ui.tooltip(tooltip)
         return cls(input)
 
