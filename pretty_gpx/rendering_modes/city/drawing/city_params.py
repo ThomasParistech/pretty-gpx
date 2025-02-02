@@ -48,6 +48,7 @@ class CityParams:
     user_title: str | None = None
     user_uphill_m: int | None = None
     user_dist_km: float | None = None
+    user_road_precision: str = "Medium"
 
     @staticmethod
     def default() -> "CityParams":

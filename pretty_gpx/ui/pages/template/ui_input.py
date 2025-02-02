@@ -23,7 +23,7 @@ class UiInput:
                tooltip: str,
                on_enter: Callable[[], Awaitable[None]]) -> Self:
         """Create NiceGUI Input element and add a tooltip."""
-        with ui.input(label=label, value=value).on('keydown.enter', on_enter) as input:
+        with ui.input(label=label, value=value).on('keydown.enter', on_enter).style('width: 100%') as input:
             ui.tooltip(tooltip)
         return cls(input)
 
@@ -32,6 +32,43 @@ class UiInput:
         """Return the str value."""
         val = str(safe(self.input.value))
         return val if val != "" else None
+
+
+@dataclass
+class UiDropdown:
+    """NiceGUI Input Wrapper."""
+    input: ui.select
+
+    @classmethod
+    def create(cls,
+               *,
+               label: str,
+               discrete_val: list[str],
+               default_idx: int,
+               tooltip: str,
+               on_change: Callable[[], Awaitable[None]]) -> Self:
+        """Create NiceGUI Dropdown select element and add a tooltip."""
+        with ui.select(discrete_val,
+                       label=label,
+                       value=discrete_val[default_idx]).on('update:modelValue', on_change).style('width:100%') as input:
+            ui.tooltip(tooltip)
+        return cls(input)
+
+    @property
+    def _value_str(self) -> str:
+        """Return the str value."""
+        val = str(safe(self.input.value))
+        return val
+
+
+@dataclass
+class UiDropdownStr(UiDropdown):
+    """NiceGUI Str Dropdown Wrapper."""
+
+    @property
+    def value(self) -> str:
+        """Return the value."""
+        return self._value_str
 
 
 @dataclass
