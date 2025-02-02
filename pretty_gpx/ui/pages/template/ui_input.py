@@ -44,7 +44,7 @@ class UiDropdown:
                *,
                label: str,
                discrete_val: list[str],
-               default_idx: int, 
+               default_idx: int,
                tooltip: str,
                on_change: Callable[[], Awaitable[None]]) -> Self:
         """Create NiceGUI Dropdown select element and add a tooltip."""
