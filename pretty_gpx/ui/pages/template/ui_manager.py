@@ -55,6 +55,7 @@ def _self_change_gpx_single(drawer: T, b: bytes | str, paper: PaperSize) -> T:
     drawer.change_gpx(b, paper)
     return cast(T, drawer)
 
+
 @profile_parallel
 def _self_change_paper_size(drawer: T, paper: PaperSize) -> T:
     """Change the paper size and return the new drawer."""

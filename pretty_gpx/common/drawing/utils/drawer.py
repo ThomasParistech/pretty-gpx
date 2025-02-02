@@ -30,7 +30,6 @@ class DrawerSingleTrack(DrawerBase, ABC):
         ...
 
 
-
 class DrawerMultiTrack(DrawerBase, ABC):
     """Base Drawer class for Multi-Track posters."""
     @abstractmethod
