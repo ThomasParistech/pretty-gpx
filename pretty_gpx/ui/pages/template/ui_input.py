@@ -1,13 +1,20 @@
 #!/usr/bin/python3
 """Ui Input, to capture text input from the user."""
+import os
 from collections.abc import Awaitable
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Self
 
+from matplotlib.font_manager import FontProperties
+from nicegui import app
 from nicegui import ui
 
+from pretty_gpx.common.drawing.utils.fonts import get_css_header
+from pretty_gpx.common.utils.paths import FONTS_DIR
 from pretty_gpx.common.utils.utils import safe
+
+app.add_static_files('/fonts', os.path.abspath(FONTS_DIR))
 
 
 @dataclass
