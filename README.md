@@ -144,6 +144,14 @@ This feature utilizes [OpenStreetMap data](https://www.openstreetmap.org) via th
 The distance, elevation gain and time of the activity plotted is written on the poster by default. If you want to remove one of these fields, just enter a 0 or negative value.
 If you want to override the time, you will need to enter the time **in seconds** that you want to have written on the poster.
 
+### Bridges detection
+
+The system automatically identifies bridges crossed by your path. It does this by approximating each bridge as a rectangular area and using two criteria:
+
+- **Intersection Length**: If the length of the path's intersection with the rectangular area exceeds 70% of the bridge's length, the bridge is considered crossed.
+- **Angle Threshold**: The angle between the path and the bridge's axis must be below a certain threshold to ensure that only bridges directly crossed are detected, avoiding false positives.
+
+
 ### ⛶ Poster Size
 
 You have the same options as the mountain mode for the paper sizes. It is possible to find the most suitable format for your activity.
