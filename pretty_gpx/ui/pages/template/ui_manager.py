@@ -18,10 +18,12 @@ from pretty_gpx.common.drawing.utils.color_theme import DarkTheme
 from pretty_gpx.common.drawing.utils.color_theme import LightTheme
 from pretty_gpx.common.drawing.utils.drawer import DrawerMultiTrack
 from pretty_gpx.common.drawing.utils.drawer import DrawerSingleTrack
+from pretty_gpx.common.drawing.utils.fonts import FontEnum
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile_parallel
+from pretty_gpx.ui.pages.template.ui_input import UiFontsMenuFontProp
 from pretty_gpx.ui.pages.template.ui_input import UiInputFloat
 from pretty_gpx.ui.pages.template.ui_input import UiInputStr
 from pretty_gpx.ui.pages.template.ui_plot import UiPlot
@@ -117,12 +119,14 @@ class UiManager(Generic[T], ABC):
     drawer: T
 
     plot: UiPlot
+    permanent_column: ui.column
     subclass_column: ui.column
     params_to_hide: ui.column
 
     paper_size: UiToggle[PaperSize]
     title: UiInputStr
     dist_km: UiInputFloat
+    font: UiFontsMenuFontProp
     dark_mode_switch: ui.switch
     theme: UiToggle[DarkTheme] | UiToggle[LightTheme]
 
@@ -153,7 +157,7 @@ class UiManager(Generic[T], ABC):
             self.plot = UiPlot(visible=False)
 
             with ui.column(align_items="center"):
-                col_1 = ui.column(align_items="center")
+                self.permanent_column = ui.column(align_items="center")
 
                 with ui.column(align_items="center") as self.params_to_hide:
                     with ui.card():
@@ -167,7 +171,7 @@ class UiManager(Generic[T], ABC):
 
         ###
 
-        with col_1:
+        with self.permanent_column:
             # Chat
             ui.chat_message(self.get_chat_msg()).props('bg-color=blue-2')
 
@@ -195,11 +199,20 @@ class UiManager(Generic[T], ABC):
             # Paper Size
             self.paper_size = UiToggle[PaperSize].create(PAPER_SIZES, on_change=self.on_paper_size_change)
 
+            #
+            # New permanent fields will be added here by the subclass
+            #
+
+
         with self.subclass_column:
             self.title = UiInputStr.create(label='Title', value="Title", tooltip="Press Enter to update title",
                                            on_enter=self.on_click_update)
             self.dist_km = UiInputFloat.create(label='Distance (km)', value="", on_enter=self.on_click_update,
                                                tooltip="Press Enter to override distance from GPX")
+            self.font = UiFontsMenuFontProp.create(label="Select the title's font",
+                                                   fonts_l=FontEnum.TITLE.value,
+                                                   on_change=self.on_click_update,
+                                                   tooltip="Override title font")
 
             #
             # New fields will be added here by the subclass

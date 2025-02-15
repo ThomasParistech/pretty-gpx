@@ -93,5 +93,5 @@ class MountainParams:
 
             centered_title_font_color="cyan",
             centered_title_font_size=A4Float(mm=20),
-            centered_title_fontproperties=FontEnum.TITLE.value
+            centered_title_fontproperties=FontEnum.TITLE.value[0]
         )
