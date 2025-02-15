@@ -117,6 +117,7 @@ class UiManager(Generic[T], ABC):
     drawer: T
 
     plot: UiPlot
+    permanent_column: ui.column
     subclass_column: ui.column
     params_to_hide: ui.column
 
@@ -153,7 +154,7 @@ class UiManager(Generic[T], ABC):
             self.plot = UiPlot(visible=False)
 
             with ui.column(align_items="center"):
-                col_1 = ui.column(align_items="center")
+                self.permanent_column = ui.column(align_items="center")
 
                 with ui.column(align_items="center") as self.params_to_hide:
                     with ui.card():
@@ -167,7 +168,7 @@ class UiManager(Generic[T], ABC):
 
         ###
 
-        with col_1:
+        with self.permanent_column:
             # Chat
             ui.chat_message(self.get_chat_msg()).props('bg-color=blue-2')
 
@@ -194,6 +195,11 @@ class UiManager(Generic[T], ABC):
                                                 ).classes('max-w-full')
             # Paper Size
             self.paper_size = UiToggle[PaperSize].create(PAPER_SIZES, on_change=self.on_paper_size_change)
+
+            #
+            # New permanent fields will be added here by the subclass
+            #
+
 
         with self.subclass_column:
             self.title = UiInputStr.create(label='Title', value="Title", tooltip="Press Enter to update title",
