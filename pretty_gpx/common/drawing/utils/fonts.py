@@ -10,6 +10,16 @@ from matplotlib.font_manager import FontProperties
 from pretty_gpx.common.utils.paths import FONTS_DIR
 
 
+def get_font_format(font_path: str) -> str:
+    """Get font's type."""
+    if font_path.lower().endswith('.otf'):
+        return 'opentype'
+    elif font_path.lower().endswith('.ttf'):
+        return 'truetype'
+    else:
+        raise ValueError("Unsupported font format. Please provide a .otf or .ttf file.")
+
+
 def get_css_header(font: FontProperties) -> str | None:
     """Get the CSS header when using a custom font (using a local file)."""
     font_path = font.get_file()
@@ -18,7 +28,7 @@ def get_css_header(font: FontProperties) -> str | None:
         header = f'''
             @font-face {{
                 font-family: '{font.get_name()}';
-                src: url('/fonts/{font_path}') format('opentype');
+                src: url('/fonts/{font_path}') format('{get_font_format(font_path)}');
             }}
         '''
         return textwrap.dedent(header)
@@ -29,11 +39,13 @@ def get_css_header(font: FontProperties) -> str | None:
 class FontEnum(Enum):
     """Font Enum."""
     ANNOTATION = FontProperties(weight="bold")
-    TITLE = (FontProperties(family="Lobster 1.4.otf", fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf")),
-             FontProperties(family="Arial"),
+    TITLE = (FontProperties(family="Lobster", fname=os.path.join(FONTS_DIR, "Lobster.ttf")),
              FontProperties(family="Verdana"),
-             FontProperties(family="Times New Roman"),
-             FontProperties(family="Georgia"),
-             FontProperties(family="Comic Sans MS"))
-    STATS = FontProperties(family="Lobster 1.4.otf", fname=os.path.join(FONTS_DIR, "Lobster 1.4.otf"))
+             FontProperties(family="Comic Sans MS"),
+             FontProperties(family="Monoton", fname=os.path.join(FONTS_DIR, "Monoton.ttf")),
+             FontProperties(family="GochiHand", fname=os.path.join(FONTS_DIR, "GochiHand.ttf")),
+             FontProperties(family="Emilio20", fname=os.path.join(FONTS_DIR, "Emilio20.ttf")),
+             FontProperties(family="AllertaStencil", fname=os.path.join(FONTS_DIR, "AllertaStencil.ttf"))
+    )
+    STATS = FontProperties(family="Lobster", fname=os.path.join(FONTS_DIR, "Lobster.ttf"))
 
