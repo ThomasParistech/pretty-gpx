@@ -72,7 +72,7 @@ class CityDrawer(DrawerSingleTrack):
 
         layout = layouts.layouts[paper]
         background.change_papersize(paper, layout.background_bounds)
-        ele_pofile = ElevationProfile.from_track(layout.bot_bounds, gpx_track, scatter_points, ele_ratio=0.45)
+        ele_profile = ElevationProfile.from_track(layout.bot_bounds, gpx_track, scatter_points, ele_ratio=0.45)
         title = CenteredTitle(bounds=layout.top_bounds)
         scatter_all = AnnotatedScatterAll.from_scatter(paper, layout.background_bounds, layout.mid_bounds,
                                                        scatter_points, self.params)
@@ -80,7 +80,7 @@ class CityDrawer(DrawerSingleTrack):
 
         self.data = CityLayout(layouts=layouts,
                                background=background,
-                               bot=ele_pofile,
+                               bot=ele_profile,
                                top=title,
                                mid_scatter=scatter_all,
                                mid_track=track_data,
