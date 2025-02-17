@@ -3,6 +3,9 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from shapely import Point as ShapelyPoint
+from shapely import Polygon as ShapelyPolygon
+
 from pretty_gpx.common.drawing.utils.drawing_figure import DrawingFigure
 from pretty_gpx.common.drawing.utils.drawing_figure import MetersFloat
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
@@ -11,6 +14,7 @@ from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.request.overpass_processing import SurfacePolygons
 from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.profile import profile
+from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import safe
 from pretty_gpx.rendering_modes.city.data.forests import prepare_download_city_forests
 from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
@@ -70,14 +74,50 @@ class CityBackground:
                               full_roads=roads, full_rivers=rivers, full_forests=forests, full_farmlands=farmlands,
                               paper_roads=None, paper_rivers=None, paper_forests=None, paper_farmlands=None)
 
+    @staticmethod
+    @profile
+    def surface_polygons_inside_bounds(surface_polygons: SurfacePolygons, bounds: GpxBounds) -> SurfacePolygons:
+        """Get the surface polygons inside the drawing bounds."""
+        lat_min, lat_max, lon_min, lon_max = bounds.lat_min, bounds.lat_max, bounds.lon_min, bounds.lon_max
+        rectangle = ShapelyPolygon([(lon_min, lat_min), (lon_max, lat_min), (lon_max, lat_max), (lon_min, lat_max)])
+        inner_polygons_inside = [polygon for polygon in surface_polygons.interior_polygons 
+                                 if not rectangle.disjoint(ShapelyPolygon(polygon.get_xy()[:-1]))]
+        outer_polygons_inside = [polygon for polygon in surface_polygons.exterior_polygons 
+                                 if not rectangle.disjoint(ShapelyPolygon(polygon.get_xy()[:-1]))]
+        polygons_inside = SurfacePolygons(exterior_polygons=outer_polygons_inside,
+                                          interior_polygons=inner_polygons_inside)
+        return polygons_inside
+
+    @staticmethod
+    @profile
+    def roads_inside_bounds(city_roads: dict[CityRoadType, list[ListLonLat]],
+                            bounds: GpxBounds) -> dict[CityRoadType, list[ListLonLat]]:
+        """Get the roads inside the drawing bounds."""
+        lat_min, lat_max, lon_min, lon_max = bounds.lat_min, bounds.lat_max, bounds.lon_min, bounds.lon_max
+        rectangle = ShapelyPolygon([(lon_min, lat_min), (lon_max, lat_min), (lon_max, lat_max), (lon_min, lat_max)])
+        city_roads_inside: dict[CityRoadType, list[ListLonLat]] = dict()
+        for city_road_type, roads_l in city_roads.items():
+            city_roads_inside[city_road_type] = []
+            for road in roads_l:
+                first_point = ShapelyPoint(road[0])
+                last_point = ShapelyPoint(road[-1])
+
+                first_point_inside = rectangle.contains(first_point)
+                last_point_inside = rectangle.contains(last_point)
+
+                if first_point_inside or last_point_inside:
+                    city_roads_inside[city_road_type].append(road)
+        return city_roads_inside
+
     @profile
     def change_papersize(self, paper: PaperSize, bounds: GpxBounds) -> None:
         """Change Paper Size and GPX Bounds."""
         # TODO(upgrade): Change the paper size. For now, just copy the full data and let the plot hide the rest
-        self.paper_roads = self.full_roads
-        self.paper_rivers = self.full_rivers
-        self.paper_forests = self.full_forests
-        self.paper_farmlands = self.full_farmlands
+        with Profiling.Scope("CHANGE PAPERSIZE"):
+            self.paper_roads = CityBackground.roads_inside_bounds(self.full_roads, bounds=bounds)
+            self.paper_rivers = CityBackground.surface_polygons_inside_bounds(self.full_rivers, bounds=bounds)
+            self.paper_forests = CityBackground.surface_polygons_inside_bounds(self.full_forests, bounds=bounds)
+            self.paper_farmlands = CityBackground.surface_polygons_inside_bounds(self.full_farmlands, bounds=bounds)
 
     @profile
     def draw(self, fig: DrawingFigure, params: CityBackgroundParamsProtocol) -> None:
