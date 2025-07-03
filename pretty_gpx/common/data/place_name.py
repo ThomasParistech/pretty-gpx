@@ -47,9 +47,9 @@ def get_start_end_named_points(gpx_track: GpxTrack | MultiGpxTrack) -> list[Scat
                          lon=start_lon,
                          lat=start_lat,
                          category=ScatterPointCategory.START)
-    end = ScatterPoint(name=None,
-                       lon=start_lon,
-                       lat=start_lat,
+    end = ScatterPoint(name=get_place_name(lon=end_lon, lat=end_lat),
+                       lon=end_lon,
+                       lat=end_lat,
                        category=ScatterPointCategory.END)
 
     if get_distance_m(lonlat_1=(start_lon, start_lat),
