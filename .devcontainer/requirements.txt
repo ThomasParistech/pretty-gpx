@@ -1,5 +1,5 @@
 cairosvg==2.7.1
-dem-stitcher==2.5.5
+dem-stitcher==2.5.12
 dnspython==2.6.1
 geopy==2.4.1
 gpxpy==1.6.2
