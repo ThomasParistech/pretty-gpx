@@ -18,10 +18,49 @@ from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
 from pretty_gpx.common.gpx.gpx_bounds import GpxBounds
 from pretty_gpx.common.gpx.gpx_distance import get_pairwise_distance_m
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
+from pretty_gpx.common.gpx.multi_gpx_track import MultiGpxTrack
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.asserts import assert_in
 from pretty_gpx.common.utils.asserts import assert_same_len
 from pretty_gpx.common.utils.utils import get
+
+
+def handle_flat_elevation_profile(track: GpxTrack | MultiGpxTrack,
+                                  bot_ratio: float,
+                                  ele_ratio: float) -> tuple[float, float]:
+    """For nearly flat tracks with gradients below 1%, reduce vertical scaling accordingly.
+
+    1  ┌───────────────────────x────────────┐   ▲     
+       │                    xxxxxxx         │   │   ele_ratio
+       │  xxxxxxxxxxx    xxxx     xxxxxxxxxx│   │    
+       xxx          xxxxxx                 xx   ▼    
+       x                                    x       
+       x                                    x       
+       x                                    x      
+       x                                    x    
+       x                                    x     
+    0  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  1     
+    """
+    if isinstance(track, GpxTrack):
+        uphill_m = track.uphill_m
+        dist_km = track.dist_km
+    else:
+        uphill_m = sum(t.uphill_m for t in track.tracks)
+        dist_km = sum(t.dist_km for t in track.tracks)
+
+    avg_gradient = uphill_m*1e-3/dist_km
+    ref_gradient = 0.01  # 1%
+
+    if 0 <= avg_gradient < ref_gradient:
+        downscale = avg_gradient / ref_gradient
+
+        new_total_height = 1.0 - ele_ratio*(1.-downscale)
+        new_ele_height = ele_ratio * downscale
+
+        bot_ratio *= new_total_height
+        ele_ratio = new_ele_height / new_total_height
+
+    return bot_ratio, ele_ratio
 
 
 def downsample(x: np.ndarray, y: np.ndarray, n: int) -> tuple[np.ndarray, np.ndarray]:
@@ -86,10 +125,6 @@ class ElevationProfile:
         # Draw Elevation Over Distance
         normalized_poly_lon = np.array(track.list_cumul_dist_km)/track.list_cumul_dist_km[-1]  # in [0, 1]
         min_ele, max_ele = min(track.list_ele_m), max(track.list_ele_m)
-
-        avg_gradient = track.uphill_m*1e-3/track.list_cumul_dist_km[-1]
-        if avg_gradient < 1e-2:
-            ele_ratio = ele_ratio/(1e-2/avg_gradient if avg_gradient > 0 else 1e2)
 
         normalized_poly_lat = (np.array(track.list_ele_m) - min_ele) / (max_ele - min_ele)  # in [0, 1]
 
