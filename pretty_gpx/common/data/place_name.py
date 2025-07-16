@@ -47,15 +47,20 @@ def get_start_end_named_points(gpx_track: GpxTrack | MultiGpxTrack) -> list[Scat
                          lon=start_lon,
                          lat=start_lat,
                          category=ScatterPointCategory.START)
-    end = ScatterPoint(name=None,
-                       lon=start_lon,
-                       lat=start_lat,
-                       category=ScatterPointCategory.END)
 
     if get_distance_m(lonlat_1=(start_lon, start_lat),
                       lonlat_2=(end_lon, end_lat)) < 1000:
+        # Start and end are too close, skip name and position of end point
+        end = ScatterPoint(name=None,
+                           lon=start_lon,
+                           lat=start_lat,
+                           category=ScatterPointCategory.END)
+    else:
+        # Start and end are far enough, keep name of end point only if different from start
         name = get_place_name(lon=end_lon, lat=end_lat)
-        if name != start.name:
-            end.name = name
+        end = ScatterPoint(name=name if name != start.name else None,
+                           lon=end_lon,
+                           lat=end_lat,
+                           category=ScatterPointCategory.END)
 
     return [start, end]
