@@ -118,7 +118,7 @@ class VerticalLayoutUnion:
                    *,
                    top_ratio: float,
                    bot_ratio: float,
-                   margin_ratio: float,) -> 'VerticalLayoutUnion':
+                   margin_ratio: float) -> 'VerticalLayoutUnion':
         """Store the Vertical Layouts for different Paper Sizes and take the union of the Background Bounds."""
         layouts = {paper: VerticalLayout.from_track(gpx_track, paper, top_ratio, bot_ratio, margin_ratio)
                    for paper in PAPER_SIZES.values()}

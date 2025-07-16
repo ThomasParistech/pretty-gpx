@@ -125,7 +125,6 @@ class ElevationProfile:
         # Draw Elevation Over Distance
         normalized_poly_lon = np.array(track.list_cumul_dist_km)/track.list_cumul_dist_km[-1]  # in [0, 1]
         min_ele, max_ele = min(track.list_ele_m), max(track.list_ele_m)
-
         normalized_poly_lat = (np.array(track.list_ele_m) - min_ele) / (max_ele - min_ele)  # in [0, 1]
 
         rel_poly_lat = (1.0-ele_ratio) + ele_ratio * normalized_poly_lat
