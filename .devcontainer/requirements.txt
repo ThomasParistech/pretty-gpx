@@ -20,4 +20,4 @@ textalloc==1.1.6
 shapely==2.0.6
 types-shapely==2.0.0.20241221
 orjson==3.10.7
-requests==2.32.3
+requests==2.32.4

@@ -9,6 +9,7 @@ from pretty_gpx.common.data.place_name import get_start_end_named_points
 from pretty_gpx.common.drawing.components.annotated_scatter import AnnotatedScatterAll
 from pretty_gpx.common.drawing.components.centered_title import CenteredTitle
 from pretty_gpx.common.drawing.components.elevation_profile import ElevationProfile
+from pretty_gpx.common.drawing.components.elevation_profile import handle_flat_elevation_profile
 from pretty_gpx.common.drawing.components.track_data import TrackData
 from pretty_gpx.common.drawing.utils.drawer import DrawerSingleTrack
 from pretty_gpx.common.drawing.utils.drawing_figure import DrawingFigure
@@ -53,9 +54,12 @@ class CityDrawer(DrawerSingleTrack):
     def change_gpx(self, gpx_path: str | bytes, paper: PaperSize) -> None:
         """Load a single GPX file to create a City Poster."""
         gpx_track = GpxTrack.load(gpx_path)
+        ele_ratio = 0.45
+        bot_ratio, ele_ratio = handle_flat_elevation_profile(gpx_track, self.bot_ratio, ele_ratio)
+
         layouts = VerticalLayoutUnion.from_track(gpx_track,
                                                  top_ratio=self.top_ratio,
-                                                 bot_ratio=self.bot_ratio,
+                                                 bot_ratio=bot_ratio,
                                                  margin_ratio=self.margin_ratio)
 
         total_query = OverpassQuery()
@@ -72,7 +76,7 @@ class CityDrawer(DrawerSingleTrack):
 
         layout = layouts.layouts[paper]
         background.change_papersize(paper, layout.background_bounds)
-        ele_pofile = ElevationProfile.from_track(layout.bot_bounds, gpx_track, scatter_points, ele_ratio=0.45)
+        ele_profile = ElevationProfile.from_track(layout.bot_bounds, gpx_track, scatter_points, ele_ratio=ele_ratio)
         title = CenteredTitle(bounds=layout.top_bounds)
         scatter_all = AnnotatedScatterAll.from_scatter(paper, layout.background_bounds, layout.mid_bounds,
                                                        scatter_points, self.params)
@@ -80,7 +84,7 @@ class CityDrawer(DrawerSingleTrack):
 
         self.data = CityLayout(layouts=layouts,
                                background=background,
-                               bot=ele_pofile,
+                               bot=ele_profile,
                                top=title,
                                mid_scatter=scatter_all,
                                mid_track=track_data,
