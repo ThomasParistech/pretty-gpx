@@ -1,19 +1,18 @@
 #!/usr/bin/python3
 """Test Bridges."""
-import os
 
+from pretty_gpx.common.data.examples import RunningGpx
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.asserts import assert_same_keys
-from pretty_gpx.common.utils.paths import RUNNING_DIR
 from pretty_gpx.rendering_modes.city.data.bridges import prepare_download_city_bridges
 from pretty_gpx.rendering_modes.city.data.bridges import process_city_bridges
 
 
-def __core_test_bridges(path: str, gt_names: set[str]) -> None:
+def __core_test_bridges(scene: RunningGpx, gt_names: set[str]) -> None:
     """Test Bridges."""
     # GIVEN
-    gpx = GpxTrack.load(path)
+    gpx = GpxTrack.load(scene.path)
 
     # WHEN
     query = OverpassQuery()
@@ -26,7 +25,7 @@ def __core_test_bridges(path: str, gt_names: set[str]) -> None:
 
 def test_chicago_bridges() -> None:
     """Test Chicago Bridges."""
-    __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_chicago.gpx"),
+    __core_test_bridges(RunningGpx.MARATHON_CHICAGO,
                         {'William P. Fahey Bridge',
                          'State Street Bridge (Chicago)',
                          'Marshall Suloway Bridge',
@@ -37,14 +36,14 @@ def test_chicago_bridges() -> None:
 
 def test_paris_bridges() -> None:
     """Test Paris Bridges."""
-    __core_test_bridges(os.path.join(RUNNING_DIR, "10k_paris.gpx"),
+    __core_test_bridges(RunningGpx.TEN_K_PARIS,
                         {'Pont des Invalides',
                          'Pont du Carrousel'})
 
 
 def test_new_york_bridges() -> None:
     """Test New York Bridges."""
-    __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_new_york.gpx"),
+    __core_test_bridges(RunningGpx.MARATHON_NEW_YORK,
                         {"Madison Avenue Bridge",
                          "Pulaski Bridge",
                          "Willis Avenue Bridge",
@@ -54,7 +53,7 @@ def test_new_york_bridges() -> None:
 
 def test_berlin_bridges() -> None:
     """Test Berlin Bridges."""
-    __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_berlin.gpx"),
+    __core_test_bridges(RunningGpx.MARATHON_BERLIN,
                         {"Charlottenburger Brücke",
                          "Kronprinzenbrücke",
                          "Marchbrücke",
@@ -67,12 +66,12 @@ def test_berlin_bridges() -> None:
 
 def test_london_bridges() -> None:
     """Test London Bridges."""
-    __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_london.gpx"),
+    __core_test_bridges(RunningGpx.MARATHON_LONDON,
                         {"Tower Bridge"})
 
 
 def test_bordeaux_bridges() -> None:
     """Test Bordeaux Bridges."""
-    __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_bordeaux.gpx"),
+    __core_test_bridges(RunningGpx.MARATHON_BORDEAUX,
                         {"Pont de Pierre",
                          "Pont Jacques Chaban-Delmas"})
