@@ -1,20 +1,19 @@
 #!/usr/bin/python3
 """Test City Points of Interest."""
 
-import os
 
+from pretty_gpx.common.data.examples import RunningGpx
 from pretty_gpx.common.gpx.gpx_track import GpxTrack
 from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.asserts import assert_subset
-from pretty_gpx.common.utils.paths import RUNNING_DIR
 from pretty_gpx.rendering_modes.city.data.city_pois import prepare_download_city_pois
 from pretty_gpx.rendering_modes.city.data.city_pois import process_city_pois
 
 
-def __core_test_city_pois(path: str, gt_required_names: set[str]) -> None:
+def __core_test_city_pois(scene: RunningGpx, gt_required_names: set[str]) -> None:
     """Test City Points of Interest, focusing on the most relevant ones as others may vary with the implementation."""
     # GIVEN
-    gpx = GpxTrack.load(path)
+    gpx = GpxTrack.load(scene.path)
 
     # WHEN
     query = OverpassQuery()
@@ -28,7 +27,7 @@ def __core_test_city_pois(path: str, gt_required_names: set[str]) -> None:
 
 def test_london_city_pois() -> None:
     """Test London City Points of Interest."""
-    __core_test_city_pois(os.path.join(RUNNING_DIR, "marathon_london.gpx"),
+    __core_test_city_pois(RunningGpx.MARATHON_LONDON,
                           {"Tower of London",
                            "Saint Paul's",
                            "Westminster Abbey",
@@ -38,7 +37,7 @@ def test_london_city_pois() -> None:
 
 def test_paris_city_pois() -> None:
     """Test Paris City Points of Interest."""
-    __core_test_city_pois(os.path.join(RUNNING_DIR, "10k_paris.gpx"),
+    __core_test_city_pois(RunningGpx.TEN_K_PARIS,
                           {"Musée d'Orsay",
                            'Palais du Louvre',
                            'Opéra Garnier',
