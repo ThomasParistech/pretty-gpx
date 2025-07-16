@@ -247,8 +247,6 @@ def get_members_from_relation(relation: Relation,
     outer_geometry_l: list[list[RelationWayGeometryValue]] = []
     inner_geometry_l: list[list[RelationWayGeometryValue]] = []
     if relation_members is None or recursion_depth >= MAX_RECURSION_DEPTH:
-        if recursion_depth >= MAX_RECURSION_DEPTH:
-            logger.warning("Max Recursion depth exceeded in get_members_from_relation function")
         return outer_geometry_l, inner_geometry_l
     for member in relation_members:
         if type(member) == RelationRelation:
@@ -256,8 +254,17 @@ def get_members_from_relation(relation: Relation,
             relation_inside_member = member.resolve(resolve_missing=True)
             outer_subrelation, inner_subrelation = get_members_from_relation(relation=relation_inside_member,
                                                                              recursion_depth=recursion_depth+1)
-            outer_geometry_l += outer_subrelation
-            inner_geometry_l += inner_subrelation
+            if member.role == "outer":
+                outer_geometry_l += outer_subrelation
+                inner_geometry_l += inner_subrelation
+            elif member.role == "inner":
+                # Inversion of outer and inner because the subrelation was an inner
+                # TODO: Support the inner of an inner subrelation 
+                # (which is an outer but must be drawn on top of the inner)
+                # Might need to create the polygons on the go to take the outer of an inner into account by leveraging
+                # shapely holes feature for polygons
+                # For now, inner of an inner are dropped
+                inner_geometry_l += outer_subrelation
         elif type(member) == RelationWay:
             if member.geometry is None:
                 continue
@@ -482,7 +489,6 @@ def create_polygons_from_geom(outer_geoms: list[list[RelationWayGeometryValue]],
         else:
             skipped_inners += 1
 
-    inner_points = []
     for outer_geom in outer_geoms:
         point_l = get_lat_lon_from_geometry(outer_geom)
         if len(point_l) < 4:
@@ -500,11 +506,11 @@ def create_polygons_from_geom(outer_geoms: list[list[RelationWayGeometryValue]],
                 # Relaxation of the constraint in order to validate some geometries that are on the border
                 holes_i.append(hole)
             else:
-                other_holes.append((hole, first_point))
+                other_holes.append((hole, first_point, middle_point))
         polygon_l.append(ShapelyPolygon(shell=outer_polygon.exterior,
                                         holes=holes_i))
-        inner_points = other_holes
-    if len(inner_points) > 0:
+        inner_rings = other_holes
+    if len(inner_rings) > 0:
         logger.warning(f"Relation {id}. Could not find an outer for all inner geometries, {len(inner_geoms)} "
                        f"inner geometr{'y is' if len(inner_geoms) == 1 else 'ies are'} unused")
     if skipped_inners:
