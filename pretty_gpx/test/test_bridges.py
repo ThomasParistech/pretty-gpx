@@ -49,7 +49,8 @@ def test_new_york_bridges() -> None:
                          "Pulaski Bridge",
                          "Willis Avenue Bridge",
                          "Queensboro Bridge",
-                         "Verrazzano-Narrows Bridge"})
+                         "Verrazzano Bridge"})
+
 
 def test_berlin_bridges() -> None:
     """Test Berlin Bridges."""
