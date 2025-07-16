@@ -36,6 +36,7 @@ BRIDGES_CACHE = GpxDataCacheHandler(name='bridges', extension='.pkl')
 BRIDGES_RELATIONS_ARRAY_NAME = "bridges_relations"
 BRIDGES_WAYS_ARRAY_NAME = "bridges_ways"
 
+
 @dataclass
 class Bridge:
     """Bridge."""
@@ -45,6 +46,7 @@ class Bridge:
     aspect_ratio: float
     center: Point
     direction: tuple[float, float] | None
+
 
 class BridgeApproximation:
     """Bridge rectangle approximation."""
@@ -73,7 +75,7 @@ class BridgeApproximation:
         if not hasattr(min_rot_rect, "exterior"):
             raise ValueError("The minimum rotated rectangle does not have an exterior.")
 
-        rectangle = ShapelyPolygon(np.array(min_rot_rect.exterior.coords)) # type: ignore
+        rectangle = ShapelyPolygon(np.array(min_rot_rect.exterior.coords))  # type: ignore
         coords = list(rectangle.exterior.coords[:-1])
         sides = [(np.linalg.norm(np.array(coords[i]) - np.array(coords[(i + 1) % 4])),
                   LineString([coords[i], coords[(i + 1) % 4]])) for i in range(4)]
@@ -101,8 +103,8 @@ class BridgeApproximation:
                 bridge_coords = get_way_coordinates(way_or_relation)
             elif isinstance(way_or_relation, Relation) and way_or_relation.members:
                 outer_members = [member.geometry for member in way_or_relation.members
-                               if isinstance(member, RelationWay) and member.geometry 
-                               and member.role == "outer"]
+                                 if isinstance(member, RelationWay) and member.geometry
+                                 and member.role == "outer"]
                 merged_ways = merge_ways(outer_members)
                 if len(merged_ways) > 1:
                     logger.error("Multiple geometries found")
@@ -126,10 +128,11 @@ class BridgeApproximation:
                 return None
 
             return Bridge(name=bridge_name, polygon=bridge_simplified, length=bridge_length,
-                      aspect_ratio=aspect_ratio, center=bridge_polygon.centroid, direction=bridge_dir)
+                          aspect_ratio=aspect_ratio, center=bridge_polygon.centroid, direction=bridge_dir)
         except Exception as e:
             logger.error(f"Error processing bridge: {e}")
             return None
+
 
 class BridgeCrossingAnalyzer:
     """Bridge and track intersection."""
@@ -147,8 +150,8 @@ class BridgeCrossingAnalyzer:
     def _extract_intersection_coordinates(intersection: BaseGeometry) -> tuple[list[float], list[float]] | None:
         """Extract x,y coordinates from intersection geometry."""
         if isinstance(intersection, GeometryCollection | MultiLineString):
-            coords = [(x, y) for geom in intersection.geoms 
-                     if isinstance(geom, LineString) for x, y in geom.coords]
+            coords = [(x, y) for geom in intersection.geoms
+                      if isinstance(geom, LineString) for x, y in geom.coords]
             if not coords:
                 return None
             x_coords, y_coords = zip(*coords)
@@ -192,7 +195,7 @@ class BridgeCrossingAnalyzer:
 
             intersection_direction = get_average_straight_line(coords[0], coords[1])[1]
             angle = cls._calculate_crossing_angle(intersection_direction, bridge.direction)
-            
+
             if angle < cls.ANGLE_THRESHOLD:
                 logger.debug(f"{bridge.name} crossed, angle : {angle}")
                 crossed_bridges.append(bridge)
@@ -200,6 +203,7 @@ class BridgeCrossingAnalyzer:
                 logger.debug(f"{bridge.name} not crossed, angle {angle}")
 
         return crossed_bridges
+
 
 @profile
 def prepare_download_city_bridges(query: OverpassQuery, track: GpxTrack) -> None:
@@ -223,6 +227,7 @@ def prepare_download_city_bridges(query: OverpassQuery, track: GpxTrack) -> None
         relations=True,
         radius_m=40)
 
+
 @profile
 def process_city_bridges(query: OverpassQuery, track: GpxTrack) -> list[ScatterPoint]:
     """Process the overpass API result to get the bridges of a city."""
@@ -233,7 +238,7 @@ def process_city_bridges(query: OverpassQuery, track: GpxTrack) -> list[ScatterP
         bridges_direction: dict[str, tuple[float, LineString]] = {}
         bridges_stats = {}
         bridges_to_process = []
-        
+
         for way in query.get_query_result(BRIDGES_WAYS_ARRAY_NAME).ways:
             if way.tags.get("bridge") and "man_made" not in way.tags:
                 line = LineString(get_way_coordinates(way))
@@ -252,7 +257,7 @@ def process_city_bridges(query: OverpassQuery, track: GpxTrack) -> list[ScatterP
         bridges = [BridgeApproximation.create_bridge(way, bridges_stats) for way in bridges_to_process]
         bridges.extend(BridgeApproximation.create_bridge(rel, bridges_stats)
                        for rel in query.get_query_result(BRIDGES_RELATIONS_ARRAY_NAME).relations)
-        
+
         crossed_bridges = BridgeCrossingAnalyzer.analyze_track_bridge_crossing(track, [b for b in bridges if b])
         result = [ScatterPoint(name=b.name, lat=b.center.y, lon=b.center.x, category=ScatterPointCategory.CITY_BRIDGE)
                   for b in crossed_bridges]

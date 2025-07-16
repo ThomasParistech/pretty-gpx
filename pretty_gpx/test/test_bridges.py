@@ -64,6 +64,7 @@ def test_berlin_bridges() -> None:
                          "Kottbusser Brücke",
                          "Potsdamer Brücke"})
 
+
 def test_london_bridges() -> None:
     """Test London Bridges."""
     __core_test_bridges(os.path.join(RUNNING_DIR, "marathon_london.gpx"),
