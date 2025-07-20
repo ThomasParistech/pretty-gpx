@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 """Roads."""
 import os
-from enum import auto
-from enum import Enum
+from enum import IntEnum
 
 from tqdm import tqdm
 
@@ -11,6 +10,7 @@ from pretty_gpx.common.gpx.gpx_distance import ListLonLat
 from pretty_gpx.common.request.gpx_data_cache_handler import GpxDataCacheHandler
 from pretty_gpx.common.request.overpass_processing import get_ways_coordinates_from_results
 from pretty_gpx.common.request.overpass_request import OverpassQuery
+from pretty_gpx.common.utils.asserts import assert_same_keys
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.pickle_io import read_pickle
 from pretty_gpx.common.utils.pickle_io import write_pickle
@@ -20,31 +20,32 @@ from pretty_gpx.common.utils.profile import Profiling
 ROADS_CACHE = GpxDataCacheHandler(name='roads', extension='.pkl')
 
 
-class CityRoadType(Enum):
-    """City Road Type."""
-    HIGHWAY = auto()
-    SECONDARY_ROAD = auto()
-    STREET = auto()
-    ACCESS_ROAD = auto()
+class CityRoadPrecision(IntEnum):
+    """Enum defining different road precision levels."""
+    VERY_HIGH = 3  # Access roads
+    HIGH = 2  # Streets
+    MEDIUM = 1  # Secondary roads
+    LOW = 0  # Highways
+
+    @property
+    def pretty_name(self) -> str:
+        """Human-friendly name, e.g. 'Very-High'."""
+        return self.name.replace("_", "-").title()
+
+    @staticmethod
+    def coarse_to_fine() -> list["CityRoadPrecision"]:
+        """Return the list of road precision from coarse to fine."""
+        return sorted(CityRoadPrecision, key=lambda p: p.value)
 
 
-HIGHWAY_TAGS_PER_CITY_ROAD_TYPE = {
-    CityRoadType.HIGHWAY: ["motorway", "trunk", "primary"],
-    CityRoadType.SECONDARY_ROAD: ["tertiary", "secondary"],
-    CityRoadType.STREET: ["residential", "living_street"],
-    CityRoadType.ACCESS_ROAD: ["unclassified", "service"]
+ROAD_HIGHWAY_TAGS: dict[CityRoadPrecision, list[str]] = {
+    CityRoadPrecision.LOW: ["motorway", "trunk", "primary"],
+    CityRoadPrecision.MEDIUM: ["tertiary", "secondary"],
+    CityRoadPrecision.HIGH: ["residential", "living_street"],
+    CityRoadPrecision.VERY_HIGH: ["unclassified", "service"]
 }
 
-QUERY_NAME_PER_CITY_ROAD_TYPE = {
-    CityRoadType.HIGHWAY: "highway",
-    CityRoadType.SECONDARY_ROAD: "secondary_roads",
-    CityRoadType.STREET: "street",
-    CityRoadType.ACCESS_ROAD: "access_roads"
-}
-
-assert HIGHWAY_TAGS_PER_CITY_ROAD_TYPE.keys() == QUERY_NAME_PER_CITY_ROAD_TYPE.keys()
-
-CityRoads = dict[CityRoadType, list[ListLonLat]]
+assert_same_keys(ROAD_HIGHWAY_TAGS, CityRoadPrecision)
 
 
 @profile
@@ -65,9 +66,9 @@ def prepare_download_city_roads(query: OverpassQuery,
         query.add_cached_result(ROADS_CACHE.name, cache_file=cache_pkl)
         return
 
-    for city_road_type in tqdm(CityRoadType):
-        highway_tags_str = "|".join(HIGHWAY_TAGS_PER_CITY_ROAD_TYPE[city_road_type])
-        query.add_overpass_query(QUERY_NAME_PER_CITY_ROAD_TYPE[city_road_type],
+    for city_road_precision in tqdm(CityRoadPrecision):
+        highway_tags_str = "|".join(ROAD_HIGHWAY_TAGS[city_road_precision])
+        query.add_overpass_query(city_road_precision.name,
                                  [f"way['highway'~'({highway_tags_str})']"],
                                  bounds,
                                  include_way_nodes=True,
@@ -76,7 +77,7 @@ def prepare_download_city_roads(query: OverpassQuery,
 
 @profile
 def process_city_roads(query: OverpassQuery,
-                       bounds: GpxBounds) -> dict[CityRoadType, list[ListLonLat]]:
+                       bounds: GpxBounds) -> dict[CityRoadPrecision, list[ListLonLat]]:
     """Query the overpass API to get the roads of a city."""
     if query.is_cached(ROADS_CACHE.name):
         cache_file = query.get_cache_file(ROADS_CACHE.name)
@@ -84,10 +85,10 @@ def process_city_roads(query: OverpassQuery,
 
     with Profiling.Scope("Process City Roads"):
         roads = dict()
-        for city_road_type, query_name in QUERY_NAME_PER_CITY_ROAD_TYPE.items():
-            logger.debug(f"Query name : {query_name}")
-            result = query.get_query_result(query_name)
-            roads[city_road_type] = get_ways_coordinates_from_results(result)
+        for city_road_precision in CityRoadPrecision:
+            logger.debug(f"Query precision : {city_road_precision.name}")
+            result = query.get_query_result(city_road_precision.name)
+            roads[city_road_precision] = get_ways_coordinates_from_results(result)
 
     cache_pkl = ROADS_CACHE.get_path(bounds)
     write_pickle(cache_pkl, roads)

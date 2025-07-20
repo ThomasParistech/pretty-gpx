@@ -105,6 +105,7 @@ class BridgeApproximation:
                 outer_members = [member.geometry for member in way_or_relation.members
                                  if isinstance(member, RelationWay) and member.geometry
                                  and member.role == "outer"]
+
                 merged_ways = merge_ways(outer_members)
                 if len(merged_ways) > 1:
                     logger.error("Multiple geometries found")
@@ -152,6 +153,7 @@ class BridgeCrossingAnalyzer:
         if isinstance(intersection, GeometryCollection | MultiLineString):
             coords = [(x, y) for geom in intersection.geoms
                       if isinstance(geom, LineString) for x, y in geom.coords]
+
             if not coords:
                 return None
             x_coords, y_coords = zip(*coords)

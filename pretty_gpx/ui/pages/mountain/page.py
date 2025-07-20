@@ -32,7 +32,9 @@ class MountainUiManager(UiManager[MountainDrawer]):
         with self.subclass_column:
             self.uphill = UiInputInt.create(label='D+ (m)', value="", on_enter=self.on_click_update,
                                             tooltip="Press Enter to override elevation from GPX")
-            self.azimuth = UiToggle[int].create(mapping=AZIMUTHS, on_change=self.on_click_update)
+            self.azimuth = UiToggle[int].create(mapping=AZIMUTHS,
+                                                tooltip="Select the azimuth angle for the hillshading",
+                                                on_change=self.on_click_update)
 
     @staticmethod
     def get_chat_msg() -> list[str]:

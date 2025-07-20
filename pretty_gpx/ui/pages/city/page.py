@@ -3,11 +3,13 @@
 from dataclasses import dataclass
 
 from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
+from pretty_gpx.rendering_modes.city.data.roads import CityRoadPrecision
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CITY_COLOR_THEMES
 from pretty_gpx.rendering_modes.city.drawing.city_drawer import CityDrawer
 from pretty_gpx.rendering_modes.city.drawing.city_params import CityParams
 from pretty_gpx.ui.pages.template.ui_input import UiInputInt
 from pretty_gpx.ui.pages.template.ui_manager import UiManager
+from pretty_gpx.ui.pages.template.ui_toggle import UiToggle
 
 
 def city_page() -> None:
@@ -19,6 +21,7 @@ def city_page() -> None:
 class CityUiManager(UiManager[CityDrawer]):
     """City Ui Manager."""
     uphill: UiInputInt
+    road_max_precision: UiToggle[CityRoadPrecision]
 
     def __init__(self) -> None:
         drawer = CityDrawer(params=CityParams.default(), top_ratio=0.18, bot_ratio=0.22, margin_ratio=0.1)
@@ -29,6 +32,11 @@ class CityUiManager(UiManager[CityDrawer]):
         with self.subclass_column:
             self.uphill = UiInputInt.create(label='D+ (m)', value="", on_enter=self.on_click_update,
                                             tooltip="Press Enter to override elevation from GPX")
+            self.road_max_precision = UiToggle[CityRoadPrecision].create({p.pretty_name: p
+                                                                          for p in CityRoadPrecision.coarse_to_fine()},
+                                                                         tooltip="Change the roads level of details",
+                                                                         on_change=self.on_click_update,
+                                                                         start_key=CityRoadPrecision.MEDIUM.pretty_name)
 
     @staticmethod
     def get_chat_msg() -> list[str]:
@@ -43,6 +51,7 @@ class CityUiManager(UiManager[CityDrawer]):
 
         self.drawer.params.track_color = theme.track_color
 
+        self.drawer.params.city_road_max_precision = self.road_max_precision.value
         self.drawer.params.city_background_color = theme.background_color
         self.drawer.params.city_farmland_color = theme.farmland_color
         self.drawer.params.city_rivers_color = theme.rivers_color

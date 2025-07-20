@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Ui Input."""
+"""Ui Input, to capture text input from the user."""
 from collections.abc import Awaitable
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -12,7 +12,10 @@ from pretty_gpx.common.utils.utils import safe
 
 @dataclass
 class UiInput:
-    """NiceGUI Input Wrapper."""
+    """NiceGUI Input Wrapper.
+
+    This component is used to capture text input from the user.
+    """
     input: ui.input
 
     @classmethod
@@ -23,7 +26,7 @@ class UiInput:
                tooltip: str,
                on_enter: Callable[[], Awaitable[None]]) -> Self:
         """Create NiceGUI Input element and add a tooltip."""
-        with ui.input(label=label, value=value).on('keydown.enter', on_enter) as input:
+        with ui.input(label=label, value=value).on('keydown.enter', on_enter).style('width: 100%') as input:
             ui.tooltip(tooltip)
         return cls(input)
 
@@ -36,7 +39,10 @@ class UiInput:
 
 @dataclass
 class UiInputStr(UiInput):
-    """NiceGUI Str Input Wrapper."""
+    """NiceGUI Str Input Wrapper.
+
+    This component is used to capture text input from the user as a string.
+    """
 
     @property
     def value(self) -> str | None:
@@ -46,7 +52,10 @@ class UiInputStr(UiInput):
 
 @dataclass
 class UiInputFloat(UiInput):
-    """NiceGUI Float Input Wrapper."""
+    """NiceGUI Float Input Wrapper.
+
+    This component is used to capture text input from the user as a float.
+    """
 
     @property
     def value(self) -> float | None:
@@ -59,7 +68,10 @@ class UiInputFloat(UiInput):
 
 @dataclass
 class UiInputInt(UiInput):
-    """NiceGUI Int Input Wrapper."""
+    """NiceGUI Int Input Wrapper.
+
+    This component is used to capture text input from the user as an int.
+    """
 
     @property
     def value(self) -> int | None:

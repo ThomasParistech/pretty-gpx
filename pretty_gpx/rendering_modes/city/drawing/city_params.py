@@ -12,7 +12,7 @@ from pretty_gpx.common.drawing.utils.drawing_figure import MetersFloat
 from pretty_gpx.common.drawing.utils.fonts import FontEnum
 from pretty_gpx.common.drawing.utils.plt_marker import MarkerType
 from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
-from pretty_gpx.rendering_modes.city.data.roads import CityRoadType
+from pretty_gpx.rendering_modes.city.data.roads import CityRoadPrecision
 from pretty_gpx.rendering_modes.city.drawing.city_colors import CITY_COLOR_THEMES
 
 
@@ -28,7 +28,8 @@ class CityParams:
     annot_ha: str
     annot_va: str
 
-    city_roads_lw: dict[CityRoadType, MetersFloat]
+    city_roads_lw: dict[CityRoadPrecision, MetersFloat]
+    city_road_max_precision: CityRoadPrecision
     city_dark_mode: bool
     city_background_color: str
     city_farmland_color: str
@@ -88,11 +89,12 @@ class CityParams:
             annot_ha="center",
             annot_va="center",
             city_roads_lw={
-                CityRoadType.HIGHWAY: MetersFloat(m=40.0),
-                CityRoadType.SECONDARY_ROAD: MetersFloat(m=20),
-                CityRoadType.STREET: MetersFloat(m=10),
-                CityRoadType.ACCESS_ROAD: MetersFloat(m=5)
+                CityRoadPrecision.LOW: MetersFloat(m=40.0),
+                CityRoadPrecision.MEDIUM: MetersFloat(m=20),
+                CityRoadPrecision.HIGH: MetersFloat(m=10),
+                CityRoadPrecision.VERY_HIGH: MetersFloat(m=5)
             },
+            city_road_max_precision=CityRoadPrecision.MEDIUM,
             city_dark_mode=CITY_COLOR_THEMES[DarkTheme.BLUE_PURPLE_YELLOW].dark_mode,
             city_background_color=CITY_COLOR_THEMES[DarkTheme.BLUE_PURPLE_YELLOW].background_color,
             city_farmland_color=CITY_COLOR_THEMES[DarkTheme.BLUE_PURPLE_YELLOW].farmland_color,
@@ -122,5 +124,5 @@ class CityParams:
 
             centered_title_font_color="cyan",
             centered_title_font_size=A4Float(mm=20),
-            centered_title_fontproperties=FontEnum.TITLE.value
+            centered_title_fontproperties=FontEnum.TITLE.value,
         )
