@@ -194,12 +194,13 @@ class UiManager(Generic[T], ABC):
                                                 lambda: ui.notify('Please provide a GPX file', type='negative')
                                                 ).classes('max-w-full')
             # Paper Size
-            self.paper_size = UiToggle[PaperSize].create(PAPER_SIZES, on_change=self.on_paper_size_change)
+            self.paper_size = UiToggle[PaperSize].create(PAPER_SIZES,
+                                                         tooltip="Select the paper size",
+                                                         on_change=self.on_paper_size_change)
 
             #
             # New permanent fields will be added here by the subclass
             #
-
 
         with self.subclass_column:
             self.title = UiInputStr.create(label='Title', value="Title", tooltip="Press Enter to update title",
@@ -216,7 +217,9 @@ class UiManager(Generic[T], ABC):
             # TODO(upgrade): Use same Theme colors for the different rendering modes
             self.dark_mode_switch = ui.switch(DARK_MODE_TEXT, value=True, on_change=self.on_dark_mode_switch_change)
 
-            self.theme = UiToggle[DarkTheme].create(DarkTheme.get_mapping(), on_change=self.on_click_update)
+            self.theme = UiToggle[DarkTheme].create(DarkTheme.get_mapping(),
+                                                    tooltip="Select the color theme",
+                                                    on_change=self.on_click_update)
 
         #######
 

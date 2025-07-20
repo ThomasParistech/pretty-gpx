@@ -17,7 +17,6 @@ from pretty_gpx.rendering_modes.city.data.forests import process_city_forests
 from pretty_gpx.rendering_modes.city.data.rivers import prepare_download_city_rivers
 from pretty_gpx.rendering_modes.city.data.rivers import process_city_rivers
 from pretty_gpx.rendering_modes.city.data.roads import CityRoadPrecision
-from pretty_gpx.rendering_modes.city.data.roads import CityRoadType
 from pretty_gpx.rendering_modes.city.data.roads import prepare_download_city_roads
 from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
 
@@ -25,8 +24,9 @@ from pretty_gpx.rendering_modes.city.data.roads import process_city_roads
 class CityBackgroundParamsProtocol(Protocol):
     """Protocol for City Background Parameters."""
     @property
-    def city_roads_lw(self) -> dict[CityRoadType, MetersFloat]: ...  # noqa: D102
+    def city_roads_lw(self) -> dict[CityRoadPrecision, MetersFloat]: ...  # noqa: D102
 
+    city_road_max_precision: CityRoadPrecision
     city_dark_mode: bool
     city_background_color: str
     city_farmland_color: str
@@ -39,30 +39,29 @@ class CityBackground:
     """Drawing Component for a City Background."""
     union_bounds: GpxBounds
 
-    full_roads: dict[CityRoadType, list[ListLonLat]]
+    full_roads: dict[CityRoadPrecision, list[ListLonLat]]
     full_rivers: SurfacePolygons
     full_forests: SurfacePolygons
     full_farmlands: SurfacePolygons
 
-    paper_roads: dict[CityRoadType, list[ListLonLat]] | None
+    paper_roads: dict[CityRoadPrecision, list[ListLonLat]] | None
     paper_rivers: SurfacePolygons | None
     paper_forests: SurfacePolygons | None
     paper_farmlands: SurfacePolygons | None
 
     @staticmethod
     @profile
-    def from_union_bounds(union_bounds: GpxBounds,
-                          road_precision: CityRoadPrecision) -> 'CityBackground':
+    def from_union_bounds(union_bounds: GpxBounds) -> 'CityBackground':
         """Initialize the City Background from the Union Bounds."""
         total_query = OverpassQuery()
-        roads_downloaded = prepare_download_city_roads(total_query, union_bounds, road_precision)
+        prepare_download_city_roads(total_query, union_bounds)
         prepare_download_city_rivers(total_query, union_bounds)
         prepare_download_city_forests(total_query, union_bounds)
 
         total_query.launch_queries()
 
         # Retrieve the data
-        roads = process_city_roads(total_query, union_bounds, roads_downloaded, road_precision)
+        roads = process_city_roads(total_query, union_bounds)
         rivers = process_city_rivers(total_query, union_bounds)
         forests, farmlands = process_city_forests(total_query, union_bounds)
         forests.interior_polygons = []
@@ -94,9 +93,10 @@ class CityBackground:
                                color_background=params.city_background_color)
 
         road_color = "black" if params.city_dark_mode else "white"
-        for priority, roads in safe(self.paper_roads).items():
-            fig.line_collection(lon_lat_lines=roads,
-                                lw=params.city_roads_lw[priority],
-                                color=road_color)
+        for road_precision in CityRoadPrecision:  # Filter roads by precision
+            if road_precision <= params.city_road_max_precision:
+                fig.line_collection(lon_lat_lines=safe(self.paper_roads)[road_precision],
+                                    lw=params.city_roads_lw[road_precision],
+                                    color=road_color)
 
         fig.background_color(params.city_background_color)

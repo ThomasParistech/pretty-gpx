@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Ui Icon Toggle."""
+"""Ui Icon Toggle, to the let the user trigger an action by selecting an icon."""
 import os
 from collections.abc import Awaitable
 from collections.abc import Callable
@@ -14,9 +14,20 @@ app.add_static_files('/static', os.path.abspath(ICONS_DIR))
 
 
 class UiIconToggle:
-    """NiceGUI Icon Toggle."""
+    """NiceGUI Icon Toggle.
 
-    def __init__(self, markers: list[MarkerType],
+    This component is used to the let the user trigger an action by selecting an icon.
+
+    This UI toggle displays a row of buttons, each represented by an icon loaded 
+    from a corresponding SVG file. The icons are linked to values of type `MarkerType`.
+
+    When a button is clicked, the selected icon is visually highlighted, and a 
+    provided async callback (`on_change`) is triggered. The currently selected 
+    value can be accessed via the `value` property.
+    """
+
+    def __init__(self,
+                 markers: list[MarkerType],
                  start_idx: int = 0,
                  *, on_change: Callable[[], Awaitable[None]]) -> None:
         self.markers = markers
