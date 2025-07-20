@@ -30,13 +30,13 @@ class CityUiManager(UiManager[CityDrawer]):
         super(CityUiManager, self).__init__(drawer)  # noqa : UP008
 
         with self.subclass_column:
+            self.uphill = UiInputInt.create(label='D+ (m)', value="", on_enter=self.on_click_update,
+                                            tooltip="Press Enter to override elevation from GPX")
             self.road_max_precision = UiToggle[CityRoadPrecision].create({p.pretty_name: p
                                                                           for p in CityRoadPrecision.coarse_to_fine()},
                                                                          tooltip="Change the roads level of details",
                                                                          on_change=self.on_click_update,
                                                                          start_key=CityRoadPrecision.MEDIUM.pretty_name)
-            self.uphill = UiInputInt.create(label='D+ (m)', value="", on_enter=self.on_click_update,
-                                            tooltip="Press Enter to override elevation from GPX")
 
     @staticmethod
     def get_chat_msg() -> list[str]:
