@@ -10,42 +10,38 @@ from matplotlib.font_manager import FontProperties
 from pretty_gpx.common.utils.paths import FONTS_DIR
 
 
-def get_font_format(font_path: str) -> str:
-    """Get font's type."""
-    if font_path.lower().endswith('.otf'):
-        return 'opentype'
-    elif font_path.lower().endswith('.ttf'):
-        return 'truetype'
-    else:
-        raise ValueError("Unsupported font format. Please provide a .otf or .ttf file.")
+class CustomFont(Enum):
+    """Custom Fonts Enum."""
+    DEJA_VU_SANS_BOLD = FontProperties(family="DejaVu Sans", weight="bold")
+    LOBSTER = FontProperties(family="Lobster", fname=os.path.join(FONTS_DIR, "Lobster.ttf"))
+    MONOTON = FontProperties(family="Monoton", fname=os.path.join(FONTS_DIR, "Monoton.ttf"))
+    GOCHI_HAND = FontProperties(family="Gochi Hand", fname=os.path.join(FONTS_DIR, "GochiHand.ttf"))
+    EMILIO_20 = FontProperties(family="Emilio 20", fname=os.path.join(FONTS_DIR, "Emilio20.ttf"))
+    ALLERTA_STENCIL = FontProperties(family="Allerta Stencil", fname=os.path.join(FONTS_DIR, "AllertaStencil.ttf"))
 
+    @property
+    def font_name(self) -> str:
+        """Get the font name."""
+        return self.value.get_name()
 
-def get_css_header(font: FontProperties) -> str | None:
-    """Get the CSS header when using a custom font (using a local file)."""
-    font_path = font.get_file()
-    if font_path is not None and isinstance(font_path, str):
+    def get_css_header(self) -> str | None:
+        """Get the CSS header for the font."""
+        font_path = self.value.get_file()
+        if font_path is None or not isinstance(font_path, str):
+            return None
+
         font_path = Path(font_path).name
+        if font_path.lower().endswith('.otf'):
+            font_format = 'opentype'
+        elif font_path.lower().endswith('.ttf'):
+            font_format = 'truetype'
+        else:
+            raise ValueError("Unsupported font format. Please provide a .otf or .ttf file.")
+
         header = f'''
             @font-face {{
-                font-family: '{font.get_name()}';
-                src: url('/fonts/{font_path}') format('{get_font_format(font_path)}');
+                font-family: '{self.font_name}';
+                src: url('/fonts/{font_path}') format('{font_format}');
             }}
         '''
         return textwrap.dedent(header)
-    else:
-        return None
-
-
-class FontEnum(Enum):
-    """Font Enum."""
-    ANNOTATION = FontProperties(weight="bold")
-    TITLE = (FontProperties(family="Lobster", fname=os.path.join(FONTS_DIR, "Lobster.ttf")),
-             FontProperties(family="Verdana"),
-             FontProperties(family="Comic Sans MS"),
-             FontProperties(family="Monoton", fname=os.path.join(FONTS_DIR, "Monoton.ttf")),
-             FontProperties(family="GochiHand", fname=os.path.join(FONTS_DIR, "GochiHand.ttf")),
-             FontProperties(family="Emilio20", fname=os.path.join(FONTS_DIR, "Emilio20.ttf")),
-             FontProperties(family="AllertaStencil", fname=os.path.join(FONTS_DIR, "AllertaStencil.ttf"))
-    )
-    STATS = FontProperties(family="Lobster", fname=os.path.join(FONTS_DIR, "Lobster.ttf"))
-

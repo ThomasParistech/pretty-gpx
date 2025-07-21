@@ -8,7 +8,7 @@ from pretty_gpx.common.drawing.components.annotated_scatter import AnnotatedScat
 from pretty_gpx.common.drawing.components.annotated_scatter import ScatterParams
 from pretty_gpx.common.drawing.utils.color_theme import DarkTheme
 from pretty_gpx.common.drawing.utils.drawing_figure import A4Float
-from pretty_gpx.common.drawing.utils.fonts import FontEnum
+from pretty_gpx.common.drawing.utils.fonts import CustomFont
 from pretty_gpx.common.drawing.utils.plt_marker import MarkerType
 from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MOUNTAIN_COLOR_THEMES
@@ -69,7 +69,7 @@ class MountainParams:
                 ScatterPointCategory.END: AnnotatedScatterParams(arrow_linewidth=A4Float(mm=0.5),
                                                                  fontsize=A4Float(mm=3.0))
             },
-            annot_fontproperties=FontEnum.ANNOTATION.value,
+            annot_fontproperties=CustomFont.DEJA_VU_SANS_BOLD.value,
             annot_ha="center",
             annot_va="center",
             mountain_background_color=MOUNTAIN_COLOR_THEMES[DarkTheme.BLUE_PURPLE_YELLOW].background_color,
@@ -89,9 +89,9 @@ class MountainParams:
             profile_fill_color="green",
             profile_font_color="black",
             profile_font_size=A4Float(mm=14),
-            profile_fontproperties=FontEnum.STATS.value,
+            profile_fontproperties=CustomFont.LOBSTER.value,
 
             centered_title_font_color="cyan",
             centered_title_font_size=A4Float(mm=20),
-            centered_title_fontproperties=FontEnum.TITLE.value[0]
+            centered_title_fontproperties=CustomFont.LOBSTER.value
         )
