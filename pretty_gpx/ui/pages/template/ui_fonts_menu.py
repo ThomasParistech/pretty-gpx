@@ -1,18 +1,14 @@
 #!/usr/bin/python3
 """Ui Fonts Menu, to select a font from a list."""
-import os
 from collections.abc import Awaitable
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Self
 
 from matplotlib.font_manager import FontProperties
-from nicegui import app
 from nicegui import ui
 
 from pretty_gpx.common.drawing.utils.fonts import get_css_header
-from pretty_gpx.common.utils.paths import FONTS_DIR
-from pretty_gpx.common.utils.utils import safe
 
 
 @dataclass
