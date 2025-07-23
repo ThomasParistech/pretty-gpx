@@ -61,8 +61,8 @@ class CityUiManager(UiManager[CityDrawer]):
         self.drawer.params.profile_fill_color = theme.track_color
         self.drawer.params.profile_font_color = theme.background_color
         self.drawer.params.centered_title_font_color = theme.point_color
-
-        self.drawer.params.centered_title_fontproperties = self.font.value.value
+        self.drawer.params.centered_title_fontproperties = self.font.font.value
+        self.drawer.params.centered_title_font_size = self.font._current_fontsize
 
         for cat in [ScatterPointCategory.CITY_BRIDGE,
                     ScatterPointCategory.CITY_POI_DEFAULT,

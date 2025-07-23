@@ -33,6 +33,14 @@ class A4Float:
         scale = paper_size.diag_mm/PAPER_SIZES['A4'].diag_mm
         return mm_to_point(self.__val_mm)*scale
 
+    def __mul__(self, other: float) -> 'A4Float':
+        """Multiply the A4Float by a scalar."""
+        return A4Float(mm=self.__val_mm * other)
+
+    def __truediv__(self, other: float) -> 'A4Float':
+        """Divide the A4Float by a scalar."""
+        return A4Float(mm=self.__val_mm / other)
+
 
 class MetersFloat:
     """Scales a meter measurement to points based on paper size and GPX bounds."""

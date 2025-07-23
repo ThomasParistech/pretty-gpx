@@ -18,12 +18,13 @@ from pretty_gpx.common.drawing.utils.color_theme import DarkTheme
 from pretty_gpx.common.drawing.utils.color_theme import LightTheme
 from pretty_gpx.common.drawing.utils.drawer import DrawerMultiTrack
 from pretty_gpx.common.drawing.utils.drawer import DrawerSingleTrack
+from pretty_gpx.common.drawing.utils.drawing_figure import A4Float
 from pretty_gpx.common.drawing.utils.fonts import CustomFont
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile_parallel
-from pretty_gpx.ui.pages.template.ui_fonts_menu import UiFontsMenu
+from pretty_gpx.ui.pages.template.ui_font_and_size_select import UiFontAndSizeSelect
 from pretty_gpx.ui.pages.template.ui_input import UiInputFloat
 from pretty_gpx.ui.pages.template.ui_input import UiInputStr
 from pretty_gpx.ui.pages.template.ui_plot import UiPlot
@@ -126,7 +127,7 @@ class UiManager(Generic[T], ABC):
     paper_size: UiToggle[PaperSize]
     title: UiInputStr
     dist_km: UiInputFloat
-    font: UiFontsMenu
+    font: UiFontAndSizeSelect
     dark_mode_switch: ui.switch
     theme: UiToggle[DarkTheme] | UiToggle[LightTheme]
 
@@ -206,17 +207,18 @@ class UiManager(Generic[T], ABC):
             #
 
         with self.subclass_column:
+            self.font = UiFontAndSizeSelect(label="Title's Font",
+                                            fonts=(CustomFont.LOBSTER,
+                                                   CustomFont.MONOTON,
+                                                   CustomFont.GOCHI_HAND,
+                                                   CustomFont.EMILIO_20,
+                                                   CustomFont.ALLERTA_STENCIL),
+                                            start_fontsize=A4Float(mm=20),
+                                            on_change=self.on_click_update)
             self.title = UiInputStr.create(label='Title', value="Title", tooltip="Press Enter to update title",
                                            on_enter=self.on_click_update)
             self.dist_km = UiInputFloat.create(label='Distance (km)', value="", on_enter=self.on_click_update,
                                                tooltip="Press Enter to override distance from GPX")
-            self.font = UiFontsMenu.create(fonts=(CustomFont.LOBSTER,
-                                                  CustomFont.MONOTON,
-                                                  CustomFont.GOCHI_HAND,
-                                                  CustomFont.EMILIO_20,
-                                                  CustomFont.ALLERTA_STENCIL),
-                                           on_change=self.on_click_update,
-                                           tooltip="Select the title's font")
 
             #
             # New fields will be added here by the subclass
