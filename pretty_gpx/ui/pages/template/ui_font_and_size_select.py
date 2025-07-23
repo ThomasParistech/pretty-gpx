@@ -41,10 +41,12 @@ class UiFontAndSizeSelect:
                     await on_change()
                 return handler
 
-            ui.button(icon='remove', on_click=on_click_minus()
-                      ).props('dense round').classes('bg-white text-black border border-black')
-            ui.button(icon='add', on_click=on_click_plus()
-                      ).props('dense round').classes('bg-white text-black border border-black')
+            with ui.button(icon='remove', on_click=on_click_minus()
+                           ).props('dense round').classes('bg-white text-black border border-black'):
+                ui.tooltip('Decrease font size')
+            with ui.button(icon='add', on_click=on_click_plus()
+                           ).props('dense round').classes('bg-white text-black border border-black'):
+                ui.tooltip('Increase font size')
 
         ###
 
