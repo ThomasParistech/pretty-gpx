@@ -57,7 +57,7 @@ class MountainUiManager(UiManager[MountainDrawer]):
         self.drawer.params.profile_font_color = theme.background_color
         self.drawer.params.centered_title_font_color = theme.peak_color
         self.drawer.params.centered_title_fontproperties = self.font.font.value
-        self.drawer.params.centered_title_font_size = self.font.fontsize
+        self.drawer.params.centered_title_font_size = self.font._current_fontsize
 
         for cat in [ScatterPointCategory.MOUNTAIN_PASS,
                     ScatterPointCategory.START,

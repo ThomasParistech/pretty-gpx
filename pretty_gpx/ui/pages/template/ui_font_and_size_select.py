@@ -30,14 +30,14 @@ class UiFontAndSizeSelect:
             def on_click_minus() -> Callable[[], Awaitable[None]]:
                 """On click minus handler."""
                 async def handler() -> None:
-                    self.fontsize /= fontsize_geometric_step
+                    self._current_fontsize /= fontsize_geometric_step
                     await on_change()
                 return handler
 
             def on_click_plus() -> Callable[[], Awaitable[None]]:
                 """On click plus handler."""
                 async def handler() -> None:
-                    self.fontsize *= fontsize_geometric_step
+                    self._current_fontsize *= fontsize_geometric_step
                     await on_change()
                 return handler
 
@@ -50,10 +50,15 @@ class UiFontAndSizeSelect:
 
         ###
 
-        self.font_select = font_select
-        self.fontsize = start_fontsize
+        self._font_select = font_select
+        self._current_fontsize = start_fontsize
 
     @property
     def font(self) -> CustomFont:
         """Return the selected font."""
-        return self.font_select.font
+        return self._font_select.font
+
+    @property
+    def fontsize(self) -> A4Float:
+        """Return the selected fontsize."""
+        return self._current_fontsize
