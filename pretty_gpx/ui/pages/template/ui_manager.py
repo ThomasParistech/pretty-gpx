@@ -19,7 +19,7 @@ from pretty_gpx.common.drawing.utils.color_theme import LightTheme
 from pretty_gpx.common.drawing.utils.drawer import DrawerMultiTrack
 from pretty_gpx.common.drawing.utils.drawer import DrawerSingleTrack
 from pretty_gpx.common.drawing.utils.drawing_figure import A4Float
-from pretty_gpx.common.drawing.utils.fonts import CustomFont
+from pretty_gpx.common.drawing.utils.fonts import TITLE_FONTS
 from pretty_gpx.common.layout.paper_size import PAPER_SIZES
 from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.logger import logger
@@ -208,11 +208,7 @@ class UiManager(Generic[T], ABC):
 
         with self.subclass_column:
             self.font = UiFontAndSizeSelect(label="Title's Font",
-                                            fonts=(CustomFont.LOBSTER,
-                                                   CustomFont.MONOTON,
-                                                   CustomFont.GOCHI_HAND,
-                                                   CustomFont.EMILIO_20,
-                                                   CustomFont.ALLERTA_STENCIL),
+                                            fonts=TITLE_FONTS,
                                             start_fontsize=A4Float(mm=20),
                                             on_change=self.on_click_update)
             self.title = UiInputStr.create(label='Title', value="Title", tooltip="Press Enter to update title",

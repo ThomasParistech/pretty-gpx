@@ -2,12 +2,15 @@
 """Multi Mountain Page."""
 from dataclasses import dataclass
 
+from pretty_gpx.common.drawing.utils.drawing_figure import A4Float
+from pretty_gpx.common.drawing.utils.fonts import STATS_FONTS
 from pretty_gpx.common.drawing.utils.plt_marker import MarkerType
 from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
 from pretty_gpx.rendering_modes.mountain.drawing.hillshading import AZIMUTHS
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MOUNTAIN_COLOR_THEMES
 from pretty_gpx.rendering_modes.multi_mountain.drawing.multi_mountain_drawer import MultiMountainDrawer
 from pretty_gpx.rendering_modes.multi_mountain.drawing.multi_mountain_params import MultiMountainParams
+from pretty_gpx.ui.pages.template.ui_font_and_size_select import UiFontAndSizeSelect
 from pretty_gpx.ui.pages.template.ui_icon_toggle import UiIconToggle
 from pretty_gpx.ui.pages.template.ui_input import UiInputInt
 from pretty_gpx.ui.pages.template.ui_manager import UiManager
@@ -25,6 +28,7 @@ class MultiMountainUiManager(UiManager[MultiMountainDrawer]):
     uphill: UiInputInt
     azimuth: UiToggle[int]
     hut_icon: UiIconToggle
+    stats_font: UiFontAndSizeSelect
 
     def __init__(self) -> None:
         drawer = MultiMountainDrawer(params=MultiMountainParams.default(),
@@ -41,6 +45,10 @@ class MultiMountainUiManager(UiManager[MultiMountainDrawer]):
                                                 on_change=self.on_click_update)
             self.hut_icon = UiIconToggle(markers=[MarkerType.HOUSE, MarkerType.CAMPING],
                                          on_change=self.on_click_update)
+            self.stats_font = UiFontAndSizeSelect(label="Stats' Font",
+                                                  fonts=STATS_FONTS,
+                                                  start_fontsize=A4Float(mm=14),
+                                                  on_change=self.on_click_update)
 
     @staticmethod
     def get_chat_msg() -> list[str]:
@@ -62,8 +70,12 @@ class MultiMountainUiManager(UiManager[MultiMountainDrawer]):
         self.drawer.params.mountain_background_color = theme.background_color
         self.drawer.params.mountain_dark_mode = theme.dark_mode
         self.drawer.params.mountain_azimuth = self.azimuth.value
+
         self.drawer.params.profile_fill_color = theme.track_color
         self.drawer.params.profile_font_color = theme.background_color
+        self.drawer.params.profile_font_size = self.stats_font.fontsize
+        self.drawer.params.profile_fontproperties = self.stats_font.font.value
+
         self.drawer.params.centered_title_font_color = theme.peak_color
         self.drawer.params.centered_title_fontproperties = self.font.font.value
         self.drawer.params.centered_title_font_size = self.font._current_fontsize

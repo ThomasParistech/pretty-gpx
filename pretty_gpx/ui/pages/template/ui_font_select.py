@@ -44,7 +44,7 @@ class UiFontSelect:
                 if font_css_header is not None:
                     ui.add_css(font_css_header)
 
-            items = [ui.item(font.font_name, on_click=on_click_idx(idx))
+            items = [ui.item(font.name.title().replace("_", " "), on_click=on_click_idx(idx))
                      .style(f'font-family:"{font.font_name}";')
                      for idx, font in enumerate(fonts)]
 

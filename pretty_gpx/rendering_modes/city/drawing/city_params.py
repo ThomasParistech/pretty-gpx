@@ -9,7 +9,9 @@ from pretty_gpx.common.drawing.components.annotated_scatter import ScatterParams
 from pretty_gpx.common.drawing.utils.color_theme import DarkTheme
 from pretty_gpx.common.drawing.utils.drawing_figure import A4Float
 from pretty_gpx.common.drawing.utils.drawing_figure import MetersFloat
+from pretty_gpx.common.drawing.utils.fonts import ANNOTATION_FONT
 from pretty_gpx.common.drawing.utils.fonts import CustomFont
+from pretty_gpx.common.drawing.utils.fonts import TITLE_FONTS
 from pretty_gpx.common.drawing.utils.plt_marker import MarkerType
 from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
 from pretty_gpx.rendering_modes.city.data.roads import CityRoadPrecision
@@ -85,7 +87,7 @@ class CityParams:
                 ScatterPointCategory.END: AnnotatedScatterParams(arrow_linewidth=A4Float(mm=0.5),
                                                                  fontsize=A4Float(mm=3.0))
             },
-            annot_fontproperties=CustomFont.DEJA_VU_SANS_BOLD.value,
+            annot_fontproperties=ANNOTATION_FONT.value,
             annot_ha="center",
             annot_va="center",
             city_roads_lw={
@@ -124,5 +126,5 @@ class CityParams:
 
             centered_title_font_color="cyan",
             centered_title_font_size=A4Float(mm=20),
-            centered_title_fontproperties=CustomFont.LOBSTER.value
+            centered_title_fontproperties=TITLE_FONTS[0].value
         )

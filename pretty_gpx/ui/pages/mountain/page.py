@@ -2,11 +2,14 @@
 """Mountain Page."""
 from dataclasses import dataclass
 
+from pretty_gpx.common.drawing.utils.drawing_figure import A4Float
+from pretty_gpx.common.drawing.utils.fonts import STATS_FONTS
 from pretty_gpx.common.drawing.utils.scatter_point import ScatterPointCategory
 from pretty_gpx.rendering_modes.mountain.drawing.hillshading import AZIMUTHS
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_colors import MOUNTAIN_COLOR_THEMES
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_drawer import MountainDrawer
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_params import MountainParams
+from pretty_gpx.ui.pages.template.ui_font_and_size_select import UiFontAndSizeSelect
 from pretty_gpx.ui.pages.template.ui_input import UiInputInt
 from pretty_gpx.ui.pages.template.ui_manager import UiManager
 from pretty_gpx.ui.pages.template.ui_toggle import UiToggle
@@ -22,6 +25,7 @@ class MountainUiManager(UiManager[MountainDrawer]):
     """Mountain Ui Manager."""
     uphill: UiInputInt
     azimuth: UiToggle[int]
+    stats_font: UiFontAndSizeSelect
 
     def __init__(self) -> None:
         drawer = MountainDrawer(params=MountainParams.default(), top_ratio=0.18, bot_ratio=0.22, margin_ratio=0.1)
@@ -35,6 +39,10 @@ class MountainUiManager(UiManager[MountainDrawer]):
             self.azimuth = UiToggle[int].create(mapping=AZIMUTHS,
                                                 tooltip="Select the azimuth angle for the hillshading",
                                                 on_change=self.on_click_update)
+            self.stats_font = UiFontAndSizeSelect(label="Stats' Font",
+                                                  fonts=STATS_FONTS,
+                                                  start_fontsize=A4Float(mm=14),
+                                                  on_change=self.on_click_update)
 
     @staticmethod
     def get_chat_msg() -> list[str]:
@@ -53,8 +61,12 @@ class MountainUiManager(UiManager[MountainDrawer]):
         self.drawer.params.mountain_background_color = theme.background_color
         self.drawer.params.mountain_dark_mode = theme.dark_mode
         self.drawer.params.mountain_azimuth = self.azimuth.value
+
         self.drawer.params.profile_fill_color = theme.track_color
         self.drawer.params.profile_font_color = theme.background_color
+        self.drawer.params.profile_font_size = self.stats_font.fontsize
+        self.drawer.params.profile_fontproperties = self.stats_font.font.value
+
         self.drawer.params.centered_title_font_color = theme.peak_color
         self.drawer.params.centered_title_fontproperties = self.font.font.value
         self.drawer.params.centered_title_font_size = self.font._current_fontsize
