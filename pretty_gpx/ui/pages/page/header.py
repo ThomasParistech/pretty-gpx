@@ -50,5 +50,5 @@ def add_header(body: Callable[[], None], mode_name: str | None) -> Callable[[], 
 def svg_to_html(svg_path: str) -> ui.html:
     """Load SVG icon and convert to ui.html."""
     assert_isfile(svg_path)
-    with open(svg_path) as f:
+    with open(svg_path, encoding="utf-8") as f:
         return ui.html(f.read())

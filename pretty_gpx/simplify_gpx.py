@@ -14,7 +14,7 @@ def main(input: str, max_distance_m: float) -> None:
     g.simplify(max_distance=max_distance_m)
 
     output = suffix_filename(input, "_simplified")
-    with open(output, "w") as f:
+    with open(output, "w", encoding="utf-8") as f:
         f.write(g.to_xml())
 
     logger.info(f"Saved simplified GPX to {output}")
