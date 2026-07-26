@@ -24,7 +24,7 @@ def load_gpxpy(gpx_path: str | bytes) -> GPX:
     """Load GPX file."""
     if isinstance(gpx_path, str):
         assert_isfile(gpx_path, ext='.gpx')
-        with open(gpx_path) as f:
+        with open(gpx_path, encoding="utf-8") as f:
             return gpxpy.parse(f)
 
     return gpxpy.parse(gpx_path)

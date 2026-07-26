@@ -35,7 +35,8 @@ def download_elevation_map(bounds: GpxBounds) -> np.ndarray:
             f.write(elevation, 1)
             f.update_tags(AREA_OR_POINT='Point')
 
-    elevation = rasterio.open(cache_tif).read()[0]
+    # Use raw string path to handle accented characters on Windows (see #99)
+    elevation = rasterio.open(str(cache_tif)).read()[0]
     assert_close((bounds.lat_max-bounds.lat_min)/(bounds.lon_max - bounds.lon_min),
                  elevation.shape[0]/elevation.shape[1], eps=5e-3, msg="Wrong aspect ratio for elevation map")
 
