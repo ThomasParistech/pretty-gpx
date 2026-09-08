@@ -40,9 +40,13 @@ class TextAllocationInput:
 
 @dataclass(kw_only=True)
 class TextAllocationOutput:
-    """Output of textalloc."""
-    texts_xy: list[tuple[float, float]] = field(default_factory=list)
-    lines_xy: list[tuple[tuple[float, float], tuple[float, float]]] = field(default_factory=list)
+    """Output of textalloc.
+
+    A `None` entry means textalloc couldn't find a non-overlapping spot for that text (e.g. too many
+    labels crammed in a small area) -- the corresponding label is dropped, its marker is still drawn.
+    """
+    texts_xy: list[tuple[float, float] | None] = field(default_factory=list)
+    lines_xy: list[tuple[tuple[float, float], tuple[float, float]] | None] = field(default_factory=list)
 
 
 @profile
@@ -90,12 +94,19 @@ def allocate_text(input: TextAllocationInput,
                                                  fontproperties=input.annot_fontproperties)
     output = TextAllocationOutput()
     assert_same_len((texts_xyz, lines_xyz, input.list_text_s))
-    for text, line in zip(texts_xyz, lines_xyz):
-        assert text is not None, "Failed to allocate text"
+    nbr_dropped = 0
+    for text, line, text_s in zip(texts_xyz, lines_xyz, input.list_text_s):
+        if text is None or line is None:
+            # Too many labels too close together for textalloc to find a non-overlapping spot.
+            # Drop this one label rather than failing the whole poster (its marker is still drawn).
+            nbr_dropped += 1
+            output.texts_xy.append(None)
+            output.lines_xy.append(None)
+            continue
+
         assert_len(text, 3)
         text_x, text_y, _ = text
 
-        assert line is not None
         assert_len(line, 3)
         line_x, line_y, _ = line
         assert_len(line_x, 2)
@@ -103,6 +114,10 @@ def allocate_text(input: TextAllocationInput,
 
         output.texts_xy.append((text_x, text_y))
         output.lines_xy.append((line_x, line_y))
+
+    if nbr_dropped > 0:
+        logger.warning(f"Could not allocate {nbr_dropped}/{len(input.list_text_s)} text labels "
+                       "(too many labels too close together): dropping them, keeping their markers.")
 
     if DEBUG:
         __debug_after(paper_size, background_bounds, mid_bounds, input, output)

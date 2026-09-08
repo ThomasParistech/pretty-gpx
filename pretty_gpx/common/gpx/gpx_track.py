@@ -146,7 +146,10 @@ def append_track_to_gpx_track(gpx_track: GpxTrack, track_points: list[GPXTrackPo
         gpx_track.list_ele_m.append(point.elevation)
 
         if prev_point is not None:
-            prev_cumul_dist_km += safe(prev_point.distance_3d(point)) * 1e-3
+            # Match gpxpy's own `length()` call order (point.distance_3d(previous)): its flat-earth
+            # approximation uses cos(latitude) of the `self` point only, so swapping the operands
+            # yields a (tiny but non-zero) different distance and breaks coherence with gpx.length_3d().
+            prev_cumul_dist_km += safe(point.distance_3d(prev_point)) * 1e-3
 
         gpx_track.list_cumul_dist_km.append(prev_cumul_dist_km)
 

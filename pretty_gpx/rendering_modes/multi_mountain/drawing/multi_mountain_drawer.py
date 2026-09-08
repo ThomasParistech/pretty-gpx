@@ -18,6 +18,8 @@ from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.layout.vertical_layout import VerticalLayoutUnion
 from pretty_gpx.common.request.overpass_request import OverpassQuery
 from pretty_gpx.common.utils.profile import profile
+from pretty_gpx.rendering_modes.mountain.data.mountain_passes import prepare_download_mountain_passes
+from pretty_gpx.rendering_modes.mountain.data.mountain_passes import process_mountain_passes
 from pretty_gpx.rendering_modes.mountain.drawing.mountain_background import MountainBackground
 from pretty_gpx.rendering_modes.multi_mountain.data.mountain_huts import prepare_download_mountain_huts
 from pretty_gpx.rendering_modes.multi_mountain.data.mountain_huts import process_mountain_huts
@@ -52,6 +54,7 @@ class MultiMountainDrawer(DrawerMultiTrack):
     def change_gpx(self, gpx_paths: list[str] | list[bytes], paper: PaperSize) -> None:
         """Load several GPX file to create a Multi Mountain Poster."""
         gpx_track = MultiGpxTrack.load(gpx_paths)
+        merged_track = gpx_track.merge()
         ele_ratio = 0.45
         bot_ratio, ele_ratio = handle_flat_elevation_profile(gpx_track, self.bot_ratio, ele_ratio)
 
@@ -62,15 +65,17 @@ class MultiMountainDrawer(DrawerMultiTrack):
 
         total_query = OverpassQuery()
         prepare_download_mountain_huts(total_query, gpx_track)
+        prepare_download_mountain_passes(total_query, merged_track)
         total_query.launch_queries()
 
         scatter_points = get_start_end_named_points(gpx_track)
         scatter_points += process_mountain_huts(total_query, gpx_track)
+        scatter_points += process_mountain_passes(total_query, merged_track)
         background = MountainBackground.from_union_bounds(layouts.union_bounds)
 
         layout = layouts.layouts[paper]
         background.change_papersize(paper, layout.background_bounds)
-        ele_profile = ElevationProfile.from_track(layout.bot_bounds, gpx_track.merge(), scatter_points,
+        ele_profile = ElevationProfile.from_track(layout.bot_bounds, merged_track, scatter_points,
                                                   ele_ratio=ele_ratio)
         title = CenteredTitle(bounds=layout.top_bounds)
         scatter_all = AnnotatedScatterAll.from_scatter(paper, layout.background_bounds, layout.mid_bounds,
