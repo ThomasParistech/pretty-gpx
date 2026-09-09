@@ -188,9 +188,13 @@ def profile_parallel(func: Callable[P, R]) -> Callable[P, tuple[R, list[Profilin
     @wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> tuple[R, list[ProfilingEvent]]:
         Profiling.set_bypass_queue("Parallel")
-        with Profiling.Scope(get_function_name(func)):
-            retval = func(*args, **kwargs)
-        events = Profiling.pop_bypass_queue()
+        try:
+            with Profiling.Scope(get_function_name(func)):
+                retval = func(*args, **kwargs)
+        finally:
+            # Always pop the bypass queue, even if `func` raised, so a failed call doesn't
+            # permanently block subsequent calls reusing the same worker process.
+            events = Profiling.pop_bypass_queue()
         return retval, events
     return wrapper
 

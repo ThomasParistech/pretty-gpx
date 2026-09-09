@@ -19,7 +19,6 @@ from pretty_gpx.common.layout.paper_size import PaperSize
 from pretty_gpx.common.utils.asserts import assert_eq
 from pretty_gpx.common.utils.asserts import assert_in
 from pretty_gpx.common.utils.asserts import assert_same_len
-from pretty_gpx.common.utils.utils import safe
 
 
 @dataclass
@@ -166,13 +165,14 @@ def finalize_text_allocation(paper_size: PaperSize,
         annot = None
         if scatter.name is not None:
             text, line = output.texts_xy[alloc_idx], output.lines_xy[alloc_idx]
-            text_x, text_y = safe(text)
-            line_x, line_y = safe(line)
-            annot = AnnotationArrow(text_s=input.list_text_s[alloc_idx],
-                                    text_lat=text_y,
-                                    text_lon=text_x,
-                                    arrow_begin_lat=line_y[0],
-                                    arrow_begin_lon=line_x[0])
+            if text is not None and line is not None:
+                text_x, text_y = text
+                line_x, line_y = line
+                annot = AnnotationArrow(text_s=input.list_text_s[alloc_idx],
+                                        text_lat=text_y,
+                                        text_lon=text_x,
+                                        arrow_begin_lat=line_y[0],
+                                        arrow_begin_lon=line_x[0])
             alloc_idx += 1
 
         res[scatter.category].list_lat.append(scatter.lat)
