@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """Drawing Component for Elevation Profile."""
-import math
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Protocol
@@ -137,10 +136,11 @@ class ElevationProfile:
         scatter_indices: dict[ScatterPointCategory, list[int]] = defaultdict(list)
         distances = get_pairwise_distance_m(lonlat_1=np.array([[sp.lon, sp.lat] for sp in points]),
                                             lonlat_2=np.stack([track.list_lon, track.list_lat], axis=-1))
-        float_argmin_indices = np.argmin(distances, axis=-1) * float(n_points)/len(track)
+        nearest_track_indices = np.argmin(distances, axis=-1)
 
-        for scatter, i in zip(points, float_argmin_indices):
-            i_int = math.floor(i)
+        for scatter, track_index in zip(points, nearest_track_indices):
+            # The profile is resampled by distance, not recorded point count.
+            i_int = int(np.argmin(np.abs(rel_poly_lon - normalized_poly_lon[track_index])))
             if scatter.category is ScatterPointCategory.START:
                 i_int = 0
             elif scatter.category is ScatterPointCategory.END:
