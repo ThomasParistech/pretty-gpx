@@ -151,10 +151,56 @@ class DrawingFigure:
              fontsize: A4Float | MetersFloat,
              font: FontProperties,
              ha: str,
-             va: str) -> None:
+             va: str,
+             wrap_bounds: GpxBounds | None = None) -> None:
         """Draw Text."""
         assert self.__is_open
-        self.__ax.text(lon, lat, s, c=color, fontsize=self._eval(fontsize), fontproperties=font, ha=ha, va=va)
+        label = self.__ax.text(lon, lat, s, c=color, fontsize=self._eval(fontsize),
+                               fontproperties=font, ha=ha, va=va)
+        if wrap_bounds is None or not s:
+            return
+
+        self.__ax.apply_aspect()
+        renderer = self.__fig.canvas.get_renderer()
+        transform = self.__ax.transData
+        left, bottom = transform.transform((wrap_bounds.lon_min, wrap_bounds.lat_min))
+        right, top = transform.transform((wrap_bounds.lon_max, wrap_bounds.lat_max))
+        # Leave a small inset so glyphs do not touch the title area's edges.
+        width = (right - left) * 0.96
+        height = (top - bottom) * 0.90
+
+        def fits_width(text: str) -> bool:
+            label.set_text(text)
+            return label.get_window_extent(renderer).width <= width
+
+        lines = []
+        for paragraph in s.split("\n"):
+            line = ""
+            for word in paragraph.split():
+                candidate = f"{line} {word}" if line else word
+                if fits_width(candidate):
+                    line = candidate
+                    continue
+                if line:
+                    lines.append(line)
+                line = ""
+                # Also handle titles containing a single word wider than the bar.
+                for char in word:
+                    if line and not fits_width(line + char):
+                        lines.append(line)
+                        line = ""
+                    line += char
+            lines.append(line)
+        label.set_text("\n".join(lines))
+        box = label.get_window_extent(renderer)
+        scale = min(1., width / max(box.width, 1.), height / max(box.height, 1.))
+        label.set_fontsize(label.get_fontsize() * scale)
+        box = label.get_window_extent(renderer)
+        # Keep the original title position whenever the wrapped text fits there.
+        dx = max(left - box.x0, 0.) - max(box.x1 - right, 0.)
+        dy = max(bottom - box.y0, 0.) - max(box.y1 - top, 0.)
+        x, y = transform.transform((lon, lat))
+        label.set_position(transform.inverted().transform((x + dx, y + dy)))
 
     @profile
     def polyline(self, *,

@@ -38,4 +38,4 @@ class CenteredTitle:
                  color=params.centered_title_font_color,
                  fontsize=params.centered_title_font_size,
                  font=params.centered_title_fontproperties,
-                 ha="center", va="center")
+                 ha="center", va="center", wrap_bounds=self.bounds)
