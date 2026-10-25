@@ -22,6 +22,27 @@ MOUNTAIN_PASSES_ARRAY_NAME = "mountain_passes"
 MOUNTAIN_PASS_CACHE = GpxDataCacheHandler(name='mountain_pass', extension='.pkl')
 
 
+def deduplicate_named_passes(points: list[ScatterPoint], gpx_track: GpxTrack) -> list[ScatterPoint]:
+    """Merge nearby OSM entries for the same named pass, preferring the route-side entry."""
+    if len(points) < 2:
+        return points
+    distances = gpx_track.get_distances_m(targets_lon_lat=[(p.lon, p.lat) for p in points])
+    selected: list[tuple[ScatterPoint, float]] = []
+    for point, route_distance in zip(points, distances):
+        name = ' '.join((point.name or '').split('\n')[0].casefold().split())
+        for i, (previous, previous_distance) in enumerate(selected):
+            previous_name = ' '.join((previous.name or '').split('\n')[0].casefold().split())
+            if (name and name == previous_name and
+                    get_distance_m(lonlat_1=(point.lon, point.lat),
+                                   lonlat_2=(previous.lon, previous.lat)) < 500):
+                if route_distance < previous_distance:
+                    selected[i] = (point, route_distance)
+                break
+        else:
+            selected.append((point, route_distance))
+    return [point for point, _ in selected]
+
+
 @profile
 def prepare_download_mountain_passes(query: OverpassQuery, gpx_track: GpxTrack) -> None:
     """Add the queries for mountain passes inside the global OverpassQuery."""
@@ -52,7 +73,7 @@ def process_mountain_passes(query: OverpassQuery, gpx_track: GpxTrack) -> list[S
     """Process the overpass API result to get the mountain passes."""
     if query.is_cached(MOUNTAIN_PASS_CACHE.name):
         cache_file = query.get_cache_file(MOUNTAIN_PASS_CACHE.name)
-        return read_pickle(cache_file)
+        return deduplicate_named_passes(read_pickle(cache_file), gpx_track)
 
     with Profiling.Scope("Process Mountain Passes"):
         results = query.get_query_result(MOUNTAIN_PASSES_ARRAY_NAME)
@@ -81,6 +102,7 @@ def process_mountain_passes(query: OverpassQuery, gpx_track: GpxTrack) -> list[S
             candidates = [pt for pt, d_m in zip(candidates, distances_m) if d_m < 50]
 
             if len(candidates) != 0:
+                candidates = deduplicate_named_passes(candidates, gpx_track)
                 # Remove duplicates
                 for pt in candidates:
                     if len(passes) == 0 or np.min(get_distance_m(lonlat_1=(pt.lon, pt.lat),
