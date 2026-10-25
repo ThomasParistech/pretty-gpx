@@ -34,7 +34,7 @@ RUN mkdir -p /home/dock/.config/matplotlib && \
     chown -R ${USER}:${GROUP} /home/dock/.config/matplotlib
 
 # Set the PYTHONPATH environment variable
-ENV PYTHONPATH $PYTHONPATH:"/workspaces/pretty_gpx"
+ENV PYTHONPATH=/workspaces/pretty-gpx
 
 # Set the MPLCONFIGDIR environment variable
 ENV MPLCONFIGDIR=/home/dock/.config/matplotlib

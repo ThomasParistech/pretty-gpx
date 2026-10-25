@@ -17,20 +17,5 @@
     "capAdd": [
         "SYS_PTRACE"
     ],
-    "containerEnv": {
-        "DISPLAY": "${localEnv:DISPLAY}"
-    },
-    "mounts": [
-        {
-            "source": "/tmp/.X11-unix/",
-            "target": "/tmp/.X11-unix/",
-            "type": "bind"
-        },
-        {
-            "source": "/root/.cache/pip",
-            "target": "/root/.cache/pip",
-            "type": "bind"
-        }
-    ],
     "remoteUser": "dock"
 }
