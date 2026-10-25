@@ -4,6 +4,7 @@
 from dataclasses import dataclass
 from dataclasses import field
 from io import BytesIO
+from time import sleep
 from typing import Any
 
 import orjson
@@ -21,6 +22,14 @@ from pretty_gpx.common.utils.logger import logger
 from pretty_gpx.common.utils.profile import profile
 from pretty_gpx.common.utils.profile import Profiling
 from pretty_gpx.common.utils.utils import convert_bytes
+
+OVERPASS_ENDPOINTS = (
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.private.coffee/api/interpreter'
+)
+# Allow the server's default 300-second query timeout to finish before the read timeout.
+OVERPASS_REQUEST_TIMEOUT = (15, 330)
+OVERPASS_RETRY_ROUNDS = 3
 
 
 @dataclass
@@ -199,32 +208,57 @@ class OverpassQuery:
 
 @profile
 def download_query(query: str) -> dict[str, Any]:
-    """Download the query from Overpass API."""
-    endpoint = 'http://overpass-api.de/api/interpreter'
+    """Download map data, falling back to another server on transient failures."""
     headers = {
         'User-Agent': 'Pretty-gpx/ (https://github.com/ThomasParistech/pretty-gpx)',
         'Content-Type': 'application/x-www-form-urlencoded'
     }
     data = {'data': query}
 
-    with Profiling.Scope("Download overpass data"):
-        try:
-            response = requests.post(endpoint, headers=headers, data=data, stream=True)
-            response.raise_for_status()
-        except requests.RequestException as err:
-            msg = "The requested data could not be downloaded. Please check your internet connection."
-            logger.exception(msg)
-            raise Exception(msg, err)
+    if not OVERPASS_ENDPOINTS:
+        raise RuntimeError("No Overpass servers are configured.")
 
-    with Profiling.Scope("Reading data in chunks"):
-        content_bytes = BytesIO()
-        chunk_size = 8192
-        for chunk in response.iter_content(chunk_size=chunk_size):
-            content_bytes.write(chunk)
-        content_bytes.seek(0)
+    last_error: Exception | None = None
+    for retry_round in range(OVERPASS_RETRY_ROUNDS):
+        if retry_round:
+            delay_s = 5 * 2 ** (retry_round - 1)
+            logger.info("Overpass servers are unavailable; retrying in %s seconds (round %s/%s)",
+                        delay_s, retry_round + 1, OVERPASS_RETRY_ROUNDS)
+            sleep(delay_s)
+        for endpoint in OVERPASS_ENDPOINTS:
+            try:
+                with Profiling.Scope("Download overpass data"):
+                    with requests.post(endpoint, headers=headers, data=data, stream=True,
+                                       timeout=OVERPASS_REQUEST_TIMEOUT) as response:
+                        response.raise_for_status()
+                        with Profiling.Scope("Reading data in chunks"):
+                            content_bytes = BytesIO()
+                            for chunk in response.iter_content(chunk_size=8192):
+                                content_bytes.write(chunk)
+                with Profiling.Scope("Loading data into JSON"):
+                    logger.info(f"Downloaded {convert_bytes(content_bytes.getbuffer().nbytes)}")
+                    result = orjson.loads(content_bytes.getvalue())
+                if not isinstance(result, dict) or not isinstance(result.get("elements"), list):
+                    raise ValueError("The map-data server returned an invalid response.")
+                if result.get("remark"):
+                    remark = str(result['remark'])
+                    # Only transient runtime errors should repeat an expensive query.
+                    if any(reason in remark.lower() for reason in
+                           ("timed out", "timeout", "server is probably too busy", "rate limit")):
+                        raise requests.Timeout(remark)
+                    raise RuntimeError(f"The map-data server could not complete the query: {remark}")
+                return result
+            except (requests.RequestException, ValueError) as err:
+                if isinstance(err, requests.HTTPError) and err.response is not None:
+                    status = err.response.status_code
+                    if status not in (408, 429) and status < 500:
+                        raise RuntimeError(f"The map-data server rejected the request (HTTP {status}).") from err
+                last_error = err
+                logger.warning("Map-data download from %s failed (round %s/%s): %s",
+                               endpoint, retry_round + 1, OVERPASS_RETRY_ROUNDS, err)
 
-    with Profiling.Scope("Loading data into JSON"):
-        logger.info(f"Downloaded {convert_bytes(content_bytes.getbuffer().nbytes)}")
-        data = orjson.loads(content_bytes.getvalue())
-
-    return data
+    raise RuntimeError(
+        "Map data could not be downloaded from any Overpass server after automatic retries. "
+        "The servers may be busy or temporarily unavailable. Please try again later. "
+        f"Last error: {last_error}"
+    ) from last_error
