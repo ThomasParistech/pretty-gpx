@@ -111,7 +111,7 @@ def get_rivers_polygons_from_lines(api_result: Result,
             continue
         ways_coords.extend([[(float(node.lon), float(node.lat)) for node in way.nodes
                              if node.lat is not None and node.lon is not None]])
-        new_polygons = []
+    new_polygons: list[ShapelyPolygon] = []
     for segment in ways_coords:
         line = LineString(segment)
         line = cast(LineString, line.simplify(0.5 * np.rad2deg(width / EARTH_RADIUS_M)))
