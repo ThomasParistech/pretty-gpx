@@ -15,7 +15,7 @@ from pretty_gpx.common.utils.profile import profile
 @profile
 def get_place_name(*, lon: float, lat: float) -> str:
     """Get the name of a place from its coordinates."""
-    place_types = ["city", "town", "village", "locality", "hamlet"]
+    place_types = ["city", "town", "village", "locality", "hamlet", "municipality"]
 
     geolocator = Nominatim(user_agent="Place-Guesser")
     location = geolocator.reverse((lat, lon), exactly_one=True)
@@ -26,10 +26,6 @@ def get_place_name(*, lon: float, lat: float) -> str:
         place_name = address.get(place_type, None)
         if place_name is not None:
             return place_name
-
-    # for key, place_name in address.items():
-    #     if key in place_types:
-    #         return place_name
 
     raise RuntimeError(f"Place Not found at {lat:.3f}, {lon:.3f}. Got {address}")
 
